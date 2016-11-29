@@ -2,13 +2,23 @@
 #include <SDL/SDL_surface.h>
 
 #include <iostream>
+#include <memory>
 #include <stdlib.h>
 #include <emscripten.h>
 
 using namespace std;
 
-template <typename SetPixel>
-void mandelbrot(float x1, float y1, float stepX, float stepY, int resX, int resY, SetPixel setPixel) {
+struct DoNotDelete {
+  void operator()(void *ptr) {}
+};
+
+struct Void {};
+
+typedef unique_ptr<Void,DoNotDelete> RealWorld;
+
+template <typename SetPixel, typename S>
+S mandelbrot(S state0, SetPixel setPixel, float x1, float y1, float stepX, float stepY, int resX, int resY) {
+  S state = move(state0);
   float y = y1;
   for (int i = 0; i < resY; ++i, y += stepY) {
     float x = x1;
@@ -32,9 +42,24 @@ void mandelbrot(float x1, float y1, float stepX, float stepY, int resX, int resY
         zb = zb2;
         zm = zm2;
       }
-      setPixel(j, i, k);
+      state = move(setPixel(move(state), j, i, k));
     }
   }
+  return state;
+}
+
+template <typename SetPixel>
+RealWorld interpreter(RealWorld realWorld, SetPixel setPixel) {
+  return move(mandelbrot(
+    move(realWorld),
+    setPixel,
+    -2.0f,
+    -2.0f * 480.0 / 640.0,
+    4.0f / 640.0,
+    4.0f / 640.0,
+    640,
+    480
+  ));
 }
 
 void mainLoop(void* unused) {
@@ -77,16 +102,15 @@ int main(int argc, char** argv) {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   SDL_RenderDrawPoint(renderer, 50, 50);
 
-  mandelbrot(
-    -2.0f,
-    -2.0f * 480.0 / 640.0,
-    4.0f / 640.0,
-    4.0f / 640.0,
-    640,
-    480,
-    [renderer](int x, int y, int c) {
+  Void realWorldState;
+  RealWorld realWorld = unique_ptr<Void,DoNotDelete>(&realWorldState);
+
+  RealWorld realWorld2 = interpreter(
+    move(realWorld),
+    [renderer](RealWorld realWorld, int x, int y, int c) {
       SDL_SetRenderDrawColor(renderer, (c*5) & 0xFF, 0, 0, 255);
       SDL_RenderDrawPoint(renderer, x, y);
+      return realWorld;
     }
   );
 
