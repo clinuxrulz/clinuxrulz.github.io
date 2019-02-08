@@ -1,15 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/1.0.11/custom-elements-es5-adapter.js"></script>
+        <script src="js/webcomponents-lite.js"></script>
+        <style>
+            .flex-container {
+                display: flex;
+            }
+
+            .flex-vertical {
+                flex-direction: column;
+            }
+        </style>
     </head>
     <body>
         <script  type="text/javascript" src="online-quote.js"></script>
 
-        Span: <input id="txtSpan" type="text" value="6000"/><br/>
-        Length: <input id="txtLength" type="text" value="12000"/><br/>
-        Height: <input id="txtHeight" type="text" value="2400"/><br/>
-        Pitch: <input id="txtPitch" type="text" value="15"/><br/>
+        <script>
+            function openProperties(propertiesName) {
+                var i;
+                var x = document.getElementsByClassName("properties");
+                for (i = 0; i < x.length; i++) {
+                    x[i].style.display = "none"; 
+                }
+                document.getElementById(propertiesName).style.display = "block"; 
+            }
+        </script>
 
-        <canvas id="canvas" width="800" height="600"></canvas>
+        <div class="flex-container" width="100%">
+            <div style="width:100%">
+                <canvas id="canvas" width="800" height="600"></canvas>
+            </div>
+            <div>
+                <div id="shedTypeProperties" class="properties">
+                    Span: <input id="txtSpan" type="text" value="6000"/><br/>
+                    Length: <input id="txtLength" type="text" value="12000"/><br/>
+                    Height: <input id="txtHeight" type="text" value="2400"/><br/>
+                    Pitch: <input id="txtPitch" type="text" value="15"/><br/>
+                </div>
+                <div id="windowsDoorsSkylightsProperties" class="properties" style="display:none">
+                    Tab a wall or a roof segment to zoom in and configure doors, windows, skylights.
+                </div>
+                <div id="todoProperties" class="properties" style="display:none">
+                    TODO
+                </div>
+            </div>
+            <div class="flex-container flex-vertical">
+                <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Shed Type</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Lean-Tos</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Walls</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('windowsDoorsSkylightsProperties')">Windows, Doors & Skylights</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Colours & Claddings</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Options</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Save & Share</button>
+            </div>
+        </div>
     </body>
 </html>
