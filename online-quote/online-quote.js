@@ -119,7 +119,7 @@ var App = /** @class */ (function () {
         camera.position.z = 10000.0;
         controls.update();
         renderer.render(scene, camera);
-        TextureLoader_1.loadGrass()
+        TextureLoader_1.loadGrass2()
             .then(function (image) {
             textureLoader.load(image.src, function onLoad(texture) {
                 texture.wrapS = THREE.RepeatWrapping;
@@ -448,6 +448,24 @@ function loadGrass() {
     });
 }
 exports.loadGrass = loadGrass;
+function loadGrass2() {
+    return fetch("textures/grass.jpg")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(function (blob) {
+        var objectURL = URL.createObjectURL(blob);
+        var image = new Image();
+        image.src = objectURL;
+        return image;
+    });
+}
+exports.loadGrass2 = loadGrass2;
 function loadSky() {
     var zip = new JSZip();
     return fetch("textures/sky.zip")
