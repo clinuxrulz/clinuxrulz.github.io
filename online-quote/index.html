@@ -17,13 +17,15 @@
         <script  type="text/javascript" src="online-quote.js"></script>
 
         <script>
+            var openPropertiesAppCallback = function(propertiesName) {};
             function openProperties(propertiesName) {
                 var i;
                 var x = document.getElementsByClassName("properties");
                 for (i = 0; i < x.length; i++) {
                     x[i].style.display = "none"; 
                 }
-                document.getElementById(propertiesName).style.display = "block"; 
+                document.getElementById(propertiesName).style.display = "block";
+                openPropertiesAppCallback(propertiesName);
             }
         </script>
 
