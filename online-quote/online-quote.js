@@ -89,7 +89,7 @@ var App = /** @class */ (function () {
                     if (mkModelEffect == null) {
                         return;
                     }
-                    var pModel = mkModelEffect(textureLoader);
+                    var pModel = mkModelEffect.mkModel(textureLoader);
                     pModel.then(function (model) {
                         if (lastModel != null) {
                             scene.remove(lastModel.threeObject3D);
@@ -897,7 +897,7 @@ var Bay = /** @class */ (function () {
             _this._cStableName = params.cStableName;
             _this._cModel =
                 params.cAxes.lift5(params.cOutline, params.cCladdingTextureType, params.cCladdingTextureColour, params.cTextureSpace, function (axes, outline, claddingTextureType, claddingTextureColour, textureSpace) {
-                    return (function (textureLoader) {
+                    return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
                         var geometry = new THREE.Geometry();
                         outline.forEach(function (pt) {
                             var pt2 = axes.pointFromThisSpace(pt.toVector3D());
@@ -1010,8 +1010,9 @@ ___scope___.file("app/MkModelEffect.js", function(exports, require, module, __fi
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
-var SodiumUtil = require("./SodiumUtil");
+var Option_1 = require("./Option");
 var PromiseUtil = require("./PromiseUtil");
+var SodiumUtil = require("./SodiumUtil");
 var THREE = require("three");
 var Model = /** @class */ (function () {
     function Model(initCallback, threeObject3D) {
@@ -1041,6 +1042,28 @@ var Model = /** @class */ (function () {
     return Model;
 }());
 exports.Model = Model;
+var MkModelEffect = /** @class */ (function () {
+    function MkModelEffect(mkModelEffect) {
+        this._mkModelEffectOp = Option_1.Option.some(mkModelEffect);
+        this._modelOp = Option_1.Option.none();
+    }
+    MkModelEffect.create = function (mkModelEffect) {
+        return new MkModelEffect(mkModelEffect);
+    };
+    MkModelEffect.prototype.mkModel = function (textureLoader) {
+        if (this._modelOp.is_some) {
+            return this._modelOp.fromSome();
+        }
+        else {
+            var result = this._mkModelEffectOp.fromSome()(textureLoader);
+            this._modelOp = Option_1.Option.some(result);
+            this._mkModelEffectOp = Option_1.Option.none();
+            return result;
+        }
+    };
+    return MkModelEffect;
+}());
+exports.MkModelEffect = MkModelEffect;
 function vector2DToTHREE(pt) {
     return new THREE.Vector2(pt.x, pt.y);
 }
@@ -1056,9 +1079,9 @@ exports.composeCListOfCModels = composeCListOfCModels;
 function composeListOfCModels(listOfCModels) {
     return arrayOfCellToCellOfArray(listOfCModels, 0, listOfCModels.length)
         .map(function (mkModelEffects) {
-        return (function (textureLoader) {
+        return MkModelEffect.create(function (textureLoader) {
             return PromiseUtil
-                .listOfPromisesToPromiseOfList(mkModelEffects.map(function (mkModelEffect) { return mkModelEffect(textureLoader); }))
+                .listOfPromisesToPromiseOfList(mkModelEffects.map(function (mkModelEffect) { return mkModelEffect.mkModel(textureLoader); }))
                 .then(function (models) { return composeModels(models); });
         });
     });
@@ -1089,6 +1112,89 @@ function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
     }
 }
 //# sourceMappingURL=MkModelEffect.js.map
+});
+___scope___.file("app/Option.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option = /** @class */ (function () {
+    function Option(a) {
+        this._a = a;
+    }
+    Object.defineProperty(Option.prototype, "is_some", {
+        get: function () {
+            return this._a !== undefined;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Option.prototype, "is_none", {
+        get: function () {
+            return !this.is_some;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Option.prototype.fromSome = function () {
+        return this._a;
+    };
+    Option.prototype.orSome = function (a) {
+        if (this.is_some) {
+            return this.fromSome();
+        }
+        else {
+            return a;
+        }
+    };
+    Option.prototype.orSome_ = function (fn) {
+        if (this.is_some) {
+            return this.fromSome();
+        }
+        else {
+            return fn();
+        }
+    };
+    Option.some = function (a) {
+        return new Option(a);
+    };
+    Option.none = function () {
+        return Option._none;
+    };
+    Option.prototype.filter = function (pred) {
+        if (this.is_some) {
+            var a = this.fromSome();
+            if (pred(a)) {
+                return this;
+            }
+            else {
+                return Option.none();
+            }
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.map = function (f) {
+        if (this.is_some) {
+            return Option.some(f(this.fromSome()));
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.bind = function (f) {
+        if (this.is_some) {
+            return f(this.fromSome());
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option._none = new Option();
+    return Option;
+}());
+exports.Option = Option;
+//# sourceMappingURL=Option.js.map
 });
 ___scope___.file("app/PromiseUtil.js", function(exports, require, module, __filename, __dirname){
 
@@ -1233,89 +1339,6 @@ var Plane3D = /** @class */ (function () {
 }());
 exports.Plane3D = Plane3D;
 //# sourceMappingURL=Plane3D.js.map
-});
-___scope___.file("app/Option.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Option = /** @class */ (function () {
-    function Option(a) {
-        this._a = a;
-    }
-    Object.defineProperty(Option.prototype, "is_some", {
-        get: function () {
-            return this._a !== undefined;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Option.prototype, "is_none", {
-        get: function () {
-            return !this.is_some;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Option.prototype.fromSome = function () {
-        return this._a;
-    };
-    Option.prototype.orSome = function (a) {
-        if (this.is_some) {
-            return this.fromSome();
-        }
-        else {
-            return a;
-        }
-    };
-    Option.prototype.orSome_ = function (fn) {
-        if (this.is_some) {
-            return this.fromSome();
-        }
-        else {
-            return fn();
-        }
-    };
-    Option.some = function (a) {
-        return new Option(a);
-    };
-    Option.none = function () {
-        return Option._none;
-    };
-    Option.prototype.filter = function (pred) {
-        if (this.is_some) {
-            var a = this.fromSome();
-            if (pred(a)) {
-                return this;
-            }
-            else {
-                return Option.none();
-            }
-        }
-        else {
-            return Option.none();
-        }
-    };
-    Option.prototype.map = function (f) {
-        if (this.is_some) {
-            return Option.some(f(this.fromSome()));
-        }
-        else {
-            return Option.none();
-        }
-    };
-    Option.prototype.bind = function (f) {
-        if (this.is_some) {
-            return f(this.fromSome());
-        }
-        else {
-            return Option.none();
-        }
-    };
-    Option._none = new Option();
-    return Option;
-}());
-exports.Option = Option;
-//# sourceMappingURL=Option.js.map
 });
 ___scope___.file("app/math/Axes3D.js", function(exports, require, module, __filename, __dirname){
 
