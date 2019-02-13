@@ -18,6 +18,7 @@
 
         <script>
             var openPropertiesAppCallback = function(propertiesName) {};
+            var addOpeningButtonClickCallback = function(openingType) {};
             function openProperties(propertiesName) {
                 var i;
                 var x = document.getElementsByClassName("properties");
@@ -27,18 +28,55 @@
                 document.getElementById(propertiesName).style.display = "block";
                 openPropertiesAppCallback(propertiesName);
             }
+            function setAddOpeningPropertiesVisible(visible) {
+                var addOpeningProperties = document.getElementById("addOpeningProperties");
+                addOpeningProperties.style.display = visible ? "block" : "none";
+            }
         </script>
 
         <div class="flex-container" width="100%">
-            <div style="width:100%">
-                <canvas id="canvas" width="800" height="600"></canvas>
+            <div class="flex-container flex-vertical">
+                <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Shed Type</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('addProperties')">Add</button>
+                <!--
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Lean-Tos</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Walls</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('windowsDoorsSkylightsProperties')">Windows, Doors & Skylights</button>
+                -->
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Colours & Claddings</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Options</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Save & Share</button>
             </div>
             <div>
                 <div id="shedTypeProperties" class="properties">
+                    Building Type:
+                        <select id="cboBuildingType">
+                            <option value="gableRoofGarage">Gable Roof Garage</option>
+                            <option value="skillionRoofGarage">Skillion Roof Garage</option>
+                            <option value="flatRoofCarport">Flat Roof Carport</option>
+                            <option value="gableRoofCarport">Gable Roof Carport</option>
+                            <option value="americanBarn">American Barn</option>
+                            <option value="australianBarn">Australian Barn</option>
+                            <option value="skillionBarn">Skillion Barn</option>
+                            <option value="quakerBarn">Quaker Barn</option>
+                        </select><br/>
                     Span: <input id="txtSpan" type="text" value="6000"/><br/>
                     Length: <input id="txtLength" type="text" value="12000"/><br/>
                     Height: <input id="txtHeight" type="text" value="2400"/><br/>
                     Pitch: <input id="txtPitch" type="text" value="15"/><br/>
+                </div>
+                <div id="addProperties" class="properties" style="display:none">
+                    <div class="flex-container flex-vertical">
+                        <button id="btnAddPADoor" onclick="addOpeningButtonClickCallback('paDoor')">PA Door</button>
+                        <button id="btnAddWindow" onclick="addOpeningButtonClickCallback('window')">Window</button>
+                        <button id="btnAddRollerDoor" onclick="addOpeningButtonClickCallback('rollerDoor')">Roller Door</button>
+                        <button id="btnAddSkylight">Skylight</button>
+                    </div>
+                    <div id="addOpeningProperties" style="display:none">
+                        Opening Height: <input id="txtOpeningHeight"><br/>
+                        Opening Width: <input id="txtOpeningWidth"><br/>
+                    </div>
                 </div>
                 <div id="windowsDoorsSkylightsProperties" class="properties" style="display:none">
                     Tab a wall or a roof segment to zoom in and configure doors, windows, skylights.
@@ -47,15 +85,8 @@
                     TODO
                 </div>
             </div>
-            <div class="flex-container flex-vertical">
-                <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Shed Type</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Lean-Tos</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Walls</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('windowsDoorsSkylightsProperties')">Windows, Doors & Skylights</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Colours & Claddings</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Options</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Save & Share</button>
+            <div style="width:100%">
+                <canvas id="canvas" width="800" height="600"></canvas>
             </div>
         </div>
     </body>

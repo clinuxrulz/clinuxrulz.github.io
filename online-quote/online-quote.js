@@ -7,8 +7,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var THREE = require("three");
 var three_orbitcontrols_ts_1 = require("three-orbitcontrols-ts");
 var sodium = require("sodiumjs");
-var Building_1 = require("./Building");
+var ChangeBlocker_1 = require("./ChangeBlocker");
 var MouseButton_1 = require("./MouseButton");
+var OpeningFormProperties_1 = require("./OpeningFormProperties");
+var OpeningType_1 = require("./OpeningType");
 var Option_1 = require("./Option");
 var SodiumUtil = require("./SodiumUtil");
 var Ray3D_1 = require("./math/Ray3D");
@@ -18,10 +20,14 @@ var AppModel_1 = require("./model/AppModel");
 var Operation_1 = require("./model/Operation");
 var TextureLoader_1 = require("./TextureLoader");
 var App = /** @class */ (function () {
-    function App() {
-    }
-    App.main = function (sPropertiesNameButtonClicked) {
+    function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked) {
+        var _this = this;
         sodium.Transaction.run(function () {
+            _this._cAddOpeningPropertiesVisible =
+                sAddOpeningButtonClicked
+                    .mapTo(true)
+                    .orElse(sPropertiesNameButtonClicked.mapTo(false))
+                    .hold(false);
             var scene = new THREE.Scene();
             var camera = new THREE.PerspectiveCamera(75, 800.0 / 600.0, 500.0, 100000.0);
             var canvas = document.getElementById("canvas");
@@ -36,11 +42,6 @@ var App = /** @class */ (function () {
                 light.position.set(1, 1, 1);
                 scene.add(light);
             }
-            /*{
-                var light = new THREE.DirectionalLight( 0x002288 );
-                light.position.set( -1, -1, -1 );
-                scene.add( light );
-            }*/
             {
                 var light2 = new THREE.AmbientLight(0xbbbbbb);
                 scene.add(light2);
@@ -48,11 +49,22 @@ var App = /** @class */ (function () {
             controls.addEventListener("change", function () {
                 renderer.render(scene, camera);
             });
+            // building properties
+            var cboBuildingType = document.getElementById("cboBuildingType");
             var txtSpan = document.getElementById("txtSpan");
             var txtLength = document.getElementById("txtLength");
             var txtHeight = document.getElementById("txtHeight");
             var txtPitch = document.getElementById("txtPitch");
-            var mkCValueOp = function (el) {
+            var mkCStringValueFromComboBox = function (el) {
+                var initValue = el.value;
+                var csValue = new sodium.CellSink(initValue);
+                el.addEventListener("input", function () {
+                    var value = el.value;
+                    csValue.send(value);
+                });
+                return csValue;
+            };
+            var mkCValueOpFromTextField = function (el) {
                 var initValue = parseFloat(el.value);
                 var csValueOp = new sodium.CellSink(isNaN(initValue) ? null : initValue);
                 el.addEventListener("input", function () {
@@ -66,26 +78,84 @@ var App = /** @class */ (function () {
                 });
                 return csValueOp;
             };
-            var cSpanOp = mkCValueOp(txtSpan);
-            var cLengthOp = mkCValueOp(txtLength);
-            var cHeightOp = mkCValueOp(txtHeight);
-            var cPitchOp = mkCValueOp(txtPitch);
+            var mkCValueOpFromTextField2 = function (el) {
+                var initValue = parseFloat(el.value);
+                var csValueOp = new sodium.CellSink(isNaN(initValue) ? Option_1.Option.none() : Option_1.Option.some(initValue));
+                el.addEventListener("input", function () {
+                    var value = parseFloat(el.value);
+                    if (isNaN(value)) {
+                        csValueOp.send(Option_1.Option.none());
+                    }
+                    else {
+                        csValueOp.send(Option_1.Option.some(value));
+                    }
+                });
+                return csValueOp;
+            };
+            var cBuildingType = mkCStringValueFromComboBox(cboBuildingType)
+                .map(function (buildingType) { return buildingType; });
+            var cSpanOp = mkCValueOpFromTextField(txtSpan);
+            var cLengthOp = mkCValueOpFromTextField(txtLength);
+            var cHeightOp = mkCValueOpFromTextField(txtHeight);
+            var cPitchOp = mkCValueOpFromTextField(txtPitch);
+            var slSetFormProperties = new sodium.StreamLoop();
+            // opening properties
+            var sSetOpeningProperties = SodiumUtil.streamFilterOption(slSetFormProperties.map(function (formProperties) {
+                return formProperties.partialMatch(Option_1.Option.none(), {
+                    opening: function (properties) {
+                        return Option_1.Option.some(properties);
+                    }
+                });
+            }));
+            var sSetOpeningWidth = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.width; });
+            var sSetOpeningHeight = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.height; });
+            var ssOpeningWidthOpChangedByUser = new sodium.StreamSink();
+            var ssOpeningHeightOpChangedByUser = new sodium.StreamSink();
+            var cOpeningWidthOp = sSetOpeningWidth.map(function (x) { return Option_1.Option.some(x); }).orElse(ssOpeningWidthOpChangedByUser).hold(Option_1.Option.none());
+            var cOpeningHeightOp = sSetOpeningHeight.map(function (x) { return Option_1.Option.some(x); }).orElse(ssOpeningHeightOpChangedByUser).hold(Option_1.Option.none());
+            var cOpeningFormPropertiesOp = cOpeningWidthOp.lift(cOpeningHeightOp, function (openingWidthOp, openingHeightOp) {
+                return openingWidthOp.lift2(openingHeightOp, function (openingWidth, openingHeight) {
+                    return OpeningFormProperties_1.OpeningFormProperties.create({
+                        width: openingWidth,
+                        height: openingHeight
+                    });
+                });
+            });
+            (function () {
+                (function () {
+                    var txtOpeningWidth = document.getElementById("txtOpeningWidth");
+                    var changeBlocker = new ChangeBlocker_1.ChangeBlocker();
+                    sSetOpeningWidth.listen(function (openingWidth) { return changeBlocker.blockingExecute(function () { return txtOpeningWidth.value = '' + openingWidth; }); });
+                    txtOpeningWidth.addEventListener("input", function () {
+                        changeBlocker.executeIfNotBlocked(function () {
+                            var value = parseFloat(txtOpeningWidth.value);
+                            var value2 = isNaN(value) ? Option_1.Option.none() : Option_1.Option.some(value);
+                            ssOpeningWidthOpChangedByUser.send(value2);
+                        });
+                    });
+                })();
+                (function () {
+                    var txtOpeningHeight = document.getElementById("txtOpeningHeight");
+                    var changeBlocker = new ChangeBlocker_1.ChangeBlocker();
+                    sSetOpeningHeight.listen(function (openingHeight) { return changeBlocker.blockingExecute(function () { return txtOpeningHeight.value = '' + openingHeight; }); });
+                    txtOpeningHeight.addEventListener("input", function () {
+                        changeBlocker.executeIfNotBlocked(function () {
+                            var value = parseFloat(txtOpeningHeight.value);
+                            var value2 = isNaN(value) ? Option_1.Option.none() : Option_1.Option.some(value);
+                            ssOpeningHeightOpChangedByUser.send(value2);
+                        });
+                    });
+                })();
+            })();
             var eliminateOp = function (ca) {
                 return ca.map(function (a) { return a === undefined ? 0.0 : a; });
             };
-            var clHighlightedStableNames = new sodium.CellLoop();
-            var building = new Building_1.Building({
-                cLength: eliminateOp(cLengthOp),
-                cSpan: eliminateOp(cSpanOp),
-                cHeight: eliminateOp(cHeightOp),
-                cPitch: eliminateOp(cPitchOp),
-                cHighlightedStableNames: clHighlightedStableNames
-            });
             var textureLoader = new THREE.TextureLoader();
+            var clModel = new sodium.CellLoop();
             (function () {
                 var lastModel = null;
                 var lastModelCleanup = null;
-                building.cModel.listen(function (mkModelEffect) {
+                clModel.listen(function (mkModelEffect) {
                     if (mkModelEffect == null) {
                         return;
                     }
@@ -157,10 +227,6 @@ var App = /** @class */ (function () {
             var csMousePosOp = new sodium.CellSink(Option_1.Option.none());
             var ssMousePressed = new sodium.StreamSink();
             { // inputs
-                var p = document.createElement("p");
-                var p2 = document.createElement("p");
-                document.body.appendChild(p);
-                document.body.appendChild(p2);
                 canvas.addEventListener("mousemove", function (evt) {
                     var e = evt || window.event;
                     var x = e.offsetX;
@@ -172,6 +238,7 @@ var App = /** @class */ (function () {
                 });
                 canvas.addEventListener("mousedown", function (evt) {
                     var e = evt || window.event;
+                    var cleanup = ssMousePressed.listen(function () { });
                     switch (evt.button) {
                         case 0:
                             ssMousePressed.send(MouseButton_1.MouseButton.Left);
@@ -185,81 +252,838 @@ var App = /** @class */ (function () {
                         default:
                             break;
                     }
+                    cleanup();
                 });
-                csMousePosOp.listen(function (mousePosOp) {
-                    if (mousePosOp.is_some) {
-                        var mousePos = mousePosOp.fromSome();
-                        p.innerText = "x: " + mousePos.x + ", y: " + mousePos.y;
-                    }
-                    else {
-                        p.innerText = "";
-                    }
-                });
-                cScreenPosToWorldRayOp
-                    .lift(csMousePosOp, function (screenPosToWorldRayOp, mousePosOp) {
-                    return mousePosOp.bind(screenPosToWorldRayOp);
-                })
-                    .listen(function (mouseRayOp) {
-                    if (mouseRayOp.is_some) {
-                        var mouseRay = mouseRayOp.fromSome();
-                        p2.innerText = "mouseRay: " + mouseRay;
-                    }
-                    else {
-                        p2.innerText = "";
-                    }
-                });
+                // debug mouse pos
+                if (App.debug) {
+                    (function () {
+                        var p = document.createElement("p");
+                        document.body.appendChild(p);
+                        csMousePosOp.listen(function (mousePosOp) {
+                            if (mousePosOp.is_some) {
+                                var mousePos = mousePosOp.fromSome();
+                                p.innerText = "x: " + mousePos.x + ", y: " + mousePos.y;
+                            }
+                            else {
+                                p.innerText = "";
+                            }
+                        });
+                    })();
+                }
+                // debug mouse ray
+                if (App.debug) {
+                    (function () {
+                        var p = document.createElement("p");
+                        document.body.appendChild(p);
+                        cScreenPosToWorldRayOp
+                            .lift(csMousePosOp, function (screenPosToWorldRayOp, mousePosOp) {
+                            return mousePosOp.bind(screenPosToWorldRayOp);
+                        })
+                            .listen(function (mouseRayOp) {
+                            if (mouseRayOp.is_some) {
+                                var mouseRay = mouseRayOp.fromSome();
+                                p.innerText = "mouseRay: " + mouseRay;
+                            }
+                            else {
+                                p.innerText = "";
+                            }
+                        });
+                    })();
+                }
                 // avoid crash of send without listen
+                csMousePosOp.listen(function (unused) { });
                 ssMousePressed.listen(function (unused) { });
             }
-            var sPerformOperation = SodiumUtil.streamFilterOption(sPropertiesNameButtonClicked.map(function (propertiesName) {
+            var sPerformOperation = SodiumUtil
+                .streamFilterOption(sPropertiesNameButtonClicked.map(function (propertiesName) {
                 switch (propertiesName) {
-                    case "windowsDoorsSkylightsProperties":
-                        return Option_1.Option.some(Operation_1.Operation.insertOpeningOrSkylight());
                     default:
                         return Option_1.Option.some(Operation_1.Operation.idle());
                 }
-            }));
+            }))
+                .orElse(sAddOpeningButtonClicked.map(function (openingType) { return Operation_1.Operation.insertOpening(openingType); }));
             // model
             var appModel = new AppModel_1.AppModel({
                 cMousePosOp: csMousePosOp,
                 sMousePressed: ssMousePressed,
                 cScreenPointToWorldRayOp: cScreenPosToWorldRayOp,
-                building: building,
+                buildingParams: {
+                    cBuildingType: cBuildingType,
+                    cLength: eliminateOp(cLengthOp),
+                    cSpan: eliminateOp(cSpanOp),
+                    cHeight: eliminateOp(cHeightOp),
+                    cPitch: eliminateOp(cPitchOp)
+                },
+                cOpeningFormPropertiesOp: cOpeningFormPropertiesOp,
                 sPerformOperation: sPerformOperation
             });
-            clHighlightedStableNames.loop(appModel.cHighlightedStableNames);
-            var sRepaint = sodium.Operational.updates(appModel.cHighlightedStableNames).mapTo(sodium.Unit.UNIT);
-            sRepaint.listen(function (unused) {
+            clModel.loop(appModel.cModel);
+            slSetFormProperties.loop(appModel.sSetFormProperties);
+            appModel.sRepaint.listen(function (unused) {
                 renderer.render(scene, camera);
             });
-            { // bay under mouse test
-                var p3 = document.createElement("p");
-                document.body.appendChild(p3);
-                appModel.cHighlightedStableNames.listen(function (objectsUnderMouse) {
-                    p3.innerHTML = '' + objectsUnderMouse;
-                });
+            // debug bay highlighted stable names
+            if (App.debug) {
+                (function () {
+                    var p = document.createElement("p");
+                    document.body.appendChild(p);
+                    appModel.cHighlightedStableNames.listen(function (objectsUnderMouse) {
+                        p.innerHTML = '' + objectsUnderMouse;
+                    });
+                })();
             }
         });
-    };
+    }
+    Object.defineProperty(App.prototype, "cAddOpeningPropertiesVisible", {
+        get: function () {
+            return this._cAddOpeningPropertiesVisible;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    App.debug = false;
     return App;
 }());
+function setAddOpeningPropertiesVisible(visible) {
+    window['setOpeningPropertiesVisible'](visible);
+}
 window.onload = function () {
     sodium.Transaction.run(function () {
         var ssPropertiesNameButtonClicked = new sodium.StreamSink();
+        var ssAddOpeningButtonClicked = new sodium.StreamSink();
         window['openPropertiesAppCallback'] = function (propertiesName) {
             ssPropertiesNameButtonClicked.send(propertiesName);
         };
-        App.main(ssPropertiesNameButtonClicked);
+        window['addOpeningButtonClickCallback'] = function (openingType) {
+            var openingType2;
+            switch (openingType) {
+                case "paDoor":
+                    openingType2 = OpeningType_1.OpeningType.PADoor;
+                    break;
+                case "window":
+                    openingType2 = OpeningType_1.OpeningType.Window;
+                    break;
+                case "rollerDoor":
+                    openingType2 = OpeningType_1.OpeningType.RollerDoor;
+                    break;
+                default:
+                    return;
+            }
+            ssAddOpeningButtonClicked.send(openingType2);
+        };
+        var app = new App(ssPropertiesNameButtonClicked, ssAddOpeningButtonClicked);
+        app.cAddOpeningPropertiesVisible.listen(function (addOpeningPropertiesVisible) {
+            window['setAddOpeningPropertiesVisible'](addOpeningPropertiesVisible);
+        });
     });
 };
 //# sourceMappingURL=main.js.map
+});
+___scope___.file("app/ChangeBlocker.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var ChangeBlocker = /** @class */ (function () {
+    function ChangeBlocker() {
+        this._blocking = false;
+    }
+    ChangeBlocker.prototype.blockingExecute = function (fn) {
+        try {
+            this._blocking = true;
+            fn();
+        }
+        finally {
+            this._blocking = false;
+        }
+    };
+    ChangeBlocker.prototype.executeIfNotBlocked = function (fn) {
+        if (this._blocking) {
+            return;
+        }
+        fn();
+    };
+    return ChangeBlocker;
+}());
+exports.ChangeBlocker = ChangeBlocker;
+//# sourceMappingURL=ChangeBlocker.js.map
+});
+___scope___.file("app/MouseButton.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var MouseButton;
+(function (MouseButton) {
+    MouseButton[MouseButton["Left"] = 0] = "Left";
+    MouseButton[MouseButton["Middle"] = 1] = "Middle";
+    MouseButton[MouseButton["Right"] = 2] = "Right";
+})(MouseButton = exports.MouseButton || (exports.MouseButton = {}));
+//# sourceMappingURL=MouseButton.js.map
+});
+___scope___.file("app/OpeningFormProperties.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var OpeningFormProperties = /** @class */ (function () {
+    function OpeningFormProperties(width, height) {
+        this._width = width;
+        this._height = height;
+    }
+    Object.defineProperty(OpeningFormProperties.prototype, "width", {
+        get: function () {
+            return this._width;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningFormProperties.prototype, "height", {
+        get: function () {
+            return this._height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    OpeningFormProperties.create = function (params) {
+        return new OpeningFormProperties(params.width, params.height);
+    };
+    return OpeningFormProperties;
+}());
+exports.OpeningFormProperties = OpeningFormProperties;
+//# sourceMappingURL=OpeningFormProperties.js.map
+});
+___scope___.file("app/OpeningType.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var OpeningType;
+(function (OpeningType) {
+    OpeningType[OpeningType["PADoor"] = 0] = "PADoor";
+    OpeningType[OpeningType["Window"] = 1] = "Window";
+    OpeningType[OpeningType["RollerDoor"] = 2] = "RollerDoor";
+})(OpeningType = exports.OpeningType || (exports.OpeningType = {}));
+//# sourceMappingURL=OpeningType.js.map
+});
+___scope___.file("app/Option.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option = /** @class */ (function () {
+    function Option(a) {
+        this._a = a;
+    }
+    Object.defineProperty(Option.prototype, "is_some", {
+        get: function () {
+            return this._a !== undefined;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Option.prototype, "is_none", {
+        get: function () {
+            return !this.is_some;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Option.prototype.fromSome = function () {
+        return this._a;
+    };
+    Option.prototype.orElse = function (aOp) {
+        if (this.is_some) {
+            return this;
+        }
+        else {
+            return aOp;
+        }
+    };
+    Option.prototype.orElse_ = function (aOpFn) {
+        if (this.is_some) {
+            return this;
+        }
+        else {
+            return aOpFn();
+        }
+    };
+    Option.prototype.orSome = function (a) {
+        if (this.is_some) {
+            return this.fromSome();
+        }
+        else {
+            return a;
+        }
+    };
+    Option.prototype.orSome_ = function (fn) {
+        if (this.is_some) {
+            return this.fromSome();
+        }
+        else {
+            return fn();
+        }
+    };
+    Option.some = function (a) {
+        return new Option(a);
+    };
+    Option.none = function () {
+        return Option._none;
+    };
+    Option.prototype.filter = function (pred) {
+        if (this.is_some) {
+            var a = this.fromSome();
+            if (pred(a)) {
+                return this;
+            }
+            else {
+                return Option.none();
+            }
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.map = function (f) {
+        if (this.is_some) {
+            return Option.some(f(this.fromSome()));
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.bind = function (f) {
+        if (this.is_some) {
+            return f(this.fromSome());
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.lift2 = function (bOp, fn) {
+        if (this.is_some && bOp.is_some) {
+            return Option.some(fn(this.fromSome(), bOp.fromSome()));
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.lift3 = function (bOp, cOp, fn) {
+        if (this.is_some && bOp.is_some && cOp.is_some) {
+            return Option.some(fn(this.fromSome(), bOp.fromSome(), cOp.fromSome()));
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.lift4 = function (bOp, cOp, dOp, fn) {
+        if (this.is_some && bOp.is_some && cOp.is_some && dOp.is_some) {
+            return Option.some(fn(this.fromSome(), bOp.fromSome(), cOp.fromSome(), dOp.fromSome()));
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.lift5 = function (bOp, cOp, dOp, eOp, fn) {
+        if (this.is_some && bOp.is_some && cOp.is_some && dOp.is_some && eOp.is_some) {
+            return Option.some(fn(this.fromSome(), bOp.fromSome(), cOp.fromSome(), dOp.fromSome(), eOp.fromSome()));
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option.prototype.lift6 = function (bOp, cOp, dOp, eOp, fOp, fn) {
+        if (this.is_some && bOp.is_some && cOp.is_some && dOp.is_some && eOp.is_some) {
+            return Option.some(fn(this.fromSome(), bOp.fromSome(), cOp.fromSome(), dOp.fromSome(), eOp.fromSome(), fOp.fromSome()));
+        }
+        else {
+            return Option.none();
+        }
+    };
+    Option._none = new Option();
+    return Option;
+}());
+exports.Option = Option;
+//# sourceMappingURL=Option.js.map
+});
+___scope___.file("app/SodiumUtil.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var SodiumUtil = require("./SodiumUtil");
+var Option_1 = require("./Option");
+function cellLift2(ca, cb, fn) {
+    return ca.lift(cb, function (a, b) { return function () { return fn(a, b); }; }).map(function (x) { return x(); });
+}
+exports.cellLift2 = cellLift2;
+function cellLift3(ca, cb, cc, fn) {
+    return ca.lift3(cb, cc, function (a, b, c) { return function () { return fn(a, b, c); }; }).map(function (x) { return x(); });
+}
+exports.cellLift3 = cellLift3;
+function cellLiftArray(ca) {
+    return arrayOfCellToCellOfArray(ca, 0, ca.length);
+}
+exports.cellLiftArray = cellLiftArray;
+function streamFilterOption(sa) {
+    return sa.filter(function (a) { return a.is_some; }).map(function (a) { return a.fromSome(); });
+}
+exports.streamFilterOption = streamFilterOption;
+function cellCalm(eqFn, ca) {
+    return sodium.Transaction.run(function () {
+        return streamFilterOption(sodium.Operational
+            .updates(ca)
+            .collectLazy(ca.sampleLazy(), function (newA, oldA) {
+            var result;
+            if (eqFn(newA, oldA)) {
+                result = Option_1.Option.none();
+            }
+            else {
+                result = Option_1.Option.some(newA);
+            }
+            return new sodium.Tuple2(result, newA);
+        }))
+            .holdLazy(ca.sampleLazy());
+    });
+}
+exports.cellCalm = cellCalm;
+function safeCellLoop(cla, ca) {
+    return sodium.Transaction.run(function () {
+        var ssa = new sodium.StreamSink();
+        cla.loop(ssa.holdLazy(cla.sampleLazy()));
+        return sodium.Operational.updates(ca).listen(function (a) { return window.setTimeout(function () { return ssa.send(a); }); });
+    });
+}
+exports.safeCellLoop = safeCellLoop;
+function safeStreamLoop(sla, sa) {
+    return sodium.Transaction.run(function () {
+        var ssa = new sodium.StreamSink();
+        sla.loop(ssa);
+        var cleanups = [
+            ssa.listen(function () { }),
+            sa.listen(function (a) { return window.setTimeout(function () { return ssa.send(a); }); })
+        ];
+        return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+    });
+}
+exports.safeStreamLoop = safeStreamLoop;
+function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
+    if (toIdx - fromIdx == 0) {
+        return new sodium.Cell([]);
+    }
+    else if (toIdx - fromIdx == 1) {
+        return list[fromIdx].map(function (a) { return [a]; });
+    }
+    else {
+        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
+        return SodiumUtil.cellLift2(arrayOfCellToCellOfArray(list, fromIdx, pivot), arrayOfCellToCellOfArray(list, pivot, toIdx), function (list1, list2) { return list1.concat(list2); });
+    }
+}
+//# sourceMappingURL=SodiumUtil.js.map
+});
+___scope___.file("app/math/Ray3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option_1 = require("../Option");
+var Ray3D = /** @class */ (function () {
+    function Ray3D(origin, direction) {
+        this._origin = origin;
+        this._direction = direction;
+    }
+    Ray3D.create = function (origin, direction) {
+        return new Ray3D(origin, direction);
+    };
+    Object.defineProperty(Ray3D.prototype, "origin", {
+        get: function () {
+            return this._origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Ray3D.prototype, "direction", {
+        get: function () {
+            return this._direction;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Ray3D.prototype.positionFromTime = function (t) {
+        return this.origin.add(this.direction.scale(t));
+    };
+    Ray3D.prototype.collisionTimeWithPlane = function (plane) {
+        // (ro + rd.t).n + d = 0
+        // ro.n + rd.n.t + d = 0
+        // rd.n.t = -(ro.n + d)
+        // t = -(ro.n + d) / (rd.n)
+        var t = -(this.origin.dot(plane.n) + plane.d) / (this.direction.dot(plane.n));
+        if (!isFinite(t)) {
+            return Option_1.Option.none();
+        }
+        return Option_1.Option.some(t);
+    };
+    Ray3D.prototype.collisionWithPlane = function (plane) {
+        var _this = this;
+        return this.collisionTimeWithPlane(plane).map(function (t) { return _this.positionFromTime(t); });
+    };
+    Ray3D.prototype.toString = function () {
+        return "(origin: " + this.origin.toString() + ", direction: " + this.direction.toString() + ")";
+    };
+    return Ray3D;
+}());
+exports.Ray3D = Ray3D;
+//# sourceMappingURL=Ray3D.js.map
+});
+___scope___.file("app/math/Vector2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector3D_1 = require("./Vector3D");
+var Vector2D = /** @class */ (function () {
+    function Vector2D(x, y) {
+        this._x = x;
+        this._y = y;
+    }
+    Vector2D.create = function (x, y) {
+        return new Vector2D(x, y);
+    };
+    Vector2D.prototype.toVector3D = function () {
+        return Vector3D_1.Vector3D.create(this.x, this.y, 0.0);
+    };
+    Object.defineProperty(Vector2D.prototype, "x", {
+        get: function () {
+            return this._x;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Vector2D.prototype, "y", {
+        get: function () {
+            return this._y;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Vector2D.prototype.dot = function (rhs) {
+        return this.x * rhs.x + this.y * rhs.y;
+    };
+    Vector2D.prototype.add = function (rhs) {
+        return Vector2D.create(this.x + rhs.x, this.y + rhs.y);
+    };
+    Vector2D.prototype.sub = function (rhs) {
+        return Vector2D.create(this.x - rhs.x, this.y - rhs.y);
+    };
+    Vector2D.prototype.scale = function (a) {
+        return Vector2D.create(this.x * a, this.y * a);
+    };
+    Vector2D.prototype.cross = function (rhs) {
+        return this.x * rhs.y - this.y * rhs.x;
+    };
+    Vector2D.prototype.normalize = function () {
+        return this.scale(1.0 / this.length());
+    };
+    Vector2D.prototype.lengthSquared = function () {
+        return this.dot(this);
+    };
+    Vector2D.prototype.length = function () {
+        return Math.sqrt(this.lengthSquared());
+    };
+    Vector2D.prototype.distanceSquared = function (rhs) {
+        var dx = rhs.x - this.x;
+        var dy = rhs.y - this.y;
+        return dx * dx + dy * dy;
+    };
+    Vector2D.prototype.distance = function (rhs) {
+        return Math.sqrt(this.distanceSquared(rhs));
+    };
+    Vector2D.prototype.toString = function () {
+        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ")";
+    };
+    Vector2D.zero = Vector2D.create(0.0, 0.0);
+    Vector2D.unitX = Vector2D.create(1.0, 0.0);
+    Vector2D.unitY = Vector2D.create(0.0, 1.0);
+    Vector2D.negUnitX = Vector2D.create(-1.0, 0.0);
+    Vector2D.negUnitY = Vector2D.create(0.0, -1.0);
+    return Vector2D;
+}());
+exports.Vector2D = Vector2D;
+//# sourceMappingURL=Vector2D.js.map
+});
+___scope___.file("app/math/Vector3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector2D_1 = require("./Vector2D");
+var Vector3D = /** @class */ (function () {
+    function Vector3D(x, y, z) {
+        this._x = x;
+        this._y = y;
+        this._z = z;
+    }
+    Vector3D.zero_$LI$ = function () { if (Vector3D.zero == null)
+        Vector3D.zero = Vector3D.create(0, 0, 0); return Vector3D.zero; };
+    ;
+    Vector3D.unitX_$LI$ = function () { if (Vector3D.unitX == null)
+        Vector3D.unitX = Vector3D.create(1, 0, 0); return Vector3D.unitX; };
+    ;
+    Vector3D.unitY_$LI$ = function () { if (Vector3D.unitY == null)
+        Vector3D.unitY = Vector3D.create(0, 1, 0); return Vector3D.unitY; };
+    ;
+    Vector3D.unitZ_$LI$ = function () { if (Vector3D.unitZ == null)
+        Vector3D.unitZ = Vector3D.create(0, 0, 1); return Vector3D.unitZ; };
+    ;
+    Vector3D.negUnitX_$LI$ = function () { if (Vector3D.negUnitX == null)
+        Vector3D.negUnitX = Vector3D.create(-1, 0, 0); return Vector3D.negUnitX; };
+    ;
+    Vector3D.negUnitY_$LI$ = function () { if (Vector3D.negUnitY == null)
+        Vector3D.negUnitY = Vector3D.create(0, -1, 0); return Vector3D.negUnitY; };
+    ;
+    Vector3D.negUnitZ_$LI$ = function () { if (Vector3D.negUnitZ == null)
+        Vector3D.negUnitZ = Vector3D.create(0, 0, -1); return Vector3D.negUnitZ; };
+    ;
+    Vector3D.create = function (x, y, z) {
+        return new Vector3D(x, y, z);
+    };
+    Vector3D.prototype.xyToVector2D = function () {
+        return Vector2D_1.Vector2D.create(this.x, this.y);
+    };
+    Object.defineProperty(Vector3D.prototype, "x", {
+        get: function () {
+            return this._x;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Vector3D.prototype, "y", {
+        get: function () {
+            return this._y;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Vector3D.prototype, "z", {
+        get: function () {
+            return this._z;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Vector3D.prototype.getX = function () {
+        return this._x;
+    };
+    Vector3D.prototype.getY = function () {
+        return this._y;
+    };
+    Vector3D.prototype.getZ = function () {
+        return this._z;
+    };
+    Vector3D.prototype.dot = function (v) {
+        return this.x * v.x + this.y * v.y + this.z * v.z;
+    };
+    Vector3D.prototype.add = function (v) {
+        return Vector3D.create(this.x + v.x, this.y + v.y, this.z + v.z);
+    };
+    Vector3D.prototype.sub = function (v) {
+        return Vector3D.create(this.x - v.x, this.y - v.y, this.z - v.z);
+    };
+    Vector3D.prototype.scale = function (a) {
+        return Vector3D.create(this.x * a, this.y * a, this.z * a);
+    };
+    Vector3D.prototype.cross = function (v) {
+        return Vector3D.create(this.y * v.z - this.z * v.y, this.z * v.x - this.x * v.z, this.x * v.y - this.y * v.x);
+    };
+    Vector3D.prototype.normalize = function () {
+        var a = this.length();
+        return Vector3D.create(this.x / a, this.y / a, this.z / a);
+    };
+    Vector3D.prototype.lengthSquared = function () {
+        return this.dot(this);
+    };
+    Vector3D.prototype.length = function () {
+        return Math.sqrt(this.lengthSquared());
+    };
+    Vector3D.prototype.distanceSquared = function (v) {
+        var dx = this.x - v.x;
+        var dy = this.y - v.y;
+        var dz = this.z - v.z;
+        return dx * dx + dy * dy + dz * dz;
+    };
+    Vector3D.prototype.distance = function (v) {
+        return Math.sqrt(this.distanceSquared(v));
+    };
+    /**
+     *
+     * @return {string}
+     */
+    Vector3D.prototype.toString = function () {
+        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ", " + /* toString */ ('' + (this.z)) + ")";
+    };
+    return Vector3D;
+}());
+exports.Vector3D = Vector3D;
+Vector3D.negUnitZ_$LI$();
+Vector3D.negUnitY_$LI$();
+Vector3D.negUnitX_$LI$();
+Vector3D.unitZ_$LI$();
+Vector3D.unitY_$LI$();
+Vector3D.unitX_$LI$();
+Vector3D.zero_$LI$();
+//# sourceMappingURL=Vector3D.js.map
+});
+___scope___.file("app/model/AppModel.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Building_1 = require("../Building");
+var FormProperties_1 = require("../FormProperties");
+var MouseButton_1 = require("../MouseButton");
+var OpeningType_1 = require("../OpeningType");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var IdleMode_1 = require("../modes/IdleMode");
+var InsertOpeningMode_1 = require("../modes/InsertOpeningMode");
+var OpeningFormProperties_1 = require("../OpeningFormProperties");
+var AppModel = /** @class */ (function () {
+    function AppModel(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var clHighlightedStableNames = new sodium.CellLoop();
+            var clRoofVisible = new sodium.CellLoop();
+            var slInsertOpening = new sodium.StreamLoop();
+            var building = new Building_1.Building({
+                cBuildingType: params.buildingParams.cBuildingType,
+                cLength: params.buildingParams.cLength,
+                cSpan: params.buildingParams.cSpan,
+                cHeight: params.buildingParams.cHeight,
+                cPitch: params.buildingParams.cPitch,
+                cHighlightedStableNames: clHighlightedStableNames,
+                cRoofVisible: clRoofVisible,
+                sInsertOpening: slInsertOpening
+            });
+            var cBays = sodium.Cell.switchC(building.cWalls.lift(building.cRoofs, function (walls, roofs) {
+                var ccBaysList = walls.map(function (wall) { return wall.cBays; }).concat(roofs.map(function (roof) { return roof.cBays; }));
+                return SodiumUtil.cellLiftArray(ccBaysList)
+                    .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
+            }));
+            params.buildingParams.cBuildingType.listen(function () { });
+            cBays.listen(function () { });
+            var cWallBays = sodium.Cell.switchC(building.cWalls
+                .map(function (walls) {
+                return SodiumUtil.cellLiftArray(walls.map(function (wall) { return wall.cBays; }))
+                    .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
+            }));
+            cWallBays.listen(function () { });
+            var cMode = params.sPerformOperation
+                .map(sodium.lambda1(function (performOperation) {
+                return performOperation.match({
+                    idle: function () { return new IdleMode_1.IdleMode(); },
+                    insertOpening: function (openingType) { return new InsertOpeningMode_1.InsertOpeningMode({
+                        cMousePosOp: params.cMousePosOp,
+                        sMouseLeftPress: params.sMousePressed.filter(function (mouseButton) { return mouseButton == MouseButton_1.MouseButton.Left; }).mapTo(sodium.Unit.UNIT),
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        cBays: cWallBays,
+                        cOpeningTypeOp: new sodium.Cell(Option_1.Option.some(openingType)),
+                        cOpeningFormPropertiesOp: params.cOpeningFormPropertiesOp
+                    }); }
+                });
+            }, [params.cMousePosOp, params.sMousePressed, params.cScreenPointToWorldRayOp, cBays, params.cOpeningFormPropertiesOp]))
+                .hold(new IdleMode_1.IdleMode());
+            var sSetFormProperties = SodiumUtil.streamFilterOption(params.sPerformOperation
+                .map(function (operation) {
+                return operation.partialMatch(Option_1.Option.none(), {
+                    insertOpening: function (openingType) {
+                        var openingFormProperties;
+                        switch (openingType) {
+                            case OpeningType_1.OpeningType.PADoor:
+                                openingFormProperties = OpeningFormProperties_1.OpeningFormProperties.create({
+                                    width: 820,
+                                    height: 2010
+                                });
+                                break;
+                            case OpeningType_1.OpeningType.Window:
+                                openingFormProperties = OpeningFormProperties_1.OpeningFormProperties.create({
+                                    width: 900,
+                                    height: 900
+                                });
+                                break;
+                            default:
+                            case OpeningType_1.OpeningType.RollerDoor:
+                                openingFormProperties = OpeningFormProperties_1.OpeningFormProperties.create({
+                                    width: 2000,
+                                    height: 2000
+                                });
+                                break;
+                        }
+                        return Option_1.Option.some(FormProperties_1.FormProperties.opening(openingFormProperties));
+                    }
+                });
+            }));
+            clHighlightedStableNames.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cHighlightedStableNames; }))));
+            clRoofVisible.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cRoofVisible; }))));
+            slInsertOpening.loop(sodium.Cell.switchS(cMode.map(function (mode) { return mode.sInsertOpening; })));
+            _this._cModel = building.cModel;
+            _this._cHighlightedStableNames = clHighlightedStableNames;
+            _this._sRepaint = sodium.Operational.updates(clHighlightedStableNames).mapTo(sodium.Unit.UNIT).orElse(slInsertOpening).mapTo(sodium.Unit.UNIT);
+            _this._sSetFormProperties = sSetFormProperties;
+        });
+    }
+    Object.defineProperty(AppModel.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AppModel.prototype, "cHighlightedStableNames", {
+        get: function () {
+            return this._cHighlightedStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AppModel.prototype, "sRepaint", {
+        get: function () {
+            return this._sRepaint;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AppModel.prototype, "sSetFormProperties", {
+        get: function () {
+            return this._sSetFormProperties;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return AppModel;
+}());
+exports.AppModel = AppModel;
+//# sourceMappingURL=AppModel.js.map
+});
+___scope___.file("app/ArrayUtil.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function arrayJoin(x) {
+    return [].concat.apply([], x);
+}
+exports.arrayJoin = arrayJoin;
+function arrayIncludes(array, elem) {
+    for (var i = 0; i < array.length; ++i) {
+        if (array[i] == elem) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.arrayIncludes = arrayIncludes;
+//# sourceMappingURL=ArrayUtil.js.map
 });
 ___scope___.file("app/Building.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
+var BuildingType_1 = require("./BuildingType");
 var TextureLoader_1 = require("./TextureLoader");
+var Roof_1 = require("./Roof");
 var Wall_1 = require("./Wall");
 var MkModelEffect_1 = require("./MkModelEffect");
 var Axes3D_1 = require("./math/Axes3D");
@@ -306,133 +1130,155 @@ var Building = /** @class */ (function () {
             var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
                 return height + 0.5 * span * Math.tan(Util_1.toRadians(pitch));
             });
-            var side1Wall = new Wall_1.Wall({
-                cStableName: new sodium.Cell("side1Wall"),
-                cAxes: params.cSpan
-                    .map(function (span) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ));
-                }),
-                cOutline: params.cLength.lift(params.cHeight, function (length, height) {
-                    return [
-                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, height),
-                        Vector2D_1.Vector2D.create(-0.5 * length, height)
-                    ];
-                }),
-                cCladdingTextureType: cWallCladdingTextureType,
-                cCladdingTextureColour: cWallCladdingTextureColour,
-                cBayMarkers: cSide1BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames
+            var cSide1Wall = params.cBuildingType.map(function (buildingType) {
+                return new Wall_1.Wall({
+                    cStableName: new sodium.Cell("side1Wall"),
+                    cAxes: params.cSpan
+                        .map(function (span) {
+                        return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ));
+                    }),
+                    cOutline: params.cLength.lift(params.cHeight, function (length, height) {
+                        return [
+                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, height),
+                            Vector2D_1.Vector2D.create(-0.5 * length, height)
+                        ];
+                    }),
+                    cCladdingTextureType: cWallCladdingTextureType,
+                    cCladdingTextureColour: cWallCladdingTextureColour,
+                    cBayMarkers: cSide1BayMarkers,
+                    cHighlightedStableNames: params.cHighlightedStableNames,
+                    sInsertOpening: params.sInsertOpening
+                });
             });
-            var side2Wall = new Wall_1.Wall({
-                cStableName: new sodium.Cell("side2Wall"),
-                cAxes: params.cSpan
-                    .map(function (span) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.unitZ));
-                }),
-                cOutline: params.cLength.lift(params.cHeight, function (length, height) {
-                    return [
-                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, height),
-                        Vector2D_1.Vector2D.create(-0.5 * length, height)
-                    ];
-                }),
-                cCladdingTextureType: cWallCladdingTextureType,
-                cCladdingTextureColour: cWallCladdingTextureColour,
-                cBayMarkers: cSide2BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames
+            var cSide2Wall = params.cBuildingType.map(function (buildingType) {
+                switch (buildingType) {
+                    default:
+                    case BuildingType_1.BuildingType.GableRoofGarage:
+                        return Building.mkSide2WallForGableGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cWallCladdingTextureType: cWallCladdingTextureType,
+                            cWallCladdingTextureColour: cWallCladdingTextureColour,
+                            cSide2BayMarkers: cSide2BayMarkers,
+                            sInsertOpening: params.sInsertOpening
+                        });
+                    case BuildingType_1.BuildingType.SkillionRoofGarage:
+                        return Building.mkSide2WallForSkillionGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cWallCladdingTextureType: cWallCladdingTextureType,
+                            cWallCladdingTextureColour: cWallCladdingTextureColour,
+                            cSide2BayMarkers: cSide2BayMarkers,
+                            sInsertOpening: params.sInsertOpening
+                        });
+                }
             });
-            var end1Wall = new Wall_1.Wall({
-                cStableName: new sodium.Cell("end1Wall"),
-                cAxes: params.cLength
-                    .map(function (length) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ));
-                }),
-                cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
-                    return [
-                        Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * span, height),
-                        Vector2D_1.Vector2D.create(0.0, peakHeight),
-                        Vector2D_1.Vector2D.create(-0.5 * span, height)
-                    ];
-                }),
-                cCladdingTextureType: cWallCladdingTextureType,
-                cCladdingTextureColour: cWallCladdingTextureColour,
-                cBayMarkers: cEnd1BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames
+            var cEnd1Wall = params.cBuildingType.map(function (buildingType) {
+                switch (buildingType) {
+                    default:
+                    case BuildingType_1.BuildingType.GableRoofGarage:
+                        return Building.mkEnd1WallForGableGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cWallCladdingTextureType: cWallCladdingTextureType,
+                            cWallCladdingTextureColour: cWallCladdingTextureColour,
+                            cEnd1BayMarkers: cEnd1BayMarkers,
+                            sInsertOpening: params.sInsertOpening
+                        });
+                    case BuildingType_1.BuildingType.SkillionRoofGarage:
+                        return Building.mkEnd1WallForSkillionGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cWallCladdingTextureType: cWallCladdingTextureType,
+                            cWallCladdingTextureColour: cWallCladdingTextureColour,
+                            cEnd1BayMarkers: cEnd1BayMarkers,
+                            sInsertOpening: params.sInsertOpening
+                        });
+                }
             });
-            var end2Wall = new Wall_1.Wall({
-                cStableName: new sodium.Cell("end2Wall"),
-                cAxes: params.cLength
-                    .map(function (length) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
-                }),
-                cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
-                    return [
-                        Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * span, height),
-                        Vector2D_1.Vector2D.create(0.0, peakHeight),
-                        Vector2D_1.Vector2D.create(-0.5 * span, height)
-                    ];
-                }),
-                cCladdingTextureType: cWallCladdingTextureType,
-                cCladdingTextureColour: cWallCladdingTextureColour,
-                cBayMarkers: cEnd2BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames
+            var cEnd2Wall = params.cBuildingType.map(function (buildingType) {
+                switch (buildingType) {
+                    default:
+                    case BuildingType_1.BuildingType.GableRoofGarage:
+                        return Building.mkEnd2WallForGableGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cWallCladdingTextureType: cWallCladdingTextureType,
+                            cWallCladdingTextureColour: cWallCladdingTextureColour,
+                            cEnd2BayMarkers: cEnd2BayMarkers,
+                            sInsertOpening: params.sInsertOpening
+                        });
+                    case BuildingType_1.BuildingType.SkillionRoofGarage:
+                        return Building.mkEnd2WallForSkillionGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cWallCladdingTextureType: cWallCladdingTextureType,
+                            cWallCladdingTextureColour: cWallCladdingTextureColour,
+                            cEnd2BayMarkers: cEnd2BayMarkers,
+                            sInsertOpening: params.sInsertOpening
+                        });
+                }
             });
             var cCosPitch = params.cPitch.map(function (pitch) { return Math.cos(Util_1.toRadians(pitch)); });
             var cSinPitch = params.cPitch.map(function (pitch) { return Math.sin(Util_1.toRadians(pitch)); });
             var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return 0.5 * span / ca; });
-            var side1Roof = new Wall_1.Wall({
-                cStableName: new sodium.Cell("side1Roof"),
-                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
-                }),
-                cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
-                    return [
-                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
-                        Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
-                    ];
-                }),
-                cCladdingTextureType: cRoofCladdingTextureType,
-                cCladdingTextureColour: cRoofCladdingTextureColour,
-                cBayMarkers: cSide1BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames
+            var cWalls = cSide1Wall.lift4(cSide2Wall, cEnd1Wall, cEnd2Wall, function (side1Wall, side2Wall, end1Wall, end2Wall) {
+                return [side1Wall, side2Wall, end1Wall, end2Wall];
             });
-            var side2Roof = new Wall_1.Wall({
-                cStableName: new sodium.Cell("side2Roof"),
-                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa)));
-                }),
-                cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
-                    return [
-                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
-                        Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
-                        Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
-                    ];
-                }),
-                cCladdingTextureType: cRoofCladdingTextureType,
-                cCladdingTextureColour: cRoofCladdingTextureColour,
-                cBayMarkers: cSide2BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames
+            var cRoofs = params.cBuildingType.map(function (buildingType) {
+                switch (buildingType) {
+                    default:
+                    case BuildingType_1.BuildingType.GableRoofGarage:
+                        return Building.mkRoofsForGableGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cRoofCladdingTextureType: cRoofCladdingTextureType,
+                            cRoofCladdingTextureColour: cRoofCladdingTextureColour,
+                            cSide1BayMarkers: cSide1BayMarkers,
+                            cSide2BayMarkers: cSide2BayMarkers,
+                            cRoofVisible: params.cRoofVisible
+                        });
+                    case BuildingType_1.BuildingType.SkillionRoofGarage:
+                        return Building.mkRoofsForSkillionGarage({
+                            cLength: params.cLength,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cRoofCladdingTextureType: cRoofCladdingTextureType,
+                            cRoofCladdingTextureColour: cRoofCladdingTextureColour,
+                            cSide1BayMarkers: cSide1BayMarkers,
+                            cRoofVisible: params.cRoofVisible
+                        });
+                }
             });
-            _this._cWalls = new sodium.Cell([side1Wall, side2Wall, end1Wall, end2Wall]);
-            _this._cRoofs = new sodium.Cell([side1Roof, side2Roof]);
-            _this._cModel = MkModelEffect_1.composeListOfCModels([
-                side1Wall.cModel,
-                side2Wall.cModel,
-                end1Wall.cModel,
-                end2Wall.cModel,
-                side1Roof.cModel,
-                side2Roof.cModel
-            ]);
+            _this._cWalls = cWalls;
+            _this._cRoofs = cRoofs;
+            _this._cModel = MkModelEffect_1.composeCListOfCModels(cWalls.lift(cRoofs, function (walls, roofs) {
+                return walls.map(function (wall) { return wall.cModel; }).concat(roofs.map(function (roof) { return roof.cModel; }));
+            }));
         });
     }
     Object.defineProperty(Building.prototype, "cModel", {
@@ -456,10 +1302,267 @@ var Building = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Building.mkSide2WallForGableGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var side2Wall = new Wall_1.Wall({
+                cStableName: new sodium.Cell("side2Wall"),
+                cAxes: params.cSpan
+                    .map(function (span) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: params.cLength.lift(params.cHeight, function (length, height) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, height),
+                        Vector2D_1.Vector2D.create(-0.5 * length, height)
+                    ];
+                }),
+                cCladdingTextureType: params.cWallCladdingTextureType,
+                cCladdingTextureColour: params.cWallCladdingTextureColour,
+                cBayMarkers: params.cSide2BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                sInsertOpening: params.sInsertOpening
+            });
+            return side2Wall;
+        });
+    };
+    Building.mkEnd1WallForGableGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
+                return height + 0.5 * span * Math.tan(Util_1.toRadians(pitch));
+            });
+            var end1Wall = new Wall_1.Wall({
+                cStableName: new sodium.Cell("end1Wall"),
+                cAxes: params.cLength
+                    .map(function (length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, height),
+                        Vector2D_1.Vector2D.create(0.0, peakHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * span, height)
+                    ];
+                }),
+                cCladdingTextureType: params.cWallCladdingTextureType,
+                cCladdingTextureColour: params.cWallCladdingTextureColour,
+                cBayMarkers: params.cEnd1BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                sInsertOpening: params.sInsertOpening
+            });
+            return end1Wall;
+        });
+    };
+    Building.mkEnd2WallForGableGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
+                return height + 0.5 * span * Math.tan(Util_1.toRadians(pitch));
+            });
+            var end2Wall = new Wall_1.Wall({
+                cStableName: new sodium.Cell("end2Wall"),
+                cAxes: params.cLength
+                    .map(function (length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, height),
+                        Vector2D_1.Vector2D.create(0.0, peakHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * span, height)
+                    ];
+                }),
+                cCladdingTextureType: params.cWallCladdingTextureType,
+                cCladdingTextureColour: params.cWallCladdingTextureColour,
+                cBayMarkers: params.cEnd2BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                sInsertOpening: params.sInsertOpening
+            });
+            return end2Wall;
+        });
+    };
+    Building.mkSide2WallForSkillionGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
+                return height + span * Math.tan(Util_1.toRadians(pitch));
+            });
+            var side2Wall = new Wall_1.Wall({
+                cStableName: new sodium.Cell("side2Wall"),
+                cAxes: params.cSpan
+                    .map(function (span) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: params.cLength.lift(cPeakHeight, function (length, peakHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, peakHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * length, peakHeight)
+                    ];
+                }),
+                cCladdingTextureType: params.cWallCladdingTextureType,
+                cCladdingTextureColour: params.cWallCladdingTextureColour,
+                cBayMarkers: params.cSide2BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                sInsertOpening: params.sInsertOpening
+            });
+            return side2Wall;
+        });
+    };
+    Building.mkEnd1WallForSkillionGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
+                return height + span * Math.tan(Util_1.toRadians(pitch));
+            });
+            var end1Wall = new Wall_1.Wall({
+                cStableName: new sodium.Cell("end1Wall"),
+                cAxes: params.cLength
+                    .map(function (length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, height),
+                        Vector2D_1.Vector2D.create(-0.5 * span, peakHeight)
+                    ];
+                }),
+                cCladdingTextureType: params.cWallCladdingTextureType,
+                cCladdingTextureColour: params.cWallCladdingTextureColour,
+                cBayMarkers: params.cEnd1BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                sInsertOpening: params.sInsertOpening
+            });
+            return end1Wall;
+        });
+    };
+    Building.mkEnd2WallForSkillionGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
+                return height + span * Math.tan(Util_1.toRadians(pitch));
+            });
+            var end2Wall = new Wall_1.Wall({
+                cStableName: new sodium.Cell("end2Wall"),
+                cAxes: params.cLength
+                    .map(function (length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, peakHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * span, height)
+                    ];
+                }),
+                cCladdingTextureType: params.cWallCladdingTextureType,
+                cCladdingTextureColour: params.cWallCladdingTextureColour,
+                cBayMarkers: params.cEnd2BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                sInsertOpening: params.sInsertOpening
+            });
+            return end2Wall;
+        });
+    };
+    Building.mkRoofsForGableGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cCosPitch = params.cPitch.map(function (pitch) { return Math.cos(Util_1.toRadians(pitch)); });
+            var cSinPitch = params.cPitch.map(function (pitch) { return Math.sin(Util_1.toRadians(pitch)); });
+            var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return 0.5 * span / ca; });
+            var side1Roof = new Roof_1.Roof({
+                cStableName: new sodium.Cell("side1Roof"),
+                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
+                }),
+                cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                    ];
+                }),
+                cCladdingTextureType: params.cRoofCladdingTextureType,
+                cCladdingTextureColour: params.cRoofCladdingTextureColour,
+                cBayMarkers: params.cSide1BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                cVisible: params.cRoofVisible
+            });
+            var side2Roof = new Roof_1.Roof({
+                cStableName: new sodium.Cell("side2Roof"),
+                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa)));
+                }),
+                cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                    ];
+                }),
+                cCladdingTextureType: params.cRoofCladdingTextureType,
+                cCladdingTextureColour: params.cRoofCladdingTextureColour,
+                cBayMarkers: params.cSide2BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                cVisible: params.cRoofVisible
+            });
+            return [side1Roof, side2Roof];
+        });
+    };
+    Building.mkRoofsForSkillionGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cCosPitch = params.cPitch.map(function (pitch) { return Math.cos(Util_1.toRadians(pitch)); });
+            var cSinPitch = params.cPitch.map(function (pitch) { return Math.sin(Util_1.toRadians(pitch)); });
+            var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return span / ca; });
+            var side1Roof = new Roof_1.Roof({
+                cStableName: new sodium.Cell("side1Roof"),
+                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
+                }),
+                cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                    ];
+                }),
+                cCladdingTextureType: params.cRoofCladdingTextureType,
+                cCladdingTextureColour: params.cRoofCladdingTextureColour,
+                cBayMarkers: params.cSide1BayMarkers,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                cVisible: params.cRoofVisible
+            });
+            return [side1Roof];
+        });
+    };
     return Building;
 }());
 exports.Building = Building;
 //# sourceMappingURL=Building.js.map
+});
+___scope___.file("app/BuildingType.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var BuildingType;
+(function (BuildingType) {
+    BuildingType["GableRoofGarage"] = "gableRoofGarage";
+    BuildingType["SkillionRoofGarage"] = "skillionRoofGarage";
+    BuildingType["FlatRoofCarport"] = "flatRoofCarport";
+    BuildingType["GableRoofCarport"] = "gableRoofCarport";
+    BuildingType["AmericanBarn"] = "americanBarn";
+    BuildingType["AustralianBarn"] = "australianBarn";
+    BuildingType["SkillionBarn"] = "skillionBarn";
+    BuildingType["QuakerBarn"] = "quakerBarn";
+})(BuildingType = exports.BuildingType || (exports.BuildingType = {}));
+//# sourceMappingURL=BuildingType.js.map
 });
 ___scope___.file("app/TextureLoader.js", function(exports, require, module, __filename, __dirname){
 
@@ -731,7 +1834,7 @@ var T2 = /** @class */ (function () {
 exports.T2 = T2;
 //# sourceMappingURL=Tuples.js.map
 });
-___scope___.file("app/Wall.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/Roof.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -745,8 +1848,8 @@ var Quaternion_1 = require("./math/Quaternion");
 var TextureSpace_1 = require("./math/TextureSpace");
 var Vector2D_1 = require("./math/Vector2D");
 var Vector3D_1 = require("./math/Vector3D");
-var Wall = /** @class */ (function () {
-    function Wall(params) {
+var Roof = /** @class */ (function () {
+    function Roof(params) {
         var _this = this;
         sodium.Transaction.run(function () {
             var cTextureSpace = params
@@ -795,90 +1898,55 @@ var Wall = /** @class */ (function () {
                 }
                 return result;
             });
-            _this._cBays =
-                SodiumUtil.cellLift3(params.cAxes, params.cBayMarkers, cBayOutlines, function (axes, bayMarkers, bayOutlines) {
-                    var bays = [];
-                    for (var i = 0; i < bayMarkers.length - 1; ++i) {
-                        var marker1 = bayMarkers[i];
-                        var marker2 = bayMarkers[i + 1];
-                        var centreX = 0.5 * (marker1 + marker2);
-                        var bayAxes = axes.fromThisSpace(Axes3D_1.Axes3D
-                            .create(Vector3D_1.Vector3D.create(centreX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
-                        var bayOutline2 = bayOutlines[i].map(function (pt) { return Vector2D_1.Vector2D.create(pt.x - centreX, pt.y); });
-                        (function () {
-                            var stableIndex = i;
-                            bays.push(new Bay_1.Bay({
-                                cStableName: params.cStableName.map(function (stableName) { return stableName + ('.bay[' + stableIndex + ']'); }),
-                                cAxes: new sodium.Cell(bayAxes),
-                                cOutline: new sodium.Cell(bayOutline2),
-                                cCladdingTextureType: params.cCladdingTextureType,
-                                cCladdingTextureColour: params.cCladdingTextureColour,
-                                cTextureSpace: cTextureSpace,
-                                cHighlightedStableNames: params.cHighlightedStableNames
-                            }));
-                        })();
-                    }
-                    return bays;
-                });
-            _this._cModel = MkModelEffect_1.composeCListOfCModels(_this._cBays.map(function (bays) {
-                return bays.map(function (bay) { return bay.cModel; });
-            }));
+            var cBays = SodiumUtil.cellLift3(params.cAxes, params.cBayMarkers, cBayOutlines, function (axes, bayMarkers, bayOutlines) {
+                var bays = [];
+                for (var i = 0; i < bayMarkers.length - 1; ++i) {
+                    var marker1 = bayMarkers[i];
+                    var marker2 = bayMarkers[i + 1];
+                    var centreX = 0.5 * (marker1 + marker2);
+                    var bayAxes = axes.fromThisSpace(Axes3D_1.Axes3D
+                        .create(Vector3D_1.Vector3D.create(centreX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
+                    var bayOutline2 = bayOutlines[i].map(function (pt) { return Vector2D_1.Vector2D.create(pt.x - centreX, pt.y); });
+                    (function () {
+                        var stableIndex = i;
+                        bays.push(new Bay_1.Bay({
+                            cParentStableName: params.cStableName,
+                            cStableName: params.cStableName.map(function (stableName) { return stableName + ('.bay[' + stableIndex + ']'); }),
+                            cBayIndex: new sodium.Cell(stableIndex),
+                            cAxes: new sodium.Cell(bayAxes),
+                            cOutline: new sodium.Cell(bayOutline2),
+                            cCladdingTextureType: params.cCladdingTextureType,
+                            cCladdingTextureColour: params.cCladdingTextureColour,
+                            cTextureSpace: cTextureSpace,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cVisible: params.cVisible
+                        }));
+                    })();
+                }
+                return bays;
+            });
+            _this._cBays = cBays;
+            _this._cModel = MkModelEffect_1.composeCListOfCModels(cBays.map(function (bays) { return bays.map(function (bay) { return bay.cModel; }); }));
         });
     }
-    Object.defineProperty(Wall.prototype, "cModel", {
+    Object.defineProperty(Roof.prototype, "cModel", {
         get: function () {
             return this._cModel;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Wall.prototype, "cBays", {
+    Object.defineProperty(Roof.prototype, "cBays", {
         get: function () {
             return this._cBays;
         },
         enumerable: true,
         configurable: true
     });
-    return Wall;
+    return Roof;
 }());
-exports.Wall = Wall;
-//# sourceMappingURL=Wall.js.map
-});
-___scope___.file("app/SodiumUtil.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var sodium = require("sodiumjs");
-var SodiumUtil = require("./SodiumUtil");
-function cellLift2(ca, cb, fn) {
-    return ca.lift(cb, function (a, b) { return function () { return fn(a, b); }; }).map(function (x) { return x(); });
-}
-exports.cellLift2 = cellLift2;
-function cellLift3(ca, cb, cc, fn) {
-    return ca.lift3(cb, cc, function (a, b, c) { return function () { return fn(a, b, c); }; }).map(function (x) { return x(); });
-}
-exports.cellLift3 = cellLift3;
-function cellLiftArray(ca) {
-    return arrayOfCellToCellOfArray(ca, 0, ca.length);
-}
-exports.cellLiftArray = cellLiftArray;
-function streamFilterOption(sa) {
-    return sa.filter(function (a) { return a.is_some; }).map(function (a) { return a.fromSome(); });
-}
-exports.streamFilterOption = streamFilterOption;
-function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
-    if (toIdx - fromIdx == 0) {
-        return new sodium.Cell([]);
-    }
-    else if (toIdx - fromIdx == 1) {
-        return list[fromIdx].map(function (a) { return [a]; });
-    }
-    else {
-        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
-        return SodiumUtil.cellLift2(arrayOfCellToCellOfArray(list, fromIdx, pivot), arrayOfCellToCellOfArray(list, pivot, toIdx), function (list1, list2) { return list1.concat(list2); });
-    }
-}
-//# sourceMappingURL=SodiumUtil.js.map
+exports.Roof = Roof;
+//# sourceMappingURL=Roof.js.map
 });
 ___scope___.file("app/Bay.js", function(exports, require, module, __filename, __dirname){
 
@@ -888,51 +1956,49 @@ var sodium = require("sodiumjs");
 var THREE = require("three");
 var ArrayUtil = require("./ArrayUtil");
 var TextureLoader_1 = require("./TextureLoader");
+var Axes3D_1 = require("./math/Axes3D");
 var MkModelEffect_1 = require("./MkModelEffect");
 var Outline3D_1 = require("./math/Outline3D");
+var Quaternion_1 = require("./math/Quaternion");
+var Vector3D_1 = require("./math/Vector3D");
 var Bay = /** @class */ (function () {
     function Bay(params) {
         var _this = this;
         sodium.Transaction.run(function () {
+            _this._cParentStableName = params.cParentStableName;
             _this._cStableName = params.cStableName;
+            _this._cBayIndex = params.cBayIndex;
             _this._cModel =
                 params.cAxes.lift5(params.cOutline, params.cCladdingTextureType, params.cCladdingTextureColour, params.cTextureSpace, function (axes, outline, claddingTextureType, claddingTextureColour, textureSpace) {
                     return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
-                        var geometry = new THREE.Geometry();
-                        outline.forEach(function (pt) {
-                            var pt2 = axes.pointFromThisSpace(pt.toVector3D());
-                            var pt2THREE = MkModelEffect_1.vector3DToTHREE(pt2);
-                            geometry.vertices.push(pt2THREE);
+                        if (outline.length == 0) {
+                            return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, new THREE.Group()));
+                        }
+                        var shape = new THREE.Shape();
+                        shape.moveTo(outline[0].x, outline[0].y);
+                        for (var i = 1; i < outline.length + 1; ++i) {
+                            var j = i % outline.length;
+                            shape.lineTo(outline[j].x, outline[j].y);
+                        }
+                        var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                            depth: 30.0,
+                            UVGenerator: new BayUVGenerator(textureSpace.toSpace(axes))
                         });
-                        geometry.faceVertexUvs[0] = [];
-                        (function () {
-                            var tpt1 = textureSpace.worldPtToTexturePt(axes.pointFromThisSpace(outline[0].toVector3D()));
-                            var tpt1THREE = MkModelEffect_1.vector2DToTHREE(tpt1);
-                            for (var i = 1; i < outline.length - 1; ++i) {
-                                var tpt2 = textureSpace.worldPtToTexturePt(axes.pointFromThisSpace(outline[i].toVector3D()));
-                                var tpt3 = textureSpace.worldPtToTexturePt(axes.pointFromThisSpace(outline[i + 1].toVector3D()));
-                                var tpt2THREE = MkModelEffect_1.vector2DToTHREE(tpt2);
-                                var tpt3THREE = MkModelEffect_1.vector2DToTHREE(tpt3);
-                                geometry.faceVertexUvs[0].push([
-                                    tpt1THREE,
-                                    tpt2THREE,
-                                    tpt3THREE
-                                ]);
-                                geometry.faces.push(new THREE.Face3(0, i, i + 1));
-                            }
-                        })();
-                        geometry.uvsNeedUpdate = true;
-                        geometry.computeFaceNormals();
-                        geometry.computeFlatVertexNormals();
                         return TextureLoader_1.loadCladdingTexture(textureLoader, claddingTextureType, claddingTextureColour)
                             .then(function (texture) {
-                            var material = new THREE.MeshStandardMaterial({ map: texture._2 /*, color: Math.random() * 0xFFFFFF*/ });
+                            var material = new THREE.MeshStandardMaterial({ map: texture._2 });
                             var mesh = new THREE.Mesh(geometry, material);
                             return MkModelEffect_1.Model.create(function () {
                                 var cleanups = [];
                                 var cHighlighted = params.cStableName.lift(params.cHighlightedStableNames, function (stableName, highlightedStableNames) {
                                     return ArrayUtil.arrayIncludes(highlightedStableNames, stableName);
                                 });
+                                cleanups.push(params.cAxes.listen(function (axes) {
+                                    // counter the extrude direction
+                                    var axes2 = axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, -30.0), Quaternion_1.Quaternion.identity));
+                                    //
+                                    MkModelEffect_1.THREEObject3DSetAxes(mesh, axes2);
+                                }));
                                 cleanups.push(cHighlighted.listen(function (highlighted) {
                                     if (highlighted) {
                                         material.color.setHex(0x7FFF7F);
@@ -941,6 +2007,7 @@ var Bay = /** @class */ (function () {
                                         material.color.setHex(0xFFFFFF);
                                     }
                                 }));
+                                cleanups.push(params.cVisible.listen(function (visible) { return mesh.visible = visible; }));
                                 return function () {
                                     cleanups.forEach(function (cleanup) { return cleanup(); });
                                     cleanups = [];
@@ -964,9 +2031,23 @@ var Bay = /** @class */ (function () {
                 };
         });
     }
+    Object.defineProperty(Bay.prototype, "cParentStableName", {
+        get: function () {
+            return this._cParentStableName;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Bay.prototype, "cStableName", {
         get: function () {
             return this._cStableName;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Bay.prototype, "cBayIndex", {
+        get: function () {
+            return this._cBayIndex;
         },
         enumerable: true,
         configurable: true
@@ -984,361 +2065,47 @@ var Bay = /** @class */ (function () {
     return Bay;
 }());
 exports.Bay = Bay;
+var BayUVGenerator = /** @class */ (function () {
+    function BayUVGenerator(textureSpace) {
+        this._textureSpace = textureSpace;
+    }
+    BayUVGenerator.prototype.generateTopUV = function (geometry, vertices, indexA, indexB, indexC) {
+        var a_x = vertices[indexA * 3];
+        var a_y = vertices[indexA * 3 + 1];
+        var a_z = vertices[indexA * 3 + 2];
+        var b_x = vertices[indexB * 3];
+        var b_y = vertices[indexB * 3 + 1];
+        var b_z = vertices[indexB * 3 + 2];
+        var c_x = vertices[indexC * 3];
+        var c_y = vertices[indexC * 3 + 1];
+        var c_z = vertices[indexC * 3 + 2];
+        var tpt1 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(a_x, a_y, a_z)));
+        var tpt2 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(b_x, b_y, b_z)));
+        var tpt3 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(c_x, c_y, c_z)));
+        return [tpt1, tpt2, tpt3];
+    };
+    BayUVGenerator.prototype.generateSideWallUV = function (geometry, vertices, indexA, indexB, indexC, indexD) {
+        var a_x = vertices[indexA * 3];
+        var a_y = vertices[indexA * 3 + 1];
+        var a_z = vertices[indexA * 3 + 2];
+        var b_x = vertices[indexB * 3];
+        var b_y = vertices[indexB * 3 + 1];
+        var b_z = vertices[indexB * 3 + 2];
+        var c_x = vertices[indexC * 3];
+        var c_y = vertices[indexC * 3 + 1];
+        var c_z = vertices[indexC * 3 + 2];
+        var d_x = vertices[indexD * 3];
+        var d_y = vertices[indexD * 3 + 1];
+        var d_z = vertices[indexD * 3 + 2];
+        var tpt1 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(a_x, a_y, a_z)));
+        var tpt2 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(b_x, b_y, b_z)));
+        var tpt3 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(c_x, c_y, c_z)));
+        var tpt4 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(d_x, d_y, d_z)));
+        return [tpt1, tpt2, tpt3, tpt4];
+    };
+    return BayUVGenerator;
+}());
 //# sourceMappingURL=Bay.js.map
-});
-___scope___.file("app/ArrayUtil.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function arrayJoin(x) {
-    return [].concat.apply([], x);
-}
-exports.arrayJoin = arrayJoin;
-function arrayIncludes(array, elem) {
-    for (var i = 0; i < array.length; ++i) {
-        if (array[i] == elem) {
-            return true;
-        }
-    }
-    return false;
-}
-exports.arrayIncludes = arrayIncludes;
-//# sourceMappingURL=ArrayUtil.js.map
-});
-___scope___.file("app/MkModelEffect.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var sodium = require("sodiumjs");
-var Option_1 = require("./Option");
-var PromiseUtil = require("./PromiseUtil");
-var SodiumUtil = require("./SodiumUtil");
-var THREE = require("three");
-var Model = /** @class */ (function () {
-    function Model(initCallback, threeObject3D) {
-        this._initCallback = initCallback;
-        this._threeObject3D = threeObject3D;
-    }
-    Model.create = function (initCallback, threeObject3D) {
-        return new Model(initCallback, threeObject3D);
-    };
-    Object.defineProperty(Model.prototype, "initCallback", {
-        get: function () {
-            return this._initCallback;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Model.prototype, "threeObject3D", {
-        get: function () {
-            return this._threeObject3D;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Model.prototype.init = function () {
-        return this.initCallback();
-    };
-    return Model;
-}());
-exports.Model = Model;
-var MkModelEffect = /** @class */ (function () {
-    function MkModelEffect(mkModelEffect) {
-        this._mkModelEffectOp = Option_1.Option.some(mkModelEffect);
-        this._modelOp = Option_1.Option.none();
-    }
-    MkModelEffect.create = function (mkModelEffect) {
-        return new MkModelEffect(mkModelEffect);
-    };
-    MkModelEffect.prototype.mkModel = function (textureLoader) {
-        if (this._modelOp.is_some) {
-            return this._modelOp.fromSome();
-        }
-        else {
-            var result = this._mkModelEffectOp.fromSome()(textureLoader);
-            this._modelOp = Option_1.Option.some(result);
-            this._mkModelEffectOp = Option_1.Option.none();
-            return result;
-        }
-    };
-    return MkModelEffect;
-}());
-exports.MkModelEffect = MkModelEffect;
-function vector2DToTHREE(pt) {
-    return new THREE.Vector2(pt.x, pt.y);
-}
-exports.vector2DToTHREE = vector2DToTHREE;
-function vector3DToTHREE(pt) {
-    return new THREE.Vector3(pt.x, pt.y, pt.z);
-}
-exports.vector3DToTHREE = vector3DToTHREE;
-function composeCListOfCModels(cListOfCModels) {
-    return sodium.Cell.switchC(cListOfCModels.map(composeListOfCModels));
-}
-exports.composeCListOfCModels = composeCListOfCModels;
-function composeListOfCModels(listOfCModels) {
-    return arrayOfCellToCellOfArray(listOfCModels, 0, listOfCModels.length)
-        .map(function (mkModelEffects) {
-        return MkModelEffect.create(function (textureLoader) {
-            return PromiseUtil
-                .listOfPromisesToPromiseOfList(mkModelEffects.map(function (mkModelEffect) { return mkModelEffect.mkModel(textureLoader); }))
-                .then(function (models) { return composeModels(models); });
-        });
-    });
-}
-exports.composeListOfCModels = composeListOfCModels;
-function composeModels(models) {
-    var group = new THREE.Group();
-    models.forEach(function (model) { return group.add(model.threeObject3D); });
-    return Model.create(function () {
-        var cleanups = [];
-        models.forEach(function (model) { return cleanups.push(model.init()); });
-        return function () {
-            cleanups.forEach(function (cleanup) { return cleanup(); });
-            cleanups = [];
-        };
-    }, group);
-}
-function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
-    if (toIdx - fromIdx == 0) {
-        return new sodium.Cell([]);
-    }
-    else if (toIdx - fromIdx == 1) {
-        return list[fromIdx].map(function (a) { return [a]; });
-    }
-    else {
-        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
-        return SodiumUtil.cellLift2(arrayOfCellToCellOfArray(list, fromIdx, pivot), arrayOfCellToCellOfArray(list, pivot, toIdx), function (list1, list2) { return list1.concat(list2); });
-    }
-}
-//# sourceMappingURL=MkModelEffect.js.map
-});
-___scope___.file("app/Option.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Option = /** @class */ (function () {
-    function Option(a) {
-        this._a = a;
-    }
-    Object.defineProperty(Option.prototype, "is_some", {
-        get: function () {
-            return this._a !== undefined;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Option.prototype, "is_none", {
-        get: function () {
-            return !this.is_some;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Option.prototype.fromSome = function () {
-        return this._a;
-    };
-    Option.prototype.orSome = function (a) {
-        if (this.is_some) {
-            return this.fromSome();
-        }
-        else {
-            return a;
-        }
-    };
-    Option.prototype.orSome_ = function (fn) {
-        if (this.is_some) {
-            return this.fromSome();
-        }
-        else {
-            return fn();
-        }
-    };
-    Option.some = function (a) {
-        return new Option(a);
-    };
-    Option.none = function () {
-        return Option._none;
-    };
-    Option.prototype.filter = function (pred) {
-        if (this.is_some) {
-            var a = this.fromSome();
-            if (pred(a)) {
-                return this;
-            }
-            else {
-                return Option.none();
-            }
-        }
-        else {
-            return Option.none();
-        }
-    };
-    Option.prototype.map = function (f) {
-        if (this.is_some) {
-            return Option.some(f(this.fromSome()));
-        }
-        else {
-            return Option.none();
-        }
-    };
-    Option.prototype.bind = function (f) {
-        if (this.is_some) {
-            return f(this.fromSome());
-        }
-        else {
-            return Option.none();
-        }
-    };
-    Option._none = new Option();
-    return Option;
-}());
-exports.Option = Option;
-//# sourceMappingURL=Option.js.map
-});
-___scope___.file("app/PromiseUtil.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function promiseLift2(pa, pb, f) {
-    return pa.then(function (a) { return pb.then(function (b) { return f(a, b); }); });
-}
-exports.promiseLift2 = promiseLift2;
-function promiseLift3(pa, pb, pc, f) {
-    return pa.then(function (a) { return promiseLift2(pb, pc, function (b, c) { return f(a, b, c); }); });
-}
-exports.promiseLift3 = promiseLift3;
-function promiseLift4(pa, pb, pc, pd, f) {
-    return pa.then(function (a) { return promiseLift3(pb, pc, pd, function (b, c, d) { return f(a, b, c, d); }); });
-}
-exports.promiseLift4 = promiseLift4;
-function promiseLift5(pa, pb, pc, pd, pe, f) {
-    return pa.then(function (a) { return promiseLift4(pb, pc, pd, pe, function (b, c, d, e) { return f(a, b, c, d, e); }); });
-}
-exports.promiseLift5 = promiseLift5;
-function promiseLift6(pa, pb, pc, pd, pe, pf, fn) {
-    return pa.then(function (a) { return promiseLift5(pb, pc, pd, pe, pf, function (b, c, d, e, f) { return fn(a, b, c, d, e, f); }); });
-}
-exports.promiseLift6 = promiseLift6;
-function listOfPromisesToPromiseOfList(promises) {
-    return _listOfPromiseToPromiseOfList(promises, 0, promises.length);
-}
-exports.listOfPromisesToPromiseOfList = listOfPromisesToPromiseOfList;
-function _listOfPromiseToPromiseOfList(promises, fromIdx, toIdx) {
-    if (toIdx - fromIdx == 0) {
-        return Promise.resolve([]);
-    }
-    else if (toIdx - fromIdx == 1) {
-        return promises[fromIdx].then(function (value) { return [value]; });
-    }
-    else {
-        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
-        return _listOfPromiseToPromiseOfList(promises, fromIdx, pivot)
-            .then(function (list1) {
-            return _listOfPromiseToPromiseOfList(promises, pivot, toIdx)
-                .then(function (list2) { return list1.concat(list2); });
-        });
-    }
-}
-//# sourceMappingURL=PromiseUtil.js.map
-});
-___scope___.file("app/math/Outline3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Plane3D_1 = require("./Plane3D");
-var Option_1 = require("../Option");
-var Outline3D = /** @class */ (function () {
-    function Outline3D(axes, outline) {
-        this._axes = axes;
-        this._outline = outline;
-    }
-    Outline3D.create = function (params) {
-        return new Outline3D(params.axes, params.outline);
-    };
-    Object.defineProperty(Outline3D.prototype, "axes", {
-        get: function () {
-            return this._axes;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Outline3D.prototype, "outline", {
-        get: function () {
-            return this._outline;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Outline3D.prototype.rayIntersectionTimeOp = function (ray) {
-        var plane = Plane3D_1.Plane3D.fromKnownPtAndNormal(this.axes.origin, this.axes.w);
-        var tOp = ray.collisionTimeWithPlane(plane);
-        if (tOp.is_none) {
-            return Option_1.Option.none();
-        }
-        var t = tOp.fromSome();
-        var pt = ray.positionFromTime(t);
-        var pt2 = this.axes.pointToThisSpace(pt).xyToVector2D();
-        var inside = isPointInsidePolygon(pt2, this.outline);
-        if (!inside) {
-            return Option_1.Option.none();
-        }
-        return Option_1.Option.some(t);
-    };
-    return Outline3D;
-}());
-exports.Outline3D = Outline3D;
-function isPointInsidePolygon(point, vs) {
-    // ray-casting algorithm based on
-    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-    var x = point.x, y = point.y;
-    var inside = false;
-    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        var xi = vs[i].x, yi = vs[i].y;
-        var xj = vs[j].x, yj = vs[j].y;
-        var intersect = ((yi > y) != (yj > y))
-            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect)
-            inside = !inside;
-    }
-    return inside;
-}
-;
-//# sourceMappingURL=Outline3D.js.map
-});
-___scope___.file("app/math/Plane3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Plane3D = /** @class */ (function () {
-    function Plane3D(n, d) {
-        this._n = n;
-        this._d = d;
-    }
-    Plane3D.create = function (n, d) {
-        return new Plane3D(n, d);
-    };
-    Plane3D.fromKnownPtAndNormal = function (knownPt, normal) {
-        return Plane3D.create(normal, -normal.dot(knownPt));
-    };
-    Object.defineProperty(Plane3D.prototype, "n", {
-        get: function () {
-            return this._n;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Plane3D.prototype, "d", {
-        get: function () {
-            return this._d;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Plane3D;
-}());
-exports.Plane3D = Plane3D;
-//# sourceMappingURL=Plane3D.js.map
 });
 ___scope___.file("app/math/Axes3D.js", function(exports, require, module, __filename, __dirname){
 
@@ -1528,202 +2295,6 @@ Axes3D["__class"] = "Axes3D";
 exports.Axes3D = Axes3D;
 Axes3D.identity_$LI$();
 //# sourceMappingURL=Axes3D.js.map
-});
-___scope___.file("app/math/Vector3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Vector2D_1 = require("./Vector2D");
-var Vector3D = /** @class */ (function () {
-    function Vector3D(x, y, z) {
-        this._x = x;
-        this._y = y;
-        this._z = z;
-    }
-    Vector3D.zero_$LI$ = function () { if (Vector3D.zero == null)
-        Vector3D.zero = Vector3D.create(0, 0, 0); return Vector3D.zero; };
-    ;
-    Vector3D.unitX_$LI$ = function () { if (Vector3D.unitX == null)
-        Vector3D.unitX = Vector3D.create(1, 0, 0); return Vector3D.unitX; };
-    ;
-    Vector3D.unitY_$LI$ = function () { if (Vector3D.unitY == null)
-        Vector3D.unitY = Vector3D.create(0, 1, 0); return Vector3D.unitY; };
-    ;
-    Vector3D.unitZ_$LI$ = function () { if (Vector3D.unitZ == null)
-        Vector3D.unitZ = Vector3D.create(0, 0, 1); return Vector3D.unitZ; };
-    ;
-    Vector3D.negUnitX_$LI$ = function () { if (Vector3D.negUnitX == null)
-        Vector3D.negUnitX = Vector3D.create(-1, 0, 0); return Vector3D.negUnitX; };
-    ;
-    Vector3D.negUnitY_$LI$ = function () { if (Vector3D.negUnitY == null)
-        Vector3D.negUnitY = Vector3D.create(0, -1, 0); return Vector3D.negUnitY; };
-    ;
-    Vector3D.negUnitZ_$LI$ = function () { if (Vector3D.negUnitZ == null)
-        Vector3D.negUnitZ = Vector3D.create(0, 0, -1); return Vector3D.negUnitZ; };
-    ;
-    Vector3D.create = function (x, y, z) {
-        return new Vector3D(x, y, z);
-    };
-    Vector3D.prototype.xyToVector2D = function () {
-        return Vector2D_1.Vector2D.create(this.x, this.y);
-    };
-    Object.defineProperty(Vector3D.prototype, "x", {
-        get: function () {
-            return this._x;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Vector3D.prototype, "y", {
-        get: function () {
-            return this._y;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Vector3D.prototype, "z", {
-        get: function () {
-            return this._z;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Vector3D.prototype.getX = function () {
-        return this._x;
-    };
-    Vector3D.prototype.getY = function () {
-        return this._y;
-    };
-    Vector3D.prototype.getZ = function () {
-        return this._z;
-    };
-    Vector3D.prototype.dot = function (v) {
-        return this.x * v.x + this.y * v.y + this.z * v.z;
-    };
-    Vector3D.prototype.add = function (v) {
-        return Vector3D.create(this.x + v.x, this.y + v.y, this.z + v.z);
-    };
-    Vector3D.prototype.sub = function (v) {
-        return Vector3D.create(this.x - v.x, this.y - v.y, this.z - v.z);
-    };
-    Vector3D.prototype.scale = function (a) {
-        return Vector3D.create(this.x * a, this.y * a, this.z * a);
-    };
-    Vector3D.prototype.cross = function (v) {
-        return Vector3D.create(this.y * v.z - this.z * v.y, this.z * v.x - this.x * v.z, this.x * v.y - this.y * v.x);
-    };
-    Vector3D.prototype.normalize = function () {
-        var a = this.length();
-        return Vector3D.create(this.x / a, this.y / a, this.z / a);
-    };
-    Vector3D.prototype.lengthSquared = function () {
-        return this.dot(this);
-    };
-    Vector3D.prototype.length = function () {
-        return Math.sqrt(this.lengthSquared());
-    };
-    Vector3D.prototype.distanceSquared = function (v) {
-        var dx = this.x - v.x;
-        var dy = this.y - v.y;
-        var dz = this.z - v.z;
-        return dx * dx + dy * dy + dz * dz;
-    };
-    Vector3D.prototype.distance = function (v) {
-        return Math.sqrt(this.distanceSquared(v));
-    };
-    /**
-     *
-     * @return {string}
-     */
-    Vector3D.prototype.toString = function () {
-        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ", " + /* toString */ ('' + (this.z)) + ")";
-    };
-    return Vector3D;
-}());
-exports.Vector3D = Vector3D;
-Vector3D.negUnitZ_$LI$();
-Vector3D.negUnitY_$LI$();
-Vector3D.negUnitX_$LI$();
-Vector3D.unitZ_$LI$();
-Vector3D.unitY_$LI$();
-Vector3D.unitX_$LI$();
-Vector3D.zero_$LI$();
-//# sourceMappingURL=Vector3D.js.map
-});
-___scope___.file("app/math/Vector2D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Vector3D_1 = require("./Vector3D");
-var Vector2D = /** @class */ (function () {
-    function Vector2D(x, y) {
-        this._x = x;
-        this._y = y;
-    }
-    Vector2D.create = function (x, y) {
-        return new Vector2D(x, y);
-    };
-    Vector2D.prototype.toVector3D = function () {
-        return Vector3D_1.Vector3D.create(this.x, this.y, 0.0);
-    };
-    Object.defineProperty(Vector2D.prototype, "x", {
-        get: function () {
-            return this._x;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Vector2D.prototype, "y", {
-        get: function () {
-            return this._y;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Vector2D.prototype.dot = function (rhs) {
-        return this.x * rhs.x + this.y * rhs.y;
-    };
-    Vector2D.prototype.add = function (rhs) {
-        return Vector2D.create(this.x + rhs.x, this.y + rhs.y);
-    };
-    Vector2D.prototype.sub = function (rhs) {
-        return Vector2D.create(this.x - rhs.x, this.y - rhs.y);
-    };
-    Vector2D.prototype.scale = function (a) {
-        return Vector2D.create(this.x * a, this.y * a);
-    };
-    Vector2D.prototype.cross = function (rhs) {
-        return this.x * rhs.y - this.y * rhs.x;
-    };
-    Vector2D.prototype.normalize = function () {
-        return this.scale(1.0 / this.length());
-    };
-    Vector2D.prototype.lengthSquared = function () {
-        return this.dot(this);
-    };
-    Vector2D.prototype.length = function () {
-        return Math.sqrt(this.lengthSquared());
-    };
-    Vector2D.prototype.distanceSquared = function (rhs) {
-        var dx = rhs.x - this.x;
-        var dy = rhs.y - this.y;
-        return dx * dx + dy * dy;
-    };
-    Vector2D.prototype.distance = function (rhs) {
-        return Math.sqrt(this.distanceSquared(rhs));
-    };
-    Vector2D.prototype.toString = function () {
-        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ")";
-    };
-    Vector2D.zero = Vector2D.create(0.0, 0.0);
-    Vector2D.unitX = Vector2D.create(1.0, 0.0);
-    Vector2D.unitY = Vector2D.create(0.0, 1.0);
-    Vector2D.negUnitX = Vector2D.create(-1.0, 0.0);
-    Vector2D.negUnitY = Vector2D.create(0.0, -1.0);
-    return Vector2D;
-}());
-exports.Vector2D = Vector2D;
-//# sourceMappingURL=Vector2D.js.map
 });
 ___scope___.file("app/math/Quaternion.js", function(exports, require, module, __filename, __dirname){
 
@@ -2114,6 +2685,270 @@ exports.Quaternion = Quaternion;
 Quaternion.identity_$LI$();
 //# sourceMappingURL=Quaternion.js.map
 });
+___scope___.file("app/MkModelEffect.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Option_1 = require("./Option");
+var PromiseUtil = require("./PromiseUtil");
+var SodiumUtil = require("./SodiumUtil");
+var THREE = require("three");
+var Model = /** @class */ (function () {
+    function Model(initCallback, threeObject3D) {
+        this._initCallback = initCallback;
+        this._threeObject3D = threeObject3D;
+    }
+    Model.create = function (initCallback, threeObject3D) {
+        return new Model(initCallback, threeObject3D);
+    };
+    Object.defineProperty(Model.prototype, "initCallback", {
+        get: function () {
+            return this._initCallback;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Model.prototype, "threeObject3D", {
+        get: function () {
+            return this._threeObject3D;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Model.prototype.init = function () {
+        return this.initCallback();
+    };
+    return Model;
+}());
+exports.Model = Model;
+var MkModelEffect = /** @class */ (function () {
+    function MkModelEffect(mkModelEffect) {
+        this._mkModelEffectOp = Option_1.Option.some(mkModelEffect);
+        this._modelOp = Option_1.Option.none();
+    }
+    MkModelEffect.create = function (mkModelEffect) {
+        return new MkModelEffect(mkModelEffect);
+    };
+    MkModelEffect.prototype.mkModel = function (textureLoader) {
+        if (this._modelOp.is_some) {
+            return this._modelOp.fromSome();
+        }
+        else {
+            var result = this._mkModelEffectOp.fromSome()(textureLoader);
+            this._modelOp = Option_1.Option.some(result);
+            this._mkModelEffectOp = Option_1.Option.none();
+            return result;
+        }
+    };
+    return MkModelEffect;
+}());
+exports.MkModelEffect = MkModelEffect;
+function THREEObject3DSetAxes(object, axes) {
+    var origin = axes.origin;
+    var orientation = axes.orientation;
+    object.position.set(origin.x, origin.y, origin.z);
+    object.quaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
+    object.matrixWorldNeedsUpdate = true;
+}
+exports.THREEObject3DSetAxes = THREEObject3DSetAxes;
+function vector2DToTHREE(pt) {
+    return new THREE.Vector2(pt.x, pt.y);
+}
+exports.vector2DToTHREE = vector2DToTHREE;
+function vector3DToTHREE(pt) {
+    return new THREE.Vector3(pt.x, pt.y, pt.z);
+}
+exports.vector3DToTHREE = vector3DToTHREE;
+function quaternionToTHREE(q) {
+    return new THREE.Quaternion(q.x, q.y, q.z, q.w);
+}
+exports.quaternionToTHREE = quaternionToTHREE;
+function composeCListOfCModels(cListOfCModels) {
+    return sodium.Cell.switchC(cListOfCModels.map(composeListOfCModels));
+}
+exports.composeCListOfCModels = composeCListOfCModels;
+function composeListOfCModels(listOfCModels) {
+    return arrayOfCellToCellOfArray(listOfCModels, 0, listOfCModels.length)
+        .map(function (mkModelEffects) {
+        return MkModelEffect.create(function (textureLoader) {
+            return PromiseUtil
+                .listOfPromisesToPromiseOfList(mkModelEffects.map(function (mkModelEffect) { return mkModelEffect.mkModel(textureLoader); }))
+                .then(function (models) { return composeModels(models); });
+        });
+    });
+}
+exports.composeListOfCModels = composeListOfCModels;
+function composeModels(models) {
+    var group = new THREE.Group();
+    models.forEach(function (model) { return group.add(model.threeObject3D); });
+    return Model.create(function () {
+        var cleanups = [];
+        models.forEach(function (model) { return cleanups.push(model.init()); });
+        return function () {
+            cleanups.forEach(function (cleanup) { return cleanup(); });
+            cleanups = [];
+        };
+    }, group);
+}
+function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
+    if (toIdx - fromIdx == 0) {
+        return new sodium.Cell([]);
+    }
+    else if (toIdx - fromIdx == 1) {
+        return list[fromIdx].map(function (a) { return [a]; });
+    }
+    else {
+        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
+        return SodiumUtil.cellLift2(arrayOfCellToCellOfArray(list, fromIdx, pivot), arrayOfCellToCellOfArray(list, pivot, toIdx), function (list1, list2) { return list1.concat(list2); });
+    }
+}
+//# sourceMappingURL=MkModelEffect.js.map
+});
+___scope___.file("app/PromiseUtil.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function promiseLift2(pa, pb, f) {
+    return pa.then(function (a) { return pb.then(function (b) { return f(a, b); }); });
+}
+exports.promiseLift2 = promiseLift2;
+function promiseLift3(pa, pb, pc, f) {
+    return pa.then(function (a) { return promiseLift2(pb, pc, function (b, c) { return f(a, b, c); }); });
+}
+exports.promiseLift3 = promiseLift3;
+function promiseLift4(pa, pb, pc, pd, f) {
+    return pa.then(function (a) { return promiseLift3(pb, pc, pd, function (b, c, d) { return f(a, b, c, d); }); });
+}
+exports.promiseLift4 = promiseLift4;
+function promiseLift5(pa, pb, pc, pd, pe, f) {
+    return pa.then(function (a) { return promiseLift4(pb, pc, pd, pe, function (b, c, d, e) { return f(a, b, c, d, e); }); });
+}
+exports.promiseLift5 = promiseLift5;
+function promiseLift6(pa, pb, pc, pd, pe, pf, fn) {
+    return pa.then(function (a) { return promiseLift5(pb, pc, pd, pe, pf, function (b, c, d, e, f) { return fn(a, b, c, d, e, f); }); });
+}
+exports.promiseLift6 = promiseLift6;
+function listOfPromisesToPromiseOfList(promises) {
+    return _listOfPromiseToPromiseOfList(promises, 0, promises.length);
+}
+exports.listOfPromisesToPromiseOfList = listOfPromisesToPromiseOfList;
+function _listOfPromiseToPromiseOfList(promises, fromIdx, toIdx) {
+    if (toIdx - fromIdx == 0) {
+        return Promise.resolve([]);
+    }
+    else if (toIdx - fromIdx == 1) {
+        return promises[fromIdx].then(function (value) { return [value]; });
+    }
+    else {
+        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
+        return _listOfPromiseToPromiseOfList(promises, fromIdx, pivot)
+            .then(function (list1) {
+            return _listOfPromiseToPromiseOfList(promises, pivot, toIdx)
+                .then(function (list2) { return list1.concat(list2); });
+        });
+    }
+}
+//# sourceMappingURL=PromiseUtil.js.map
+});
+___scope___.file("app/math/Outline3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Plane3D_1 = require("./Plane3D");
+var Option_1 = require("../Option");
+var Outline3D = /** @class */ (function () {
+    function Outline3D(axes, outline) {
+        this._axes = axes;
+        this._outline = outline;
+    }
+    Outline3D.create = function (params) {
+        return new Outline3D(params.axes, params.outline);
+    };
+    Object.defineProperty(Outline3D.prototype, "axes", {
+        get: function () {
+            return this._axes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Outline3D.prototype, "outline", {
+        get: function () {
+            return this._outline;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Outline3D.prototype.rayIntersectionTimeOp = function (ray) {
+        var plane = Plane3D_1.Plane3D.fromKnownPtAndNormal(this.axes.origin, this.axes.w);
+        var tOp = ray.collisionTimeWithPlane(plane);
+        if (tOp.is_none) {
+            return Option_1.Option.none();
+        }
+        var t = tOp.fromSome();
+        var pt = ray.positionFromTime(t);
+        var pt2 = this.axes.pointToThisSpace(pt).xyToVector2D();
+        var inside = isPointInsidePolygon(pt2, this.outline);
+        if (!inside) {
+            return Option_1.Option.none();
+        }
+        return Option_1.Option.some(t);
+    };
+    return Outline3D;
+}());
+exports.Outline3D = Outline3D;
+function isPointInsidePolygon(point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    var x = point.x, y = point.y;
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i].x, yi = vs[i].y;
+        var xj = vs[j].x, yj = vs[j].y;
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect)
+            inside = !inside;
+    }
+    return inside;
+}
+;
+//# sourceMappingURL=Outline3D.js.map
+});
+___scope___.file("app/math/Plane3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Plane3D = /** @class */ (function () {
+    function Plane3D(n, d) {
+        this._n = n;
+        this._d = d;
+    }
+    Plane3D.create = function (n, d) {
+        return new Plane3D(n, d);
+    };
+    Plane3D.fromKnownPtAndNormal = function (knownPt, normal) {
+        return Plane3D.create(normal, -normal.dot(knownPt));
+    };
+    Object.defineProperty(Plane3D.prototype, "n", {
+        get: function () {
+            return this._n;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Plane3D.prototype, "d", {
+        get: function () {
+            return this._d;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Plane3D;
+}());
+exports.Plane3D = Plane3D;
+//# sourceMappingURL=Plane3D.js.map
+});
 ___scope___.file("app/math/TextureSpace.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -2151,10 +2986,240 @@ var TextureSpace = /** @class */ (function () {
     TextureSpace.prototype.worldPtToTexturePt = function (pt) {
         return this.axes.pointToThisSpace(pt).xyToVector2D();
     };
+    TextureSpace.prototype.fromSpace = function (axes) {
+        return new TextureSpace(axes.fromThisSpace(this.axes), this.xScale, this.yScale);
+    };
+    TextureSpace.prototype.toSpace = function (axes) {
+        return new TextureSpace(axes.toThisSpace(this.axes), this.xScale, this.yScale);
+    };
     return TextureSpace;
 }());
 exports.TextureSpace = TextureSpace;
 //# sourceMappingURL=TextureSpace.js.map
+});
+___scope___.file("app/Wall.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var CSG2D = require("csg2d");
+var SodiumUtil = require("./SodiumUtil");
+var Bay_1 = require("./Bay");
+var Opening_1 = require("./Opening");
+var Axes3D_1 = require("./math/Axes3D");
+var MkModelEffect_1 = require("./MkModelEffect");
+var Tuples_1 = require("./Tuples");
+var Quaternion_1 = require("./math/Quaternion");
+var TextureSpace_1 = require("./math/TextureSpace");
+var Vector2D_1 = require("./math/Vector2D");
+var Vector3D_1 = require("./math/Vector3D");
+var Wall = /** @class */ (function () {
+    function Wall(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cTextureSpace = params
+                .cAxes
+                .map(function (axes) {
+                return TextureSpace_1.TextureSpace.create({
+                    axes: axes,
+                    xScale: 1.0,
+                    yScale: 1.0
+                });
+            });
+            var cBayOutlines = SodiumUtil.cellLift2(params.cOutline, params.cBayMarkers, function (outline, bayMarkers) {
+                var minY = Number.POSITIVE_INFINITY;
+                var maxY = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outline.length; ++i) {
+                    var pt = outline[i];
+                    minY = Math.min(minY, pt.y);
+                    maxY = Math.max(maxY, pt.y);
+                }
+                var intersectPolyMinY = minY - 100.0;
+                var intersectPolyMaxY = maxY + 100.0;
+                var outlinePolygon = [];
+                for (var i = 0; i < outline.length; ++i) {
+                    var pt = outline[i];
+                    outlinePolygon.push([pt.x, pt.y]);
+                }
+                var csgOutlinePolygon = CSG2D.fromPolygons([outlinePolygon]);
+                var result = [];
+                for (var i = 0; i < bayMarkers.length - 1; ++i) {
+                    var marker1 = bayMarkers[i];
+                    var marker2 = bayMarkers[i + 1];
+                    var csgIntersectingPolygon = CSG2D.fromPolygons([[
+                            [marker1, intersectPolyMinY],
+                            [marker2, intersectPolyMinY],
+                            [marker2, intersectPolyMaxY],
+                            [marker1, intersectPolyMaxY]
+                        ]]);
+                    var intersection = csgOutlinePolygon.intersect(csgIntersectingPolygon).toPolygons();
+                    var intersection2 = intersection[0];
+                    var bayOutline = [];
+                    for (var j = 0; j < intersection2.length - 1; ++j) {
+                        var pt = intersection2[j];
+                        bayOutline.push(Vector2D_1.Vector2D.create(pt.x, pt.y));
+                    }
+                    result.push(bayOutline);
+                }
+                return result;
+            });
+            var slOpeningDatas = new sodium.StreamLoop();
+            var cOpeningDatas = slOpeningDatas.hold([]);
+            slOpeningDatas.loop(params.sInsertOpening
+                .snapshot(params.cStableName, function (insertOpeningData, stableName) { return Tuples_1.T2.of(stableName, insertOpeningData); })
+                .filter(function (stableName_insertOpeningData) { return stableName_insertOpeningData._1 == stableName_insertOpeningData._2.wallStableName; })
+                .map(function (stableName_insertOpeningData) { return stableName_insertOpeningData._2; })
+                .snapshot(cOpeningDatas, function (insertOpeningData, openingDatas) {
+                return openingDatas.concat(insertOpeningData.openingData);
+            }));
+            var cOpenings = cOpeningDatas.map(sodium.lambda1(function (openingDatas) {
+                var openings = [];
+                for (var i = 0; i < openingDatas.length; ++i) {
+                    (function () {
+                        var openingData = openingDatas[i];
+                        var stableIndex = i;
+                        var cOpeningStableName = params.cStableName.map(function (stableName) { return stableName + ".opening[" + stableIndex + "]"; });
+                        openings.push(new Opening_1.Opening({
+                            cStableName: cOpeningStableName,
+                            cAxes: params.cAxes,
+                            cBayMarkers: params.cBayMarkers,
+                            cOpeningData: new sodium.Cell(openingData)
+                        }));
+                    })();
+                }
+                return openings;
+            }, [params.cAxes, params.cBayMarkers]));
+            var cBays = SodiumUtil.cellLift3(params.cAxes, params.cBayMarkers, cBayOutlines, function (axes, bayMarkers, bayOutlines) {
+                var bays = [];
+                for (var i = 0; i < bayMarkers.length - 1; ++i) {
+                    var marker1 = bayMarkers[i];
+                    var marker2 = bayMarkers[i + 1];
+                    var centreX = 0.5 * (marker1 + marker2);
+                    var bayAxes = axes.fromThisSpace(Axes3D_1.Axes3D
+                        .create(Vector3D_1.Vector3D.create(centreX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
+                    var bayOutline2 = bayOutlines[i].map(function (pt) { return Vector2D_1.Vector2D.create(pt.x - centreX, pt.y); });
+                    (function () {
+                        var stableIndex = i;
+                        bays.push(new Bay_1.Bay({
+                            cParentStableName: params.cStableName,
+                            cStableName: params.cStableName.map(function (stableName) { return stableName + ('.bay[' + stableIndex + ']'); }),
+                            cBayIndex: new sodium.Cell(stableIndex),
+                            cAxes: new sodium.Cell(bayAxes),
+                            cOutline: new sodium.Cell(bayOutline2),
+                            cCladdingTextureType: params.cCladdingTextureType,
+                            cCladdingTextureColour: params.cCladdingTextureColour,
+                            cTextureSpace: cTextureSpace,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cVisible: new sodium.Cell(true)
+                        }));
+                    })();
+                }
+                return bays;
+            });
+            _this._cBays = cBays;
+            _this._cModel = MkModelEffect_1.composeCListOfCModels(cOpenings.lift(cBays, function (openings, bays) {
+                return openings.map(function (opening) { return opening.cModel; })
+                    .concat(bays.map(function (bay) { return bay.cModel; }));
+            }));
+        });
+    }
+    Object.defineProperty(Wall.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Wall.prototype, "cBays", {
+        get: function () {
+            return this._cBays;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Wall;
+}());
+exports.Wall = Wall;
+//# sourceMappingURL=Wall.js.map
+});
+___scope___.file("app/Opening.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var Option_1 = require("./Option");
+var Axes3D_1 = require("./math/Axes3D");
+var MkModelEffect_1 = require("./MkModelEffect");
+var Quaternion_1 = require("./math/Quaternion");
+var Vector3D_1 = require("./math/Vector3D");
+var Opening = /** @class */ (function () {
+    function Opening(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cOpeningAxesOp = params.cAxes.lift3(params.cBayMarkers, params.cOpeningData, function (axes, bayMarkers, openingData) {
+                var numBays = bayMarkers.length - 1;
+                if (openingData.bayIndex < 0 || openingData.bayIndex > numBays - 1) {
+                    return Option_1.Option.none();
+                }
+                var marker1 = bayMarkers[openingData.bayIndex];
+                var marker2 = bayMarkers[openingData.bayIndex + 1];
+                var centreX = 0.5 * (marker1 + marker2);
+                return Option_1.Option.some(axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(centreX, openingData.headHeight - 0.5 * openingData.height, 0.0), Quaternion_1.Quaternion.identity)));
+            });
+            _this._cStableName = params.cStableName;
+            _this._cModel = new sodium.Cell(MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+                var group = new THREE.Group();
+                return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                    var cleanups = [];
+                    cleanups.push(params.cOpeningData.listen(function (openingData) {
+                        while (group.children.length != 0) {
+                            group.remove(group.children[0]);
+                        }
+                        var geometry = new THREE.BoxGeometry(openingData.width, openingData.height, 100.0);
+                        var mesh = new THREE.Mesh(geometry, material);
+                        group.add(mesh);
+                    }));
+                    cleanups.push(cOpeningAxesOp.listen(function (openingAxesOp) {
+                        if (openingAxesOp.is_none) {
+                            group.visible = false;
+                            return;
+                        }
+                        group.visible = true;
+                        var openingAxes = openingAxesOp.fromSome();
+                        var origin = openingAxes.origin;
+                        var orientation = openingAxes.orientation;
+                        group.position.set(origin.x, origin.y, origin.z);
+                        group.quaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
+                        group.matrixWorldNeedsUpdate = true;
+                    }));
+                    return function () {
+                        cleanups.forEach(function (cleanup) { return cleanup; });
+                        cleanups = [];
+                    };
+                }, group));
+            })).map(sodium.lambda1(function (x) { return x; }, [params.cOpeningData, cOpeningAxesOp]));
+        });
+    }
+    Object.defineProperty(Opening.prototype, "cStableName", {
+        get: function () {
+            return this._cStableName;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Opening.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Opening;
+}());
+exports.Opening = Opening;
+//# sourceMappingURL=Opening.js.map
 });
 ___scope___.file("app/math/Util.js", function(exports, require, module, __filename, __dirname){
 
@@ -2166,131 +3231,7 @@ function toRadians(degrees) {
 exports.toRadians = toRadians;
 //# sourceMappingURL=Util.js.map
 });
-___scope___.file("app/MouseButton.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var MouseButton;
-(function (MouseButton) {
-    MouseButton[MouseButton["Left"] = 0] = "Left";
-    MouseButton[MouseButton["Middle"] = 1] = "Middle";
-    MouseButton[MouseButton["Right"] = 2] = "Right";
-})(MouseButton = exports.MouseButton || (exports.MouseButton = {}));
-//# sourceMappingURL=MouseButton.js.map
-});
-___scope___.file("app/math/Ray3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Option_1 = require("../Option");
-var Ray3D = /** @class */ (function () {
-    function Ray3D(origin, direction) {
-        this._origin = origin;
-        this._direction = direction;
-    }
-    Ray3D.create = function (origin, direction) {
-        return new Ray3D(origin, direction);
-    };
-    Object.defineProperty(Ray3D.prototype, "origin", {
-        get: function () {
-            return this._origin;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Ray3D.prototype, "direction", {
-        get: function () {
-            return this._direction;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Ray3D.prototype.positionFromTime = function (t) {
-        return this.origin.add(this.direction.scale(t));
-    };
-    Ray3D.prototype.collisionTimeWithPlane = function (plane) {
-        // (ro + rd.t).n + d = 0
-        // ro.n + rd.n.t + d = 0
-        // rd.n.t = -(ro.n + d)
-        // t = -(ro.n + d) / (rd.n)
-        var t = -(this.origin.dot(plane.n) + plane.d) / (this.direction.dot(plane.n));
-        if (!isFinite(t)) {
-            return Option_1.Option.none();
-        }
-        return Option_1.Option.some(t);
-    };
-    Ray3D.prototype.collisionWithPlane = function (plane) {
-        var _this = this;
-        return this.collisionTimeWithPlane(plane).map(function (t) { return _this.positionFromTime(t); });
-    };
-    Ray3D.prototype.toString = function () {
-        return "(origin: " + this.origin.toString() + ", direction: " + this.direction.toString() + ")";
-    };
-    return Ray3D;
-}());
-exports.Ray3D = Ray3D;
-//# sourceMappingURL=Ray3D.js.map
-});
-___scope___.file("app/model/AppModel.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var sodium = require("sodiumjs");
-var ArrayUtil_1 = require("../ArrayUtil");
-var MouseButton_1 = require("../MouseButton");
-var SodiumUtil = require("../SodiumUtil");
-var HighlightBayUnderMouseMode_1 = require("../modes/HighlightBayUnderMouseMode");
-var InsertOpeningOrSkylightMode_1 = require("../modes/InsertOpeningOrSkylightMode");
-var AppModel = /** @class */ (function () {
-    function AppModel(params) {
-        var _this = this;
-        sodium.Transaction.run(function () {
-            var cBays = sodium.Cell.switchC(params.building.cWalls.lift(params.building.cRoofs, function (walls, roofs) {
-                var wallsAndRoofs = walls.concat(roofs);
-                return SodiumUtil.cellLiftArray(wallsAndRoofs.map(function (wall) {
-                    return wall.cBays;
-                }))
-                    .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
-            }));
-            _this._cMode =
-                params.sPerformOperation
-                    .map(function (performOperation) {
-                    return performOperation.match({
-                        idle: function () { return new HighlightBayUnderMouseMode_1.HighlightBayUnderMouseMode({
-                            cMousePosOp: params.cMousePosOp,
-                            cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
-                            cBays: cBays
-                        }); },
-                        insertOpeningOrSkylight: function () { return new InsertOpeningOrSkylightMode_1.InsertOpeningOrSkylightMode({
-                            cMousePosOp: params.cMousePosOp,
-                            sMouseLeftPress: params.sMousePressed.filter(function (mouseButton) { return mouseButton == MouseButton_1.MouseButton.Left; }).mapTo(sodium.Unit.UNIT),
-                            cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
-                            cBays: cBays
-                        }); }
-                    });
-                })
-                    .hold(new HighlightBayUnderMouseMode_1.HighlightBayUnderMouseMode({
-                    cMousePosOp: params.cMousePosOp,
-                    cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
-                    cBays: cBays
-                }));
-            _this._cHighlightedStableNames =
-                sodium.Cell.switchC(_this._cMode.map(function (mode) { return mode.cHighlightedStableNames; }));
-        });
-    }
-    Object.defineProperty(AppModel.prototype, "cHighlightedStableNames", {
-        get: function () {
-            return this._cHighlightedStableNames;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return AppModel;
-}());
-exports.AppModel = AppModel;
-//# sourceMappingURL=AppModel.js.map
-});
-___scope___.file("app/modes/HighlightBayUnderMouseMode.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/FormProperties.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 var __extends = (this && this.__extends) || (function () {
@@ -2304,72 +3245,65 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var sodium = require("sodiumjs");
-var Mode_1 = require("./Mode");
-var Option_1 = require("../Option");
-var SodiumUtil = require("../SodiumUtil");
-var Tuples_1 = require("../Tuples");
-var HighlightBayUnderMouseMode = /** @class */ (function (_super) {
-    __extends(HighlightBayUnderMouseMode, _super);
-    function HighlightBayUnderMouseMode(params) {
-        var _this = _super.call(this) || this;
-        sodium.Transaction.run(function () {
-            var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
-                return mousePosOp.bind(screenPointToWorldRayOp);
-            });
-            var cBayUnderMouseOp = sodium.Cell.switchC(params.cBays
-                .map(function (bays) {
-                return SodiumUtil
-                    .cellLiftArray(bays.map(function (bay) {
-                    return bay
-                        .cRayOpCollisionTimeOp(cMouseRayOp)
-                        .lift(bay.cStableName, function (tOp, stableName) {
-                        return tOp
-                            .filter(function (t) { return t >= 0.0; })
-                            .map(function (t) { return Tuples_1.T2.of(stableName, t); });
-                    });
-                }))
-                    .map(function (collisionOpList) {
-                    var closestOp = Option_1.Option.none();
-                    for (var i = 0; i < collisionOpList.length; ++i) {
-                        var collisionOp = collisionOpList[i];
-                        if (collisionOp.is_some) {
-                            var collision = collisionOp.fromSome();
-                            if (closestOp.is_none) {
-                                closestOp = Option_1.Option.some(collision);
-                            }
-                            else {
-                                var closest = closestOp.fromSome();
-                                if (collision._2 < closest._2) {
-                                    closestOp = Option_1.Option.some(collision);
-                                }
-                            }
-                        }
-                    }
-                    return closestOp.map(function (closest) { return closest._1; });
-                });
-            }));
-            _this._cHighlightedStableNames =
-                cBayUnderMouseOp
-                    .map(function (bayUnderMouseOp) {
-                    return bayUnderMouseOp
-                        .map(function (bayUnderMouse) { return [bayUnderMouse]; })
-                        .orSome([]);
-                });
+var FormProperties = /** @class */ (function () {
+    function FormProperties() {
+    }
+    FormProperties.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            opening: function (properties) {
+                if (cases.opening) {
+                    return cases.opening(properties);
+                }
+                else {
+                    return default_;
+                }
+            }
         });
+    };
+    FormProperties.opening = function (properties) {
+        return new FormPropertiesOpening(properties);
+    };
+    return FormProperties;
+}());
+exports.FormProperties = FormProperties;
+var FormPropertiesOpening = /** @class */ (function (_super) {
+    __extends(FormPropertiesOpening, _super);
+    function FormPropertiesOpening(properties) {
+        var _this = _super.call(this) || this;
+        _this._properties = properties;
         return _this;
     }
-    Object.defineProperty(HighlightBayUnderMouseMode.prototype, "cHighlightedStableNames", {
-        get: function () {
-            return this._cHighlightedStableNames;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return HighlightBayUnderMouseMode;
+    FormPropertiesOpening.prototype.match = function (cases) {
+        return cases.opening(this._properties);
+    };
+    return FormPropertiesOpening;
+}(FormProperties));
+//# sourceMappingURL=FormProperties.js.map
+});
+___scope___.file("app/modes/IdleMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Mode_1 = require("./Mode");
+var IdleMode = /** @class */ (function (_super) {
+    __extends(IdleMode, _super);
+    function IdleMode() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return IdleMode;
 }(Mode_1.Mode));
-exports.HighlightBayUnderMouseMode = HighlightBayUnderMouseMode;
-//# sourceMappingURL=HighlightBayUnderMouseMode.js.map
+exports.IdleMode = IdleMode;
+//# sourceMappingURL=IdleMode.js.map
 });
 ___scope___.file("app/modes/Mode.js", function(exports, require, module, __filename, __dirname){
 
@@ -2386,12 +3320,26 @@ var Mode = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Mode.prototype, "cRoofVisible", {
+        get: function () {
+            return new sodium.Cell(true);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mode.prototype, "sInsertOpening", {
+        get: function () {
+            return new sodium.Stream();
+        },
+        enumerable: true,
+        configurable: true
+    });
     return Mode;
 }());
 exports.Mode = Mode;
 //# sourceMappingURL=Mode.js.map
 });
-___scope___.file("app/modes/InsertOpeningOrSkylightMode.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/modes/InsertOpeningMode.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 var __extends = (this && this.__extends) || (function () {
@@ -2407,12 +3355,15 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var Mode_1 = require("./Mode");
+var InsertOpeningData_1 = require("../InsertOpeningData");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
 var Tuples_1 = require("../Tuples");
-var InsertOpeningOrSkylightMode = /** @class */ (function (_super) {
-    __extends(InsertOpeningOrSkylightMode, _super);
-    function InsertOpeningOrSkylightMode(params) {
+var OpeningData_1 = require("../OpeningData");
+var OpeningType_1 = require("../OpeningType");
+var InsertOpeningMode = /** @class */ (function (_super) {
+    __extends(InsertOpeningMode, _super);
+    function InsertOpeningMode(params) {
         var _this = _super.call(this) || this;
         sodium.Transaction.run(function () {
             var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
@@ -2424,10 +3375,10 @@ var InsertOpeningOrSkylightMode = /** @class */ (function (_super) {
                     .cellLiftArray(bays.map(function (bay) {
                     return bay
                         .cRayOpCollisionTimeOp(cMouseRayOp)
-                        .lift(bay.cStableName, function (tOp, stableName) {
+                        .map(function (tOp) {
                         return tOp
-                            .filter(function (t) { return t >= 0.0; })
-                            .map(function (t) { return Tuples_1.T2.of(stableName, t); });
+                            .filter(function (t) { return t >= 0; })
+                            .map(function (t) { return Tuples_1.T2.of(bay, t); });
                     });
                 }))
                     .map(function (collisionOpList) {
@@ -2450,43 +3401,145 @@ var InsertOpeningOrSkylightMode = /** @class */ (function (_super) {
                     return closestOp.map(function (closest) { return closest._1; });
                 });
             }));
-            var slSelectedBayOp = new sodium.StreamLoop();
-            var cSelectedBayOp = slSelectedBayOp.hold(Option_1.Option.none());
-            var cSelectableBayUnderMouseOp = cSelectedBayOp.lift(cBayUnderMouseOp, function (selectedBayOp, bayUnderMouseOp) {
-                return selectedBayOp.is_some ?
-                    Option_1.Option.none() :
-                    bayUnderMouseOp;
-            });
-            /*
-            var x=    SodiumUtil
-                    .streamFilterOption(
-                        params.sMouseLeftPress
-                            .snapshot1<Option<Bay>>(cSelectableBayUnderMouseOp)
-                    )
-                    .map(bay => Option.some(bay))
-            slSelectedBayOp.loop(
-            );*/
-            _this._cHighlightedStableNames =
-                cBayUnderMouseOp
-                    .map(function (bayUnderMouseOp) {
-                    return bayUnderMouseOp
-                        .map(function (bayUnderMouse) { return [bayUnderMouse]; })
-                        .orSome([]);
+            var sInsertOpening = SodiumUtil.streamFilterOption(params.sMouseLeftPress
+                .snapshot1(cBayUnderMouseOp)
+                .snapshot3(params.cOpeningTypeOp, params.cOpeningFormPropertiesOp, function (bayUnderMouseOp, openingTypeOp, openingFormPropertiesOp) {
+                return bayUnderMouseOp.lift3(openingTypeOp, openingFormPropertiesOp, function (bayUnderMouse, openingType, openingFormProperties) {
+                    return InsertOpeningData_1.InsertOpeningData.create({
+                        wallStableName: bayUnderMouse.cParentStableName.sample(),
+                        openingData: OpeningData_1.OpeningData.create({
+                            type: openingType,
+                            width: openingFormProperties.width,
+                            height: openingFormProperties.height,
+                            headHeight: openingType == OpeningType_1.OpeningType.Window ? 2100.0 : openingFormProperties.height,
+                            bayIndex: bayUnderMouse.cBayIndex.sample()
+                        })
+                    });
                 });
+            }));
+            _this._cHighlightedStableNames =
+                sodium.Cell.switchC(cBayUnderMouseOp
+                    .map(function (bayOp) {
+                    return bayOp
+                        .map(function (bay) { return bay.cStableName.map(function (stableName) { return [stableName]; }); })
+                        .orSome_(function () { return new sodium.Cell([]); });
+                }));
+            _this._cRoofVisible = new sodium.Cell(false);
+            _this._sInsertOpening = sInsertOpening;
         });
         return _this;
     }
-    Object.defineProperty(InsertOpeningOrSkylightMode.prototype, "cHighlightedStableNames", {
+    Object.defineProperty(InsertOpeningMode.prototype, "cHighlightedStableNames", {
         get: function () {
             return this._cHighlightedStableNames;
         },
         enumerable: true,
         configurable: true
     });
-    return InsertOpeningOrSkylightMode;
+    Object.defineProperty(InsertOpeningMode.prototype, "cRoofVisible", {
+        get: function () {
+            return this._cRoofVisible;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InsertOpeningMode.prototype, "sInsertOpening", {
+        get: function () {
+            return this._sInsertOpening;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return InsertOpeningMode;
 }(Mode_1.Mode));
-exports.InsertOpeningOrSkylightMode = InsertOpeningOrSkylightMode;
-//# sourceMappingURL=InsertOpeningOrSkylightMode.js.map
+exports.InsertOpeningMode = InsertOpeningMode;
+//# sourceMappingURL=InsertOpeningMode.js.map
+});
+___scope___.file("app/InsertOpeningData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var InsertOpeningData = /** @class */ (function () {
+    function InsertOpeningData(wallStableName, openingData) {
+        this._wallStableName = wallStableName;
+        this._openingData = openingData;
+    }
+    InsertOpeningData.create = function (params) {
+        return new InsertOpeningData(params.wallStableName, params.openingData);
+    };
+    Object.defineProperty(InsertOpeningData.prototype, "wallStableName", {
+        get: function () {
+            return this._wallStableName;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InsertOpeningData.prototype, "openingData", {
+        get: function () {
+            return this._openingData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return InsertOpeningData;
+}());
+exports.InsertOpeningData = InsertOpeningData;
+//# sourceMappingURL=InsertOpeningData.js.map
+});
+___scope___.file("app/OpeningData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var OpeningData = /** @class */ (function () {
+    function OpeningData(type, width, height, headHeight, bayIndex) {
+        this._type = type;
+        this._width = width;
+        this._height = height;
+        this._headHeight = headHeight;
+        this._bayIndex = bayIndex;
+    }
+    OpeningData.create = function (params) {
+        return new OpeningData(params.type, params.width, params.height, params.headHeight, params.bayIndex);
+    };
+    Object.defineProperty(OpeningData.prototype, "type", {
+        get: function () {
+            return this._type;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "width", {
+        get: function () {
+            return this._width;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "height", {
+        get: function () {
+            return this._height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "headHeight", {
+        get: function () {
+            return this._headHeight;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "bayIndex", {
+        get: function () {
+            return this._bayIndex;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return OpeningData;
+}());
+exports.OpeningData = OpeningData;
+//# sourceMappingURL=OpeningData.js.map
 });
 ___scope___.file("app/model/Operation.js", function(exports, require, module, __filename, __dirname){
 
@@ -2505,11 +3558,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Operation = /** @class */ (function () {
     function Operation() {
     }
+    Operation.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            idle: function () {
+                if (cases.idle) {
+                    return cases.idle();
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertOpening: function (openingType) {
+                if (cases.insertOpening) {
+                    return cases.insertOpening(openingType);
+                }
+                else {
+                    return default_;
+                }
+            }
+        });
+    };
     Operation.idle = function () {
         return new OperationIdle();
     };
-    Operation.insertOpeningOrSkylight = function () {
-        return new OperationInsertOpeningOrSkylight();
+    Operation.insertOpening = function (openingType) {
+        return new OperationInsertOpening(openingType);
     };
     return Operation;
 }());
@@ -2524,15 +3597,17 @@ var OperationIdle = /** @class */ (function (_super) {
     };
     return OperationIdle;
 }(Operation));
-var OperationInsertOpeningOrSkylight = /** @class */ (function (_super) {
-    __extends(OperationInsertOpeningOrSkylight, _super);
-    function OperationInsertOpeningOrSkylight() {
-        return _super !== null && _super.apply(this, arguments) || this;
+var OperationInsertOpening = /** @class */ (function (_super) {
+    __extends(OperationInsertOpening, _super);
+    function OperationInsertOpening(openingType) {
+        var _this = _super.call(this) || this;
+        _this._openingType = openingType;
+        return _this;
     }
-    OperationInsertOpeningOrSkylight.prototype.match = function (cases) {
-        return cases.insertOpeningOrSkylight();
+    OperationInsertOpening.prototype.match = function (cases) {
+        return cases.insertOpening(this._openingType);
     };
-    return OperationInsertOpeningOrSkylight;
+    return OperationInsertOpening;
 }(Operation));
 //# sourceMappingURL=Operation.js.map
 });
@@ -50597,6 +51672,7 @@ ___scope___.file("dist/sodium.cjs.js", function(exports, require, module, __file
 Object.defineProperty(exports, '__esModule', { value: true });
 
 var Collections = require('typescript-collections');
+var Z = require('sanctuary-type-classes');
 
 var totalRegistrations = 0;
 function getTotalRegistrations() {
@@ -50667,7 +51743,8 @@ var Vertex = /** @class */ (function () {
         if (verbose)
             console.log("deregister " + this.descr() + " => " + target.descr());
         this.decrement(target);
-        Vertex.collectCycles();
+        //Transaction.post_(() => Transaction.post_(() => Vertex.collectCycles()));
+        //window.setTimeout(() => Vertex.collectCycles(), 0);
     };
     Vertex.prototype.incRefCount = function (target) {
         var anyChanged = false;
@@ -51086,6 +52163,9 @@ var Transaction = /** @class */ (function () {
     };
     Transaction.prototype.last = function (h) {
         this.lastQ.push(h);
+    };
+    Transaction.post_ = function (action) {
+        Transaction.run(function () { return Transaction.currentTransaction.post(0, action); });
     };
     /**
      * Add an action to run after all last() actions.
@@ -51649,7 +52729,7 @@ var Cell = /** @class */ (function () {
     };
     /**
      * Fantasy-land Algebraic Data Type Compatability.
-     * Cell satisfies the Monad (and Functor, Apply, Applicative) categories
+     * Cell satisfies the Functor, Apply, Applicative categories
      * @see {@link https://github.com/fantasyland/fantasy-land} for more info
      */
     //of :: Applicative f => a -> f a
@@ -51663,10 +52743,6 @@ var Cell = /** @class */ (function () {
     //ap :: Apply f => f a ~> f (a -> b) -> f b
     Cell.prototype['fantasy-land/ap'] = function (cf) {
         return Cell.apply(cf, this);
-    };
-    //chain :: Chain m => m a ~> (a -> m b) -> m b
-    Cell.prototype['fantasy-land/chain'] = function (f) {
-        return Cell.switchC(this.map(f));
     };
     return Cell;
 }());
@@ -51700,7 +52776,6 @@ var LazyCell = /** @class */ (function (_super) {
     return LazyCell;
 }(Cell));
 
-//import * as Z from "sanctuary-type-classes";
 var Stream = /** @class */ (function () {
     function Stream(vertex) {
         this.listeners = [];
@@ -52144,9 +53219,7 @@ var Stream = /** @class */ (function () {
     //concat :: Semigroup a => a ~> a -> a
     Stream.prototype['fantasy-land/concat'] = function (a) {
         return this.merge(a, function (left, right) {
-            return left['fantasy-land/concat'] != null ? left['fantasy-land/concat'](right)
-                : left['concat'] != null ? left['concat'](right)
-                    : left;
+            return (Z.Semigroup.test(left)) ? Z.concat(left, right) : left;
         });
     };
     //empty :: Monoid m => () -> m
@@ -55798,6 +56871,2471 @@ exports.default = MultiRootTree;
 //# sourceMappingURL=MultiRootTree.js.map
 });
 return ___scope___.entry = "dist/lib/index.js";
+});
+FuseBox.pkg("sanctuary-type-classes", {}, function(___scope___){
+___scope___.file("index.js", function(exports, require, module, __filename, __dirname){
+
+/*
+             ############                  #
+            ############                  ###
+                  #####                  #####
+                #####      ####################
+              #####       ######################
+            #####                     ###########
+          #####         ######################
+        #####          ####################
+      #####                        #####
+     ############                 ###
+    ############                 */
+
+//. # sanctuary-type-classes
+//.
+//. The [Fantasy Land Specification][FL] "specifies interoperability of common
+//. algebraic structures" by defining a number of type classes. For each type
+//. class, it states laws which every member of a type must obey in order for
+//. the type to be a member of the type class. In order for the Maybe type to
+//. be considered a [Functor][], for example, every `Maybe a` value must have
+//. a `fantasy-land/map` method which obeys the identity and composition laws.
+//.
+//. This project provides:
+//.
+//.   - [`TypeClass`](#TypeClass), a function for defining type classes;
+//.   - one `TypeClass` value for each Fantasy Land type class;
+//.   - lawful Fantasy Land methods for JavaScript's built-in types;
+//.   - one function for each Fantasy Land method; and
+//.   - several functions derived from these functions.
+//.
+//. ## Type-class hierarchy
+//.
+/* eslint-disable max-len */
+//. <pre>
+//.  Setoid   Semigroupoid  Semigroup   Foldable        Functor      Contravariant  Filterable
+//. (equals)    (compose)    (concat)   (reduce)         (map)        (contramap)    (filter)
+//.     |           |           |           \         / | | | | \
+//.     |           |           |            \       /  | | | |  \
+//.     |           |           |             \     /   | | | |   \
+//.     |           |           |              \   /    | | | |    \
+//.     |           |           |               \ /     | | | |     \
+//.    Ord      Category     Monoid         Traversable | | | |      \
+//.   (lte)       (id)       (empty)        (traverse)  / | | \       \
+//.                             |                      /  | |  \       \
+//.                             |                     /   / \   \       \
+//.                             |             Profunctor /   \ Bifunctor \
+//.                             |              (promap) /     \ (bimap)   \
+//.                             |                      /       \           \
+//.                           Group                   /         \           \
+//.                          (invert)               Alt        Apply      Extend
+//.                                                (alt)        (ap)     (extend)
+//.                                                 /           / \           \
+//.                                                /           /   \           \
+//.                                               /           /     \           \
+//.                                              /           /       \           \
+//.                                             /           /         \           \
+//.                                           Plus    Applicative    Chain      Comonad
+//.                                          (zero)       (of)      (chain)    (extract)
+//.                                             \         / \         / \
+//.                                              \       /   \       /   \
+//.                                               \     /     \     /     \
+//.                                                \   /       \   /       \
+//.                                                 \ /         \ /         \
+//.                                             Alternative    Monad     ChainRec
+//.                                                                     (chainRec)
+//. </pre>
+/* eslint-enable max-len */
+//.
+//. ## API
+
+(function(f) {
+
+  'use strict';
+
+  /* istanbul ignore else */
+  if (typeof module === 'object' && typeof module.exports === 'object') {
+    module.exports = f(require('sanctuary-type-identifiers'));
+  } else if (typeof define === 'function' && define.amd != null) {
+    define(['sanctuary-type-identifiers'], f);
+  } else {
+    self.sanctuaryTypeClasses = f(self.sanctuaryTypeIdentifiers);
+  }
+
+}(function(type) {
+
+  'use strict';
+
+  /* istanbul ignore if */
+  if (typeof __doctest !== 'undefined') {
+    /* global __doctest:false */
+    /* eslint-disable no-unused-vars */
+    var Identity = __doctest.require('./test/Identity');
+    var List = __doctest.require('./test/List');
+    var Maybe = __doctest.require('./test/Maybe');
+    var Sum = __doctest.require('./test/Sum');
+    var Tuple = __doctest.require('./test/Tuple');
+
+    var Nil = List.Nil, Cons = List.Cons;
+    var Nothing = Maybe.Nothing, Just = Maybe.Just;
+    /* eslint-enable no-unused-vars */
+  }
+
+  //  concat_ :: Array a -> Array a -> Array a
+  function concat_(xs) {
+    return function(ys) {
+      return xs.concat(ys);
+    };
+  }
+
+  //  constant :: a -> b -> a
+  function constant(x) {
+    return function(y) {
+      return x;
+    };
+  }
+
+  //  forEachKey :: (StrMap a, StrMap a ~> String -> Undefined) -> Undefined
+  function forEachKey(strMap, f) {
+    Object.keys(strMap).forEach(f, strMap);
+  }
+
+  //  has :: (String, Object) -> Boolean
+  function has(k, o) {
+    return Object.prototype.hasOwnProperty.call(o, k);
+  }
+
+  //  identity :: a -> a
+  function identity(x) { return x; }
+
+  //  pair :: a -> b -> Array2 a b
+  function pair(x) {
+    return function(y) {
+      return [x, y];
+    };
+  }
+
+  //  sameType :: (a, b) -> Boolean
+  function sameType(x, y) {
+    return typeof x === typeof y && type(x) === type(y);
+  }
+
+  //  thrush :: a -> (a -> b) -> b
+  function thrush(x) {
+    return function(f) {
+      return f(x);
+    };
+  }
+
+  //  type Iteration a = { value :: a, done :: Boolean }
+
+  //  iterationNext :: a -> Iteration a
+  function iterationNext(x) { return {value: x, done: false}; }
+
+  //  iterationDone :: a -> Iteration a
+  function iterationDone(x) { return {value: x, done: true}; }
+
+  //# TypeClass :: (String, String, Array TypeClass, a -> Boolean) -> TypeClass
+  //.
+  //. The arguments are:
+  //.
+  //.   - the name of the type class, prefixed by its npm package name;
+  //.   - the documentation URL of the type class;
+  //.   - an array of dependencies; and
+  //.   - a predicate which accepts any JavaScript value and returns `true`
+  //.     if the value satisfies the requirements of the type class; `false`
+  //.     otherwise.
+  //.
+  //. Example:
+  //.
+  //. ```javascript
+  //. //    hasMethod :: String -> a -> Boolean
+  //. const hasMethod = name => x => x != null && typeof x[name] == 'function';
+  //.
+  //. //    Foo :: TypeClass
+  //. const Foo = Z.TypeClass(
+  //.   'my-package/Foo',
+  //.   'http://example.com/my-package#Foo',
+  //.   [],
+  //.   hasMethod('foo')
+  //. );
+  //.
+  //. //    Bar :: TypeClass
+  //. const Bar = Z.TypeClass(
+  //.   'my-package/Bar',
+  //.   'http://example.com/my-package#Bar',
+  //.   [Foo],
+  //.   hasMethod('bar')
+  //. );
+  //. ```
+  //.
+  //. Types whose values have a `foo` method are members of the Foo type class.
+  //. Members of the Foo type class whose values have a `bar` method are also
+  //. members of the Bar type class.
+  //.
+  //. Each `TypeClass` value has a `test` field: a function which accepts
+  //. any JavaScript value and returns `true` if the value satisfies the
+  //. type class's predicate and the predicates of all the type class's
+  //. dependencies; `false` otherwise.
+  //.
+  //. `TypeClass` values may be used with [sanctuary-def][type-classes]
+  //. to define parametrically polymorphic functions which verify their
+  //. type-class constraints at run time.
+  function TypeClass(name, url, dependencies, test) {
+    if (!(this instanceof TypeClass)) {
+      return new TypeClass(name, url, dependencies, test);
+    }
+    this.name = name;
+    this.url = url;
+    this.test = function(x) {
+      return dependencies.every(function(d) { return d.test(x); }) && test(x);
+    };
+  }
+
+  TypeClass['@@type'] = 'sanctuary-type-classes/TypeClass';
+
+  //  data Location = Constructor | Value
+
+  //  Constructor :: Location
+  var Constructor = 'Constructor';
+
+  //  Value :: Location
+  var Value = 'Value';
+
+  //  _funcPath :: (Boolean, Array String, a) -> Nullable Function
+  function _funcPath(allowInheritedProps, path, _x) {
+    var x = _x;
+    for (var idx = 0; idx < path.length; idx += 1) {
+      var k = path[idx];
+      if (x == null || !(allowInheritedProps || has(k, x))) return null;
+      x = x[k];
+    }
+    return typeof x === 'function' ? x : null;
+  }
+
+  //  funcPath :: (Array String, a) -> Nullable Function
+  function funcPath(path, x) {
+    return _funcPath(true, path, x);
+  }
+
+  //  implPath :: Array String -> Nullable Function
+  function implPath(path) {
+    return _funcPath(false, path, implementations);
+  }
+
+  //  functionName :: Function -> String
+  var functionName = has('name', function f() {}) ?
+    function functionName(f) { return f.name; } :
+    /* istanbul ignore next */
+    function functionName(f) {
+      var match = /function (\w*)/.exec(f);
+      return match == null ? '' : match[1];
+    };
+
+  //  $ :: (String, Array TypeClass, StrMap (Array Location)) -> TypeClass
+  function $(_name, dependencies, requirements) {
+    function getBoundMethod(_name) {
+      var name = 'fantasy-land/' + _name;
+      return requirements[_name] === Constructor ?
+        function(typeRep) {
+          var f = funcPath([name], typeRep);
+          return f == null && typeof typeRep === 'function' ?
+            implPath([functionName(typeRep), name]) :
+            f;
+        } :
+        function(x) {
+          var isPrototype = x != null &&
+                            x.constructor != null &&
+                            x.constructor.prototype === x;
+          var m = null;
+          if (!isPrototype) m = funcPath([name], x);
+          if (m == null)    m = implPath([type(x), 'prototype', name]);
+          return m && m.bind(x);
+        };
+    }
+
+    var version = '9.0.0';  // updated programmatically
+    var keys = Object.keys(requirements);
+
+    var typeClass = TypeClass(
+      'sanctuary-type-classes/' + _name,
+      'https://github.com/sanctuary-js/sanctuary-type-classes/tree/v' + version
+        + '#' + _name,
+      dependencies,
+      function(x) {
+        return keys.every(function(_name) {
+          var arg = requirements[_name] === Constructor ? x.constructor : x;
+          return getBoundMethod(_name)(arg) != null;
+        });
+      }
+    );
+
+    typeClass.methods = keys.reduce(function(methods, _name) {
+      methods[_name] = getBoundMethod(_name);
+      return methods;
+    }, {});
+
+    return typeClass;
+  }
+
+  //# Setoid :: TypeClass
+  //.
+  //. `TypeClass` value for [Setoid][].
+  //.
+  //. ```javascript
+  //. > Setoid.test(null)
+  //. true
+  //. ```
+  var Setoid = $('Setoid', [], {equals: Value});
+
+  //# Ord :: TypeClass
+  //.
+  //. `TypeClass` value for [Ord][].
+  //.
+  //. ```javascript
+  //. > Ord.test(0)
+  //. true
+  //.
+  //. > Ord.test(Math.sqrt)
+  //. false
+  //. ```
+  var Ord = $('Ord', [Setoid], {lte: Value});
+
+  //# Semigroupoid :: TypeClass
+  //.
+  //. `TypeClass` value for [Semigroupoid][].
+  //.
+  //. ```javascript
+  //. > Semigroupoid.test(Math.sqrt)
+  //. true
+  //.
+  //. > Semigroupoid.test(0)
+  //. false
+  //. ```
+  var Semigroupoid = $('Semigroupoid', [], {compose: Value});
+
+  //# Category :: TypeClass
+  //.
+  //. `TypeClass` value for [Category][].
+  //.
+  //. ```javascript
+  //. > Category.test(Math.sqrt)
+  //. true
+  //.
+  //. > Category.test(0)
+  //. false
+  //. ```
+  var Category = $('Category', [Semigroupoid], {id: Constructor});
+
+  //# Semigroup :: TypeClass
+  //.
+  //. `TypeClass` value for [Semigroup][].
+  //.
+  //. ```javascript
+  //. > Semigroup.test('')
+  //. true
+  //.
+  //. > Semigroup.test(0)
+  //. false
+  //. ```
+  var Semigroup = $('Semigroup', [], {concat: Value});
+
+  //# Monoid :: TypeClass
+  //.
+  //. `TypeClass` value for [Monoid][].
+  //.
+  //. ```javascript
+  //. > Monoid.test('')
+  //. true
+  //.
+  //. > Monoid.test(0)
+  //. false
+  //. ```
+  var Monoid = $('Monoid', [Semigroup], {empty: Constructor});
+
+  //# Group :: TypeClass
+  //.
+  //. `TypeClass` value for [Group][].
+  //.
+  //. ```javascript
+  //. > Group.test(Sum(0))
+  //. true
+  //.
+  //. > Group.test('')
+  //. false
+  //. ```
+  var Group = $('Group', [Monoid], {invert: Value});
+
+  //# Filterable :: TypeClass
+  //.
+  //. `TypeClass` value for [Filterable][].
+  //.
+  //. ```javascript
+  //. > Filterable.test({})
+  //. true
+  //.
+  //. > Filterable.test('')
+  //. false
+  //. ```
+  var Filterable = $('Filterable', [], {filter: Value});
+
+  //# Functor :: TypeClass
+  //.
+  //. `TypeClass` value for [Functor][].
+  //.
+  //. ```javascript
+  //. > Functor.test([])
+  //. true
+  //.
+  //. > Functor.test('')
+  //. false
+  //. ```
+  var Functor = $('Functor', [], {map: Value});
+
+  //# Bifunctor :: TypeClass
+  //.
+  //. `TypeClass` value for [Bifunctor][].
+  //.
+  //. ```javascript
+  //. > Bifunctor.test(Tuple('foo', 64))
+  //. true
+  //.
+  //. > Bifunctor.test([])
+  //. false
+  //. ```
+  var Bifunctor = $('Bifunctor', [Functor], {bimap: Value});
+
+  //# Profunctor :: TypeClass
+  //.
+  //. `TypeClass` value for [Profunctor][].
+  //.
+  //. ```javascript
+  //. > Profunctor.test(Math.sqrt)
+  //. true
+  //.
+  //. > Profunctor.test([])
+  //. false
+  //. ```
+  var Profunctor = $('Profunctor', [Functor], {promap: Value});
+
+  //# Apply :: TypeClass
+  //.
+  //. `TypeClass` value for [Apply][].
+  //.
+  //. ```javascript
+  //. > Apply.test([])
+  //. true
+  //.
+  //. > Apply.test('')
+  //. false
+  //. ```
+  var Apply = $('Apply', [Functor], {ap: Value});
+
+  //# Applicative :: TypeClass
+  //.
+  //. `TypeClass` value for [Applicative][].
+  //.
+  //. ```javascript
+  //. > Applicative.test([])
+  //. true
+  //.
+  //. > Applicative.test({})
+  //. false
+  //. ```
+  var Applicative = $('Applicative', [Apply], {of: Constructor});
+
+  //# Chain :: TypeClass
+  //.
+  //. `TypeClass` value for [Chain][].
+  //.
+  //. ```javascript
+  //. > Chain.test([])
+  //. true
+  //.
+  //. > Chain.test({})
+  //. false
+  //. ```
+  var Chain = $('Chain', [Apply], {chain: Value});
+
+  //# ChainRec :: TypeClass
+  //.
+  //. `TypeClass` value for [ChainRec][].
+  //.
+  //. ```javascript
+  //. > ChainRec.test([])
+  //. true
+  //.
+  //. > ChainRec.test({})
+  //. false
+  //. ```
+  var ChainRec = $('ChainRec', [Chain], {chainRec: Constructor});
+
+  //# Monad :: TypeClass
+  //.
+  //. `TypeClass` value for [Monad][].
+  //.
+  //. ```javascript
+  //. > Monad.test([])
+  //. true
+  //.
+  //. > Monad.test({})
+  //. false
+  //. ```
+  var Monad = $('Monad', [Applicative, Chain], {});
+
+  //# Alt :: TypeClass
+  //.
+  //. `TypeClass` value for [Alt][].
+  //.
+  //. ```javascript
+  //. > Alt.test({})
+  //. true
+  //.
+  //. > Alt.test('')
+  //. false
+  //. ```
+  var Alt = $('Alt', [Functor], {alt: Value});
+
+  //# Plus :: TypeClass
+  //.
+  //. `TypeClass` value for [Plus][].
+  //.
+  //. ```javascript
+  //. > Plus.test({})
+  //. true
+  //.
+  //. > Plus.test('')
+  //. false
+  //. ```
+  var Plus = $('Plus', [Alt], {zero: Constructor});
+
+  //# Alternative :: TypeClass
+  //.
+  //. `TypeClass` value for [Alternative][].
+  //.
+  //. ```javascript
+  //. > Alternative.test([])
+  //. true
+  //.
+  //. > Alternative.test({})
+  //. false
+  //. ```
+  var Alternative = $('Alternative', [Applicative, Plus], {});
+
+  //# Foldable :: TypeClass
+  //.
+  //. `TypeClass` value for [Foldable][].
+  //.
+  //. ```javascript
+  //. > Foldable.test({})
+  //. true
+  //.
+  //. > Foldable.test('')
+  //. false
+  //. ```
+  var Foldable = $('Foldable', [], {reduce: Value});
+
+  //# Traversable :: TypeClass
+  //.
+  //. `TypeClass` value for [Traversable][].
+  //.
+  //. ```javascript
+  //. > Traversable.test([])
+  //. true
+  //.
+  //. > Traversable.test('')
+  //. false
+  //. ```
+  var Traversable = $('Traversable', [Functor, Foldable], {traverse: Value});
+
+  //# Extend :: TypeClass
+  //.
+  //. `TypeClass` value for [Extend][].
+  //.
+  //. ```javascript
+  //. > Extend.test([])
+  //. true
+  //.
+  //. > Extend.test({})
+  //. false
+  //. ```
+  var Extend = $('Extend', [Functor], {extend: Value});
+
+  //# Comonad :: TypeClass
+  //.
+  //. `TypeClass` value for [Comonad][].
+  //.
+  //. ```javascript
+  //. > Comonad.test(Identity(0))
+  //. true
+  //.
+  //. > Comonad.test([])
+  //. false
+  //. ```
+  var Comonad = $('Comonad', [Extend], {extract: Value});
+
+  //# Contravariant :: TypeClass
+  //.
+  //. `TypeClass` value for [Contravariant][].
+  //.
+  //. ```javascript
+  //. > Contravariant.test(Math.sqrt)
+  //. true
+  //.
+  //. > Contravariant.test([])
+  //. false
+  //. ```
+  var Contravariant = $('Contravariant', [], {contramap: Value});
+
+  //  Null$prototype$equals :: Null ~> Null -> Boolean
+  function Null$prototype$equals(other) {
+    return true;
+  }
+
+  //  Null$prototype$lte :: Null ~> Null -> Boolean
+  function Null$prototype$lte(other) {
+    return true;
+  }
+
+  //  Undefined$prototype$equals :: Undefined ~> Undefined -> Boolean
+  function Undefined$prototype$equals(other) {
+    return true;
+  }
+
+  //  Undefined$prototype$lte :: Undefined ~> Undefined -> Boolean
+  function Undefined$prototype$lte(other) {
+    return true;
+  }
+
+  //  Boolean$prototype$equals :: Boolean ~> Boolean -> Boolean
+  function Boolean$prototype$equals(other) {
+    return typeof this === 'object' ?
+      equals(this.valueOf(), other.valueOf()) :
+      this === other;
+  }
+
+  //  Boolean$prototype$lte :: Boolean ~> Boolean -> Boolean
+  function Boolean$prototype$lte(other) {
+    return typeof this === 'object' ?
+      lte(this.valueOf(), other.valueOf()) :
+      this === false || other === true;
+  }
+
+  //  Number$prototype$equals :: Number ~> Number -> Boolean
+  function Number$prototype$equals(other) {
+    return typeof this === 'object' ?
+      equals(this.valueOf(), other.valueOf()) :
+      isNaN(this) && isNaN(other) || this === other;
+  }
+
+  //  Number$prototype$lte :: Number ~> Number -> Boolean
+  function Number$prototype$lte(other) {
+    return typeof this === 'object' ?
+      lte(this.valueOf(), other.valueOf()) :
+      isNaN(this) || this <= other;
+  }
+
+  //  Date$prototype$equals :: Date ~> Date -> Boolean
+  function Date$prototype$equals(other) {
+    return equals(this.valueOf(), other.valueOf());
+  }
+
+  //  Date$prototype$lte :: Date ~> Date -> Boolean
+  function Date$prototype$lte(other) {
+    return lte(this.valueOf(), other.valueOf());
+  }
+
+  //  RegExp$prototype$equals :: RegExp ~> RegExp -> Boolean
+  function RegExp$prototype$equals(other) {
+    return other.source === this.source &&
+           other.global === this.global &&
+           other.ignoreCase === this.ignoreCase &&
+           other.multiline === this.multiline &&
+           other.sticky === this.sticky &&
+           other.unicode === this.unicode;
+  }
+
+  //  String$empty :: () -> String
+  function String$empty() {
+    return '';
+  }
+
+  //  String$prototype$equals :: String ~> String -> Boolean
+  function String$prototype$equals(other) {
+    return typeof this === 'object' ?
+      equals(this.valueOf(), other.valueOf()) :
+      this === other;
+  }
+
+  //  String$prototype$lte :: String ~> String -> Boolean
+  function String$prototype$lte(other) {
+    return typeof this === 'object' ?
+      lte(this.valueOf(), other.valueOf()) :
+      this <= other;
+  }
+
+  //  String$prototype$concat :: String ~> String -> String
+  function String$prototype$concat(other) {
+    return this + other;
+  }
+
+  //  Array$empty :: () -> Array a
+  function Array$empty() {
+    return [];
+  }
+
+  //  Array$of :: a -> Array a
+  function Array$of(x) {
+    return [x];
+  }
+
+  //  Array$chainRec :: ((a -> c, b -> c, a) -> Array c, a) -> Array b
+  function Array$chainRec(f, x) {
+    var result = [];
+    var nil = {};
+    var todo = {head: x, tail: nil};
+    while (todo !== nil) {
+      var more = nil;
+      var steps = f(iterationNext, iterationDone, todo.head);
+      for (var idx = 0; idx < steps.length; idx += 1) {
+        var step = steps[idx];
+        if (step.done) {
+          result.push(step.value);
+        } else {
+          more = {head: step.value, tail: more};
+        }
+      }
+      todo = todo.tail;
+      while (more !== nil) {
+        todo = {head: more.head, tail: todo};
+        more = more.tail;
+      }
+    }
+    return result;
+  }
+
+  //  Array$zero :: () -> Array a
+  function Array$zero() {
+    return [];
+  }
+
+  //  Array$prototype$equals :: Array a ~> Array a -> Boolean
+  function Array$prototype$equals(other) {
+    if (other.length !== this.length) return false;
+    for (var idx = 0; idx < this.length; idx += 1) {
+      if (!equals(this[idx], other[idx])) return false;
+    }
+    return true;
+  }
+
+  //  Array$prototype$lte :: Array a ~> Array a -> Boolean
+  function Array$prototype$lte(other) {
+    for (var idx = 0; true; idx += 1) {
+      if (idx === this.length) return true;
+      if (idx === other.length) return false;
+      if (!equals(this[idx], other[idx])) return lte(this[idx], other[idx]);
+    }
+  }
+
+  //  Array$prototype$concat :: Array a ~> Array a -> Array a
+  function Array$prototype$concat(other) {
+    return this.concat(other);
+  }
+
+  //  Array$prototype$filter :: Array a ~> (a -> Boolean) -> Array a
+  function Array$prototype$filter(pred) {
+    return this.filter(function(x) { return pred(x); });
+  }
+
+  //  Array$prototype$map :: Array a ~> (a -> b) -> Array b
+  function Array$prototype$map(f) {
+    return this.map(function(x) { return f(x); });
+  }
+
+  //  Array$prototype$ap :: Array a ~> Array (a -> b) -> Array b
+  function Array$prototype$ap(fs) {
+    var result = [];
+    for (var idx = 0; idx < fs.length; idx += 1) {
+      for (var idx2 = 0; idx2 < this.length; idx2 += 1) {
+        result.push(fs[idx](this[idx2]));
+      }
+    }
+    return result;
+  }
+
+  //  Array$prototype$chain :: Array a ~> (a -> Array b) -> Array b
+  function Array$prototype$chain(f) {
+    var result = [];
+    for (var idx = 0; idx < this.length; idx += 1) {
+      for (var idx2 = 0, xs = f(this[idx]); idx2 < xs.length; idx2 += 1) {
+        result.push(xs[idx2]);
+      }
+    }
+    return result;
+  }
+
+  //  Array$prototype$alt :: Array a ~> Array a -> Array a
+  var Array$prototype$alt = Array$prototype$concat;
+
+  //  Array$prototype$reduce :: Array a ~> ((b, a) -> b, b) -> b
+  function Array$prototype$reduce(f, initial) {
+    var acc = initial;
+    for (var idx = 0; idx < this.length; idx += 1) acc = f(acc, this[idx]);
+    return acc;
+  }
+
+  //  Array$prototype$traverse :: Applicative f => Array a ~> (TypeRep f, a -> f b) -> f (Array b)
+  function Array$prototype$traverse(typeRep, f) {
+    var xs = this;
+    function go(idx, n) {
+      switch (n) {
+        case 0: return of(typeRep, []);
+        case 2: return lift2(pair, f(xs[idx]), f(xs[idx + 1]));
+        default:
+          var m = Math.floor(n / 4) * 2;
+          return lift2(concat_, go(idx, m), go(idx + m, n - m));
+      }
+    }
+    return this.length % 2 === 1 ?
+      lift2(concat_, map(Array$of, f(this[0])), go(1, this.length - 1)) :
+      go(0, this.length);
+  }
+
+  //  Array$prototype$extend :: Array a ~> (Array a -> b) -> Array b
+  function Array$prototype$extend(f) {
+    return this.map(function(_, idx, xs) { return f(xs.slice(idx)); });
+  }
+
+  //  Arguments$prototype$equals :: Arguments ~> Arguments -> Boolean
+  function Arguments$prototype$equals(other) {
+    return Array$prototype$equals.call(this, other);
+  }
+
+  //  Arguments$prototype$lte :: Arguments ~> Arguments -> Boolean
+  function Arguments$prototype$lte(other) {
+    return Array$prototype$lte.call(this, other);
+  }
+
+  //  Error$prototype$equals :: Error ~> Error -> Boolean
+  function Error$prototype$equals(other) {
+    return equals(this.name, other.name) &&
+           equals(this.message, other.message);
+  }
+
+  //  Object$empty :: () -> StrMap a
+  function Object$empty() {
+    return {};
+  }
+
+  //  Object$zero :: () -> StrMap a
+  function Object$zero() {
+    return {};
+  }
+
+  //  Object$prototype$equals :: StrMap a ~> StrMap a -> Boolean
+  function Object$prototype$equals(other) {
+    var self = this;
+    var keys = Object.keys(this).sort();
+    return equals(keys, Object.keys(other).sort()) &&
+           keys.every(function(k) { return equals(self[k], other[k]); });
+  }
+
+  //  Object$prototype$lte :: StrMap a ~> StrMap a -> Boolean
+  function Object$prototype$lte(other) {
+    var theseKeys = Object.keys(this).sort();
+    var otherKeys = Object.keys(other).sort();
+    while (true) {
+      if (theseKeys.length === 0) return true;
+      if (otherKeys.length === 0) return false;
+      var k = theseKeys.shift();
+      var z = otherKeys.shift();
+      if (k < z) return true;
+      if (k > z) return false;
+      if (!equals(this[k], other[k])) return lte(this[k], other[k]);
+    }
+  }
+
+  //  Object$prototype$concat :: StrMap a ~> StrMap a -> StrMap a
+  function Object$prototype$concat(other) {
+    var result = {};
+    function assign(k) { result[k] = this[k]; }
+    forEachKey(this, assign);
+    forEachKey(other, assign);
+    return result;
+  }
+
+  //  Object$prototype$filter :: StrMap a ~> (a -> Boolean) -> StrMap a
+  function Object$prototype$filter(pred) {
+    var result = {};
+    forEachKey(this, function(k) { if (pred(this[k])) result[k] = this[k]; });
+    return result;
+  }
+
+  //  Object$prototype$map :: StrMap a ~> (a -> b) -> StrMap b
+  function Object$prototype$map(f) {
+    var result = {};
+    forEachKey(this, function(k) { result[k] = f(this[k]); });
+    return result;
+  }
+
+  //  Object$prototype$ap :: StrMap a ~> StrMap (a -> b) -> StrMap b
+  function Object$prototype$ap(other) {
+    var result = {};
+    forEachKey(this, function(k) {
+      if (has(k, other)) result[k] = other[k](this[k]);
+    });
+    return result;
+  }
+
+  //  Object$prototype$alt :: StrMap a ~> StrMap a -> StrMap a
+  var Object$prototype$alt = Object$prototype$concat;
+
+  //  Object$prototype$reduce :: StrMap a ~> ((b, a) -> b, b) -> b
+  function Object$prototype$reduce(f, initial) {
+    var self = this;
+    function reducer(acc, k) { return f(acc, self[k]); }
+    return Object.keys(this).sort().reduce(reducer, initial);
+  }
+
+  //  Object$prototype$traverse :: Applicative f => StrMap a ~> (TypeRep f, a -> f b) -> f (StrMap b)
+  function Object$prototype$traverse(typeRep, f) {
+    var self = this;
+    return Object.keys(this).reduce(function(applicative, k) {
+      function set(o) {
+        return function(v) {
+          var singleton = {}; singleton[k] = v;
+          return Object$prototype$concat.call(o, singleton);
+        };
+      }
+      return lift2(set, applicative, f(self[k]));
+    }, of(typeRep, {}));
+  }
+
+  //  Function$id :: () -> a -> a
+  function Function$id() {
+    return identity;
+  }
+
+  //  Function$of :: b -> (a -> b)
+  function Function$of(x) {
+    return function(_) { return x; };
+  }
+
+  //  Function$chainRec :: ((a -> c, b -> c, a) -> (z -> c), a) -> (z -> b)
+  function Function$chainRec(f, x) {
+    return function(a) {
+      var step = iterationNext(x);
+      while (!step.done) {
+        step = f(iterationNext, iterationDone, step.value)(a);
+      }
+      return step.value;
+    };
+  }
+
+  //  Function$prototype$equals :: Function ~> Function -> Boolean
+  function Function$prototype$equals(other) {
+    return other === this;
+  }
+
+  //  Function$prototype$compose :: (a -> b) ~> (b -> c) -> (a -> c)
+  function Function$prototype$compose(other) {
+    var semigroupoid = this;
+    return function(x) { return other(semigroupoid(x)); };
+  }
+
+  //  Function$prototype$map :: (a -> b) ~> (b -> c) -> (a -> c)
+  function Function$prototype$map(f) {
+    var functor = this;
+    return function(x) { return f(functor(x)); };
+  }
+
+  //  Function$prototype$promap :: (b -> c) ~> (a -> b, c -> d) -> (a -> d)
+  function Function$prototype$promap(f, g) {
+    var profunctor = this;
+    return function(x) { return g(profunctor(f(x))); };
+  }
+
+  //  Function$prototype$ap :: (a -> b) ~> (a -> b -> c) -> (a -> c)
+  function Function$prototype$ap(f) {
+    var apply = this;
+    return function(x) { return f(x)(apply(x)); };
+  }
+
+  //  Function$prototype$chain :: (a -> b) ~> (b -> a -> c) -> (a -> c)
+  function Function$prototype$chain(f) {
+    var chain = this;
+    return function(x) { return f(chain(x))(x); };
+  }
+
+  //  Function$prototype$extend :: Semigroup a => (a -> b) ~> ((a -> b) -> c) -> (a -> c)
+  function Function$prototype$extend(f) {
+    var extend = this;
+    return function(x) {
+      return f(function(y) { return extend(concat(x, y)); });
+    };
+  }
+
+  //  Function$prototype$contramap :: (b -> c) ~> (a -> b) -> (a -> c)
+  function Function$prototype$contramap(f) {
+    var contravariant = this;
+    return function(x) { return contravariant(f(x)); };
+  }
+
+  /* eslint-disable key-spacing */
+  var implementations = {
+    Null: {
+      'prototype': {
+        'fantasy-land/equals':      Null$prototype$equals,
+        'fantasy-land/lte':         Null$prototype$lte
+      }
+    },
+    Undefined: {
+      'prototype': {
+        'fantasy-land/equals':      Undefined$prototype$equals,
+        'fantasy-land/lte':         Undefined$prototype$lte
+      }
+    },
+    Boolean: {
+      'prototype': {
+        'fantasy-land/equals':      Boolean$prototype$equals,
+        'fantasy-land/lte':         Boolean$prototype$lte
+      }
+    },
+    Number: {
+      'prototype': {
+        'fantasy-land/equals':      Number$prototype$equals,
+        'fantasy-land/lte':         Number$prototype$lte
+      }
+    },
+    Date: {
+      'prototype': {
+        'fantasy-land/equals':      Date$prototype$equals,
+        'fantasy-land/lte':         Date$prototype$lte
+      }
+    },
+    RegExp: {
+      'prototype': {
+        'fantasy-land/equals':      RegExp$prototype$equals
+      }
+    },
+    String: {
+      'fantasy-land/empty':         String$empty,
+      'prototype': {
+        'fantasy-land/equals':      String$prototype$equals,
+        'fantasy-land/lte':         String$prototype$lte,
+        'fantasy-land/concat':      String$prototype$concat
+      }
+    },
+    Array: {
+      'fantasy-land/empty':         Array$empty,
+      'fantasy-land/of':            Array$of,
+      'fantasy-land/chainRec':      Array$chainRec,
+      'fantasy-land/zero':          Array$zero,
+      'prototype': {
+        'fantasy-land/equals':      Array$prototype$equals,
+        'fantasy-land/lte':         Array$prototype$lte,
+        'fantasy-land/concat':      Array$prototype$concat,
+        'fantasy-land/filter':      Array$prototype$filter,
+        'fantasy-land/map':         Array$prototype$map,
+        'fantasy-land/ap':          Array$prototype$ap,
+        'fantasy-land/chain':       Array$prototype$chain,
+        'fantasy-land/alt':         Array$prototype$alt,
+        'fantasy-land/reduce':      Array$prototype$reduce,
+        'fantasy-land/traverse':    Array$prototype$traverse,
+        'fantasy-land/extend':      Array$prototype$extend
+      }
+    },
+    Arguments: {
+      'prototype': {
+        'fantasy-land/equals':      Arguments$prototype$equals,
+        'fantasy-land/lte':         Arguments$prototype$lte
+      }
+    },
+    Error: {
+      'prototype': {
+        'fantasy-land/equals':      Error$prototype$equals
+      }
+    },
+    Object: {
+      'fantasy-land/empty':         Object$empty,
+      'fantasy-land/zero':          Object$zero,
+      'prototype': {
+        'fantasy-land/equals':      Object$prototype$equals,
+        'fantasy-land/lte':         Object$prototype$lte,
+        'fantasy-land/concat':      Object$prototype$concat,
+        'fantasy-land/filter':      Object$prototype$filter,
+        'fantasy-land/map':         Object$prototype$map,
+        'fantasy-land/ap':          Object$prototype$ap,
+        'fantasy-land/alt':         Object$prototype$alt,
+        'fantasy-land/reduce':      Object$prototype$reduce,
+        'fantasy-land/traverse':    Object$prototype$traverse
+      }
+    },
+    Function: {
+      'fantasy-land/id':            Function$id,
+      'fantasy-land/of':            Function$of,
+      'fantasy-land/chainRec':      Function$chainRec,
+      'prototype': {
+        'fantasy-land/equals':      Function$prototype$equals,
+        'fantasy-land/compose':     Function$prototype$compose,
+        'fantasy-land/map':         Function$prototype$map,
+        'fantasy-land/promap':      Function$prototype$promap,
+        'fantasy-land/ap':          Function$prototype$ap,
+        'fantasy-land/chain':       Function$prototype$chain,
+        'fantasy-land/extend':      Function$prototype$extend,
+        'fantasy-land/contramap':   Function$prototype$contramap
+      }
+    }
+  };
+  /* eslint-enable key-spacing */
+
+  //# equals :: (a, b) -> Boolean
+  //.
+  //. Returns `true` if its arguments are of the same type and equal according
+  //. to the type's [`fantasy-land/equals`][] method; `false` otherwise.
+  //.
+  //. `fantasy-land/equals` implementations are provided for the following
+  //. built-in types: Null, Undefined, Boolean, Number, Date, RegExp, String,
+  //. Array, Arguments, Error, Object, and Function.
+  //.
+  //. The algorithm supports circular data structures. Two arrays are equal
+  //. if they have the same index paths and for each path have equal values.
+  //. Two arrays which represent `[1, [1, [1, [1, [1, ...]]]]]`, for example,
+  //. are equal even if their internal structures differ. Two objects are equal
+  //. if they have the same property paths and for each path have equal values.
+  //.
+  //. ```javascript
+  //. > equals(0, -0)
+  //. true
+  //.
+  //. > equals(NaN, NaN)
+  //. true
+  //.
+  //. > equals(Cons('foo', Cons('bar', Nil)), Cons('foo', Cons('bar', Nil)))
+  //. true
+  //.
+  //. > equals(Cons('foo', Cons('bar', Nil)), Cons('bar', Cons('foo', Nil)))
+  //. false
+  //. ```
+  var equals = (function() {
+    //  $pairs :: Array (Array2 Any Any)
+    var $pairs = [];
+
+    return function equals(x, y) {
+      if (!sameType(x, y)) return false;
+
+      //  This algorithm for comparing circular data structures was
+      //  suggested in <http://stackoverflow.com/a/40622794/312785>.
+      if ($pairs.some(function(p) { return p[0] === x && p[1] === y; })) {
+        return true;
+      }
+
+      $pairs.push([x, y]);
+      try {
+        return Setoid.test(x) && Setoid.test(y) && Setoid.methods.equals(x)(y);
+      } finally {
+        $pairs.pop();
+      }
+    };
+  }());
+
+  //# lt :: (a, b) -> Boolean
+  //.
+  //. Returns `true` if its arguments are of the same type and the first is
+  //. less than the second according to the type's [`fantasy-land/lte`][]
+  //. method; `false` otherwise.
+  //.
+  //. This function is derived from [`lte`](#lte).
+  //.
+  //. See also [`gt`](#gt) and [`gte`](#gte).
+  //.
+  //. ```javascript
+  //. > lt(0, 0)
+  //. false
+  //.
+  //. > lt(0, 1)
+  //. true
+  //.
+  //. > lt(1, 0)
+  //. false
+  //. ```
+  function lt(x, y) {
+    return sameType(x, y) && !lte(y, x);
+  }
+
+  //# lte :: (a, b) -> Boolean
+  //.
+  //. Returns `true` if its arguments are of the same type and the first
+  //. is less than or equal to the second according to the type's
+  //. [`fantasy-land/lte`][] method; `false` otherwise.
+  //.
+  //. `fantasy-land/lte` implementations are provided for the following
+  //. built-in types: Null, Undefined, Boolean, Number, Date, String, Array,
+  //. Arguments, and Object.
+  //.
+  //. The algorithm supports circular data structures in the same manner as
+  //. [`equals`](#equals).
+  //.
+  //. See also [`lt`](#lt), [`gt`](#gt), and [`gte`](#gte).
+  //.
+  //. ```javascript
+  //. > lte(0, 0)
+  //. true
+  //.
+  //. > lte(0, 1)
+  //. true
+  //.
+  //. > lte(1, 0)
+  //. false
+  //. ```
+  var lte = (function() {
+    //  $pairs :: Array (Array2 Any Any)
+    var $pairs = [];
+
+    return function lte(x, y) {
+      if (!sameType(x, y)) return false;
+
+      //  This algorithm for comparing circular data structures was
+      //  suggested in <http://stackoverflow.com/a/40622794/312785>.
+      if ($pairs.some(function(p) { return p[0] === x && p[1] === y; })) {
+        return equals(x, y);
+      }
+
+      $pairs.push([x, y]);
+      try {
+        return Ord.test(x) && Ord.test(y) && Ord.methods.lte(x)(y);
+      } finally {
+        $pairs.pop();
+      }
+    };
+  }());
+
+  //# gt :: (a, b) -> Boolean
+  //.
+  //. Returns `true` if its arguments are of the same type and the first is
+  //. greater than the second according to the type's [`fantasy-land/lte`][]
+  //. method; `false` otherwise.
+  //.
+  //. This function is derived from [`lte`](#lte).
+  //.
+  //. See also [`lt`](#lt) and [`gte`](#gte).
+  //.
+  //. ```javascript
+  //. > gt(0, 0)
+  //. false
+  //.
+  //. > gt(0, 1)
+  //. false
+  //.
+  //. > gt(1, 0)
+  //. true
+  //. ```
+  function gt(x, y) {
+    return lt(y, x);
+  }
+
+  //# gte :: (a, b) -> Boolean
+  //.
+  //. Returns `true` if its arguments are of the same type and the first
+  //. is greater than or equal to the second according to the type's
+  //. [`fantasy-land/lte`][] method; `false` otherwise.
+  //.
+  //. This function is derived from [`lte`](#lte).
+  //.
+  //. See also [`lt`](#lt) and [`gt`](#gt).
+  //.
+  //. ```javascript
+  //. > gte(0, 0)
+  //. true
+  //.
+  //. > gte(0, 1)
+  //. false
+  //.
+  //. > gte(1, 0)
+  //. true
+  //. ```
+  function gte(x, y) {
+    return lte(y, x);
+  }
+
+  //# min :: Ord a => (a, a) -> a
+  //.
+  //. Returns the smaller of its two arguments.
+  //.
+  //. This function is derived from [`lte`](#lte).
+  //.
+  //. See also [`max`](#max).
+  //.
+  //. ```javascript
+  //. > min(10, 2)
+  //. 2
+  //.
+  //. > min(new Date('1999-12-31'), new Date('2000-01-01'))
+  //. new Date('1999-12-31')
+  //.
+  //. > min('10', '2')
+  //. '10'
+  //. ```
+  function min(x, y) {
+    return lte(x, y) ? x : y;
+  }
+
+  //# max :: Ord a => (a, a) -> a
+  //.
+  //. Returns the larger of its two arguments.
+  //.
+  //. This function is derived from [`lte`](#lte).
+  //.
+  //. See also [`min`](#min).
+  //.
+  //. ```javascript
+  //. > max(10, 2)
+  //. 10
+  //.
+  //. > max(new Date('1999-12-31'), new Date('2000-01-01'))
+  //. new Date('2000-01-01')
+  //.
+  //. > max('10', '2')
+  //. '2'
+  //. ```
+  function max(x, y) {
+    return lte(x, y) ? y : x;
+  }
+
+  //# compose :: Semigroupoid c => (c j k, c i j) -> c i k
+  //.
+  //. Function wrapper for [`fantasy-land/compose`][].
+  //.
+  //. `fantasy-land/compose` implementations are provided for the following
+  //. built-in types: Function.
+  //.
+  //. ```javascript
+  //. > compose(Math.sqrt, x => x + 1)(99)
+  //. 10
+  //. ```
+  function compose(x, y) {
+    return Semigroupoid.methods.compose(y)(x);
+  }
+
+  //# id :: Category c => TypeRep c -> c
+  //.
+  //. Function wrapper for [`fantasy-land/id`][].
+  //.
+  //. `fantasy-land/id` implementations are provided for the following
+  //. built-in types: Function.
+  //.
+  //. ```javascript
+  //. > id(Function)('foo')
+  //. 'foo'
+  //. ```
+  function id(typeRep) {
+    return Category.methods.id(typeRep)();
+  }
+
+  //# concat :: Semigroup a => (a, a) -> a
+  //.
+  //. Function wrapper for [`fantasy-land/concat`][].
+  //.
+  //. `fantasy-land/concat` implementations are provided for the following
+  //. built-in types: String, Array, and Object.
+  //.
+  //. ```javascript
+  //. > concat('abc', 'def')
+  //. 'abcdef'
+  //.
+  //. > concat([1, 2, 3], [4, 5, 6])
+  //. [1, 2, 3, 4, 5, 6]
+  //.
+  //. > concat({x: 1, y: 2}, {y: 3, z: 4})
+  //. {x: 1, y: 3, z: 4}
+  //.
+  //. > concat(Cons('foo', Cons('bar', Cons('baz', Nil))), Cons('quux', Nil))
+  //. Cons('foo', Cons('bar', Cons('baz', Cons('quux', Nil))))
+  //. ```
+  function concat(x, y) {
+    return Semigroup.methods.concat(x)(y);
+  }
+
+  //# empty :: Monoid m => TypeRep m -> m
+  //.
+  //. Function wrapper for [`fantasy-land/empty`][].
+  //.
+  //. `fantasy-land/empty` implementations are provided for the following
+  //. built-in types: String, Array, and Object.
+  //.
+  //. ```javascript
+  //. > empty(String)
+  //. ''
+  //.
+  //. > empty(Array)
+  //. []
+  //.
+  //. > empty(Object)
+  //. {}
+  //.
+  //. > empty(List)
+  //. Nil
+  //. ```
+  function empty(typeRep) {
+    return Monoid.methods.empty(typeRep)();
+  }
+
+  //# invert :: Group g => g -> g
+  //.
+  //. Function wrapper for [`fantasy-land/invert`][].
+  //.
+  //. ```javascript
+  //. > invert(Sum(5))
+  //. Sum(-5)
+  //. ```
+  function invert(group) {
+    return Group.methods.invert(group)();
+  }
+
+  //# filter :: Filterable f => (a -> Boolean, f a) -> f a
+  //.
+  //. Function wrapper for [`fantasy-land/filter`][]. Discards every element
+  //. which does not satisfy the predicate.
+  //.
+  //. `fantasy-land/filter` implementations are provided for the following
+  //. built-in types: Array and Object.
+  //.
+  //. See also [`reject`](#reject).
+  //.
+  //. ```javascript
+  //. > filter(x => x % 2 == 1, [1, 2, 3])
+  //. [1, 3]
+  //.
+  //. > filter(x => x % 2 == 1, {x: 1, y: 2, z: 3})
+  //. {x: 1, z: 3}
+  //.
+  //. > filter(x => x % 2 == 1, Cons(1, Cons(2, Cons(3, Nil))))
+  //. Cons(1, Cons(3, Nil))
+  //.
+  //. > filter(x => x % 2 == 1, Nothing)
+  //. Nothing
+  //.
+  //. > filter(x => x % 2 == 1, Just(0))
+  //. Nothing
+  //.
+  //. > filter(x => x % 2 == 1, Just(1))
+  //. Just(1)
+  //. ```
+  function filter(pred, filterable) {
+    return Filterable.methods.filter(filterable)(pred);
+  }
+
+  //# reject :: Filterable f => (a -> Boolean, f a) -> f a
+  //.
+  //. Discards every element which satisfies the predicate.
+  //.
+  //. This function is derived from [`filter`](#filter).
+  //.
+  //. ```javascript
+  //. > reject(x => x % 2 == 1, [1, 2, 3])
+  //. [2]
+  //.
+  //. > reject(x => x % 2 == 1, {x: 1, y: 2, z: 3})
+  //. {y: 2}
+  //.
+  //. > reject(x => x % 2 == 1, Cons(1, Cons(2, Cons(3, Nil))))
+  //. Cons(2, Nil)
+  //.
+  //. > reject(x => x % 2 == 1, Nothing)
+  //. Nothing
+  //.
+  //. > reject(x => x % 2 == 1, Just(0))
+  //. Just(0)
+  //.
+  //. > reject(x => x % 2 == 1, Just(1))
+  //. Nothing
+  //. ```
+  function reject(pred, filterable) {
+    return filter(function(x) { return !pred(x); }, filterable);
+  }
+
+  //# takeWhile :: Filterable f => (a -> Boolean, f a) -> f a
+  //.
+  //. Discards the first element which does not satisfy the predicate, and all
+  //. subsequent elements.
+  //.
+  //. This function is derived from [`filter`](#filter).
+  //.
+  //. See also [`dropWhile`](#dropWhile).
+  //.
+  //. ```javascript
+  //. > takeWhile(s => /x/.test(s), ['xy', 'xz', 'yx', 'yz', 'zx', 'zy'])
+  //. ['xy', 'xz', 'yx']
+  //.
+  //. > takeWhile(s => /y/.test(s), ['xy', 'xz', 'yx', 'yz', 'zx', 'zy'])
+  //. ['xy']
+  //.
+  //. > takeWhile(s => /z/.test(s), ['xy', 'xz', 'yx', 'yz', 'zx', 'zy'])
+  //. []
+  //. ```
+  function takeWhile(pred, filterable) {
+    var take = true;
+    return filter(function(x) { return take = take && pred(x); }, filterable);
+  }
+
+  //# dropWhile :: Filterable f => (a -> Boolean, f a) -> f a
+  //.
+  //. Retains the first element which does not satisfy the predicate, and all
+  //. subsequent elements.
+  //.
+  //. This function is derived from [`filter`](#filter).
+  //.
+  //. See also [`takeWhile`](#takeWhile).
+  //.
+  //. ```javascript
+  //. > dropWhile(s => /x/.test(s), ['xy', 'xz', 'yx', 'yz', 'zx', 'zy'])
+  //. ['yz', 'zx', 'zy']
+  //.
+  //. > dropWhile(s => /y/.test(s), ['xy', 'xz', 'yx', 'yz', 'zx', 'zy'])
+  //. ['xz', 'yx', 'yz', 'zx', 'zy']
+  //.
+  //. > dropWhile(s => /z/.test(s), ['xy', 'xz', 'yx', 'yz', 'zx', 'zy'])
+  //. ['xy', 'xz', 'yx', 'yz', 'zx', 'zy']
+  //. ```
+  function dropWhile(pred, filterable) {
+    var take = false;
+    return filter(function(x) { return take = take || !pred(x); }, filterable);
+  }
+
+  //# map :: Functor f => (a -> b, f a) -> f b
+  //.
+  //. Function wrapper for [`fantasy-land/map`][].
+  //.
+  //. `fantasy-land/map` implementations are provided for the following
+  //. built-in types: Array, Object, and Function.
+  //.
+  //. ```javascript
+  //. > map(Math.sqrt, [1, 4, 9])
+  //. [1, 2, 3]
+  //.
+  //. > map(Math.sqrt, {x: 1, y: 4, z: 9})
+  //. {x: 1, y: 2, z: 3}
+  //.
+  //. > map(Math.sqrt, s => s.length)('Sanctuary')
+  //. 3
+  //.
+  //. > map(Math.sqrt, Tuple('foo', 64))
+  //. Tuple('foo', 8)
+  //.
+  //. > map(Math.sqrt, Nil)
+  //. Nil
+  //.
+  //. > map(Math.sqrt, Cons(1, Cons(4, Cons(9, Nil))))
+  //. Cons(1, Cons(2, Cons(3, Nil)))
+  //. ```
+  function map(f, functor) {
+    return Functor.methods.map(functor)(f);
+  }
+
+  //# flip :: Functor f => (f (a -> b), a) -> f b
+  //.
+  //. Maps over the given functions, applying each to the given value.
+  //.
+  //. This function is derived from [`map`](#map).
+  //.
+  //. ```javascript
+  //. > flip(x => y => x + y, '!')('foo')
+  //. 'foo!'
+  //.
+  //. > flip([Math.floor, Math.ceil], 1.5)
+  //. [1, 2]
+  //.
+  //. > flip({floor: Math.floor, ceil: Math.ceil}, 1.5)
+  //. {floor: 1, ceil: 2}
+  //.
+  //. > flip(Cons(Math.floor, Cons(Math.ceil, Nil)), 1.5)
+  //. Cons(1, Cons(2, Nil))
+  //. ```
+  function flip(functor, x) {
+    return Functor.methods.map(functor)(thrush(x));
+  }
+
+  //# bimap :: Bifunctor f => (a -> b, c -> d, f a c) -> f b d
+  //.
+  //. Function wrapper for [`fantasy-land/bimap`][].
+  //.
+  //. ```javascript
+  //. > bimap(s => s.toUpperCase(), Math.sqrt, Tuple('foo', 64))
+  //. Tuple('FOO', 8)
+  //. ```
+  function bimap(f, g, bifunctor) {
+    return Bifunctor.methods.bimap(bifunctor)(f, g);
+  }
+
+  //# mapLeft :: Bifunctor f => (a -> b, f a c) -> f b c
+  //.
+  //. Maps the given function over the left side of a Bifunctor.
+  //.
+  //. ```javascript
+  //. > mapLeft(Math.sqrt, Tuple(64, 9))
+  //. Tuple(8, 9)
+  //. ```
+  function mapLeft(f, bifunctor) {
+    return bimap(f, identity, bifunctor);
+  }
+
+  //# promap :: Profunctor p => (a -> b, c -> d, p b c) -> p a d
+  //.
+  //. Function wrapper for [`fantasy-land/promap`][].
+  //.
+  //. `fantasy-land/promap` implementations are provided for the following
+  //. built-in types: Function.
+  //.
+  //. ```javascript
+  //. > promap(Math.abs, x => x + 1, Math.sqrt)(-100)
+  //. 11
+  //. ```
+  function promap(f, g, profunctor) {
+    return Profunctor.methods.promap(profunctor)(f, g);
+  }
+
+  //# ap :: Apply f => (f (a -> b), f a) -> f b
+  //.
+  //. Function wrapper for [`fantasy-land/ap`][].
+  //.
+  //. `fantasy-land/ap` implementations are provided for the following
+  //. built-in types: Array, Object, and Function.
+  //.
+  //. ```javascript
+  //. > ap([Math.sqrt, x => x * x], [1, 4, 9, 16, 25])
+  //. [1, 2, 3, 4, 5, 1, 16, 81, 256, 625]
+  //.
+  //. > ap({a: Math.sqrt, b: x => x * x}, {a: 16, b: 10, c: 1})
+  //. {a: 4, b: 100}
+  //.
+  //. > ap(s => n => s.slice(0, n), s => Math.ceil(s.length / 2))('Haskell')
+  //. 'Hask'
+  //.
+  //. > ap(Identity(Math.sqrt), Identity(64))
+  //. Identity(8)
+  //.
+  //. > ap(Cons(Math.sqrt, Cons(x => x * x, Nil)), Cons(16, Cons(100, Nil)))
+  //. Cons(4, Cons(10, Cons(256, Cons(10000, Nil))))
+  //. ```
+  function ap(applyF, applyX) {
+    return Apply.methods.ap(applyX)(applyF);
+  }
+
+  //# lift2 :: Apply f => (a -> b -> c, f a, f b) -> f c
+  //.
+  //. Lifts `a -> b -> c` to `Apply f => f a -> f b -> f c` and returns the
+  //. result of applying this to the given arguments.
+  //.
+  //. This function is derived from [`map`](#map) and [`ap`](#ap).
+  //.
+  //. See also [`lift3`](#lift3).
+  //.
+  //. ```javascript
+  //. > lift2(x => y => Math.pow(x, y), [10], [1, 2, 3])
+  //. [10, 100, 1000]
+  //.
+  //. > lift2(x => y => Math.pow(x, y), Identity(10), Identity(3))
+  //. Identity(1000)
+  //. ```
+  function lift2(f, x, y) {
+    return ap(map(f, x), y);
+  }
+
+  //# lift3 :: Apply f => (a -> b -> c -> d, f a, f b, f c) -> f d
+  //.
+  //. Lifts `a -> b -> c -> d` to `Apply f => f a -> f b -> f c -> f d` and
+  //. returns the result of applying this to the given arguments.
+  //.
+  //. This function is derived from [`map`](#map) and [`ap`](#ap).
+  //.
+  //. See also [`lift2`](#lift2).
+  //.
+  //. ```javascript
+  //. > lift3(x => y => z => x + z + y, ['<'], ['>'], ['foo', 'bar', 'baz'])
+  //. ['<foo>', '<bar>', '<baz>']
+  //.
+  //. > lift3(x => y => z => x + z + y, Identity('<'), Identity('>'), Identity('baz'))
+  //. Identity('<baz>')
+  //. ```
+  function lift3(f, x, y, z) {
+    return ap(ap(map(f, x), y), z);
+  }
+
+  //# apFirst :: Apply f => (f a, f b) -> f a
+  //.
+  //. Combines two effectful actions, keeping only the result of the first.
+  //. Equivalent to Haskell's `(<*)` function.
+  //.
+  //. This function is derived from [`lift2`](#lift2).
+  //.
+  //. See also [`apSecond`](#apSecond).
+  //.
+  //. ```javascript
+  //. > apFirst([1, 2], [3, 4])
+  //. [1, 1, 2, 2]
+  //.
+  //. > apFirst(Identity(1), Identity(2))
+  //. Identity(1)
+  //. ```
+  function apFirst(x, y) {
+    return lift2(constant, x, y);
+  }
+
+  //# apSecond :: Apply f => (f a, f b) -> f b
+  //.
+  //. Combines two effectful actions, keeping only the result of the second.
+  //. Equivalent to Haskell's `(*>)` function.
+  //.
+  //. This function is derived from [`lift2`](#lift2).
+  //.
+  //. See also [`apFirst`](#apFirst).
+  //.
+  //. ```javascript
+  //. > apSecond([1, 2], [3, 4])
+  //. [3, 4, 3, 4]
+  //.
+  //. > apSecond(Identity(1), Identity(2))
+  //. Identity(2)
+  //. ```
+  function apSecond(x, y) {
+    return lift2(constant(identity), x, y);
+  }
+
+  //# of :: Applicative f => (TypeRep f, a) -> f a
+  //.
+  //. Function wrapper for [`fantasy-land/of`][].
+  //.
+  //. `fantasy-land/of` implementations are provided for the following
+  //. built-in types: Array and Function.
+  //.
+  //. ```javascript
+  //. > of(Array, 42)
+  //. [42]
+  //.
+  //. > of(Function, 42)(null)
+  //. 42
+  //.
+  //. > of(List, 42)
+  //. Cons(42, Nil)
+  //. ```
+  function of(typeRep, x) {
+    return Applicative.methods.of(typeRep)(x);
+  }
+
+  //# append :: (Applicative f, Semigroup (f a)) => (a, f a) -> f a
+  //.
+  //. Returns the result of appending the first argument to the second.
+  //.
+  //. This function is derived from [`concat`](#concat) and [`of`](#of).
+  //.
+  //. See also [`prepend`](#prepend).
+  //.
+  //. ```javascript
+  //. > append(3, [1, 2])
+  //. [1, 2, 3]
+  //.
+  //. > append(3, Cons(1, Cons(2, Nil)))
+  //. Cons(1, Cons(2, Cons(3, Nil)))
+  //. ```
+  function append(x, xs) {
+    return concat(xs, of(xs.constructor, x));
+  }
+
+  //# prepend :: (Applicative f, Semigroup (f a)) => (a, f a) -> f a
+  //.
+  //. Returns the result of prepending the first argument to the second.
+  //.
+  //. This function is derived from [`concat`](#concat) and [`of`](#of).
+  //.
+  //. See also [`append`](#append).
+  //.
+  //. ```javascript
+  //. > prepend(1, [2, 3])
+  //. [1, 2, 3]
+  //.
+  //. > prepend(1, Cons(2, Cons(3, Nil)))
+  //. Cons(1, Cons(2, Cons(3, Nil)))
+  //. ```
+  function prepend(x, xs) {
+    return concat(of(xs.constructor, x), xs);
+  }
+
+  //# chain :: Chain m => (a -> m b, m a) -> m b
+  //.
+  //. Function wrapper for [`fantasy-land/chain`][].
+  //.
+  //. `fantasy-land/chain` implementations are provided for the following
+  //. built-in types: Array and Function.
+  //.
+  //. ```javascript
+  //. > chain(x => [x, x], [1, 2, 3])
+  //. [1, 1, 2, 2, 3, 3]
+  //.
+  //. > chain(x => x % 2 == 1 ? of(List, x) : Nil, Cons(1, Cons(2, Cons(3, Nil))))
+  //. Cons(1, Cons(3, Nil))
+  //.
+  //. > chain(n => s => s.slice(0, n), s => Math.ceil(s.length / 2))('Haskell')
+  //. 'Hask'
+  //. ```
+  function chain(f, chain_) {
+    return Chain.methods.chain(chain_)(f);
+  }
+
+  //# join :: Chain m => m (m a) -> m a
+  //.
+  //. Removes one level of nesting from a nested monadic structure.
+  //.
+  //. This function is derived from [`chain`](#chain).
+  //.
+  //. ```javascript
+  //. > join([[1], [2], [3]])
+  //. [1, 2, 3]
+  //.
+  //. > join([[[1, 2, 3]]])
+  //. [[1, 2, 3]]
+  //.
+  //. > join(Identity(Identity(1)))
+  //. Identity(1)
+  //. ```
+  function join(chain_) {
+    return chain(identity, chain_);
+  }
+
+  //# chainRec :: ChainRec m => (TypeRep m, (a -> c, b -> c, a) -> m c, a) -> m b
+  //.
+  //. Function wrapper for [`fantasy-land/chainRec`][].
+  //.
+  //. `fantasy-land/chainRec` implementations are provided for the following
+  //. built-in types: Array.
+  //.
+  //. ```javascript
+  //. > chainRec(
+  //. .   Array,
+  //. .   (next, done, s) => s.length == 2 ? [s + '!', s + '?'].map(done)
+  //. .                                    : [s + 'o', s + 'n'].map(next),
+  //. .   ''
+  //. . )
+  //. ['oo!', 'oo?', 'on!', 'on?', 'no!', 'no?', 'nn!', 'nn?']
+  //. ```
+  function chainRec(typeRep, f, x) {
+    return ChainRec.methods.chainRec(typeRep)(f, x);
+  }
+
+  //# alt :: Alt f => (f a, f a) -> f a
+  //.
+  //. Function wrapper for [`fantasy-land/alt`][].
+  //.
+  //. `fantasy-land/alt` implementations are provided for the following
+  //. built-in types: Array and Object.
+  //.
+  //. ```javascript
+  //. > alt([1, 2, 3], [4, 5, 6])
+  //. [1, 2, 3, 4, 5, 6]
+  //.
+  //. > alt(Nothing, Nothing)
+  //. Nothing
+  //.
+  //. > alt(Nothing, Just(1))
+  //. Just(1)
+  //.
+  //. > alt(Just(2), Just(3))
+  //. Just(2)
+  //. ```
+  function alt(x, y) {
+    return Alt.methods.alt(x)(y);
+  }
+
+  //# zero :: Plus f => TypeRep f -> f a
+  //.
+  //. Function wrapper for [`fantasy-land/zero`][].
+  //.
+  //. `fantasy-land/zero` implementations are provided for the following
+  //. built-in types: Array and Object.
+  //.
+  //. ```javascript
+  //. > zero(Array)
+  //. []
+  //.
+  //. > zero(Object)
+  //. {}
+  //.
+  //. > zero(Maybe)
+  //. Nothing
+  //. ```
+  function zero(typeRep) {
+    return Plus.methods.zero(typeRep)();
+  }
+
+  //# reduce :: Foldable f => ((b, a) -> b, b, f a) -> b
+  //.
+  //. Function wrapper for [`fantasy-land/reduce`][].
+  //.
+  //. `fantasy-land/reduce` implementations are provided for the following
+  //. built-in types: Array and Object.
+  //.
+  //. ```javascript
+  //. > reduce((xs, x) => [x].concat(xs), [], [1, 2, 3])
+  //. [3, 2, 1]
+  //.
+  //. > reduce(concat, '', Cons('foo', Cons('bar', Cons('baz', Nil))))
+  //. 'foobarbaz'
+  //. ```
+  function reduce(f, x, foldable) {
+    return Foldable.methods.reduce(foldable)(f, x);
+  }
+
+  //# size :: Foldable f => f a -> Integer
+  //.
+  //. Returns the number of elements of the given structure.
+  //.
+  //. This function is derived from [`reduce`](#reduce).
+  //.
+  //. ```javascript
+  //. > size([])
+  //. 0
+  //.
+  //. > size(['foo', 'bar', 'baz'])
+  //. 3
+  //.
+  //. > size(Nil)
+  //. 0
+  //.
+  //. > size(Cons('foo', Cons('bar', Cons('baz', Nil))))
+  //. 3
+  //. ```
+  function size(foldable) {
+    //  Fast path for arrays.
+    if (Array.isArray(foldable)) return foldable.length;
+    return reduce(function(n, _) { return n + 1; }, 0, foldable);
+  }
+
+  //# elem :: (Setoid a, Foldable f) => (a, f a) -> Boolean
+  //.
+  //. Takes a value and a structure and returns `true` if the
+  //. value is an element of the structure; `false` otherwise.
+  //.
+  //. This function is derived from [`equals`](#equals) and
+  //. [`reduce`](#reduce).
+  //.
+  //. ```javascript
+  //. > elem('c', ['a', 'b', 'c'])
+  //. true
+  //.
+  //. > elem('x', ['a', 'b', 'c'])
+  //. false
+  //.
+  //. > elem(3, {x: 1, y: 2, z: 3})
+  //. true
+  //.
+  //. > elem(8, {x: 1, y: 2, z: 3})
+  //. false
+  //.
+  //. > elem(0, Just(0))
+  //. true
+  //.
+  //. > elem(0, Just(1))
+  //. false
+  //.
+  //. > elem(0, Nothing)
+  //. false
+  //. ```
+  function elem(x, foldable) {
+    return reduce(function(b, y) { return b || equals(x, y); },
+                  false,
+                  foldable);
+  }
+
+  //# foldMap :: (Monoid m, Foldable f) => (TypeRep m, a -> m, f a) -> m
+  //.
+  //. Deconstructs a foldable by mapping every element to a monoid and
+  //. concatenating the results.
+  //.
+  //. This function is derived from [`concat`](#concat), [`empty`](#empty),
+  //. and [`reduce`](#reduce).
+  //.
+  //. ```javascript
+  //. > foldMap(String, f => f.name, [Math.sin, Math.cos, Math.tan])
+  //. 'sincostan'
+  //. ```
+  function foldMap(typeRep, f, foldable) {
+    return reduce(function(monoid, x) { return concat(monoid, f(x)); },
+                  empty(typeRep),
+                  foldable);
+  }
+
+  //# reverse :: (Applicative f, Foldable f, Monoid (f a)) => f a -> f a
+  //.
+  //. Reverses the elements of the given structure.
+  //.
+  //. This function is derived from [`concat`](#concat), [`empty`](#empty),
+  //. [`of`](#of), and [`reduce`](#reduce).
+  //.
+  //. ```javascript
+  //. > reverse([1, 2, 3])
+  //. [3, 2, 1]
+  //.
+  //. > reverse(Cons(1, Cons(2, Cons(3, Nil))))
+  //. Cons(3, Cons(2, Cons(1, Nil)))
+  //. ```
+  function reverse(foldable) {
+    //  Fast path for arrays.
+    if (Array.isArray(foldable)) return foldable.slice().reverse();
+    var F = foldable.constructor;
+    return reduce(function(xs, x) { return concat(of(F, x), xs); },
+                  empty(F),
+                  foldable);
+  }
+
+  //# sort :: (Ord a, Applicative f, Foldable f, Monoid (f a)) => f a -> f a
+  //.
+  //. Performs a [stable sort][] of the elements of the given structure,
+  //. using [`lte`](#lte) for comparisons.
+  //.
+  //. This function is derived from [`lte`](#lte), [`concat`](#concat),
+  //. [`empty`](#empty), [`of`](#of), and [`reduce`](#reduce).
+  //.
+  //. See also [`sortBy`](#sortBy).
+  //.
+  //. ```javascript
+  //. > sort(['foo', 'bar', 'baz'])
+  //. ['bar', 'baz', 'foo']
+  //.
+  //. > sort([Just(2), Nothing, Just(1)])
+  //. [Nothing, Just(1), Just(2)]
+  //.
+  //. > sort(Cons('foo', Cons('bar', Cons('baz', Nil))))
+  //. Cons('bar', Cons('baz', Cons('foo', Nil)))
+  //. ```
+  function sort(foldable) {
+    return sortBy(identity, foldable);
+  }
+
+  //# sortBy :: (Ord b, Applicative f, Foldable f, Monoid (f a)) => (a -> b, f a) -> f a
+  //.
+  //. Performs a [stable sort][] of the elements of the given structure,
+  //. using [`lte`](#lte) to compare the values produced by applying the
+  //. given function to each element of the structure.
+  //.
+  //. This function is derived from [`lte`](#lte), [`concat`](#concat),
+  //. [`empty`](#empty), [`of`](#of), and [`reduce`](#reduce).
+  //.
+  //. See also [`sort`](#sort).
+  //.
+  //. ```javascript
+  //. > sortBy(s => s.length, ['red', 'green', 'blue'])
+  //. ['red', 'blue', 'green']
+  //.
+  //. > sortBy(s => s.length, ['black', 'white'])
+  //. ['black', 'white']
+  //.
+  //. > sortBy(s => s.length, ['white', 'black'])
+  //. ['white', 'black']
+  //.
+  //. > sortBy(s => s.length, Cons('red', Cons('green', Cons('blue', Nil))))
+  //. Cons('red', Cons('blue', Cons('green', Nil)))
+  //. ```
+  function sortBy(f, foldable) {
+    var rs = reduce(function(rs, x) {
+      rs.push({idx: rs.length, x: x, fx: f(x)});
+      return rs;
+    }, [], foldable);
+
+    var lte_ = (function(r) {
+      switch (typeof (r && r.fx)) {
+        case 'number':  return function(x, y) { return x <= y || x !== x; };
+        case 'string':  return function(x, y) { return x <= y; };
+        default:        return lte;
+      }
+    }(rs[0]));
+
+    rs.sort(function(a, b) {
+      return lte_(a.fx, b.fx) ? lte_(b.fx, a.fx) ? a.idx - b.idx : -1 : 1;
+    });
+
+    if (Array.isArray(foldable)) {
+      for (var idx = 0; idx < rs.length; idx += 1) rs[idx] = rs[idx].x;
+      return rs;
+    }
+
+    var F = foldable.constructor;
+    var result = empty(F);
+    for (idx = 0; idx < rs.length; idx += 1) {
+      result = concat(result, of(F, rs[idx].x));
+    }
+    return result;
+  }
+
+  //# traverse :: (Applicative f, Traversable t) => (TypeRep f, a -> f b, t a) -> f (t b)
+  //.
+  //. Function wrapper for [`fantasy-land/traverse`][].
+  //.
+  //. `fantasy-land/traverse` implementations are provided for the following
+  //. built-in types: Array and Object.
+  //.
+  //. See also [`sequence`](#sequence).
+  //.
+  //. ```javascript
+  //. > traverse(Array, x => x, [[1, 2, 3], [4, 5]])
+  //. [[1, 4], [1, 5], [2, 4], [2, 5], [3, 4], [3, 5]]
+  //.
+  //. > traverse(Identity, x => Identity(x + 1), [1, 2, 3])
+  //. Identity([2, 3, 4])
+  //. ```
+  function traverse(typeRep, f, traversable) {
+    return Traversable.methods.traverse(traversable)(typeRep, f);
+  }
+
+  //# sequence :: (Applicative f, Traversable t) => (TypeRep f, t (f a)) -> f (t a)
+  //.
+  //. Inverts the given `t (f a)` to produce an `f (t a)`.
+  //.
+  //. This function is derived from [`traverse`](#traverse).
+  //.
+  //. ```javascript
+  //. > sequence(Array, Identity([1, 2, 3]))
+  //. [Identity(1), Identity(2), Identity(3)]
+  //.
+  //. > sequence(Identity, [Identity(1), Identity(2), Identity(3)])
+  //. Identity([1, 2, 3])
+  //. ```
+  function sequence(typeRep, traversable) {
+    return traverse(typeRep, identity, traversable);
+  }
+
+  //# extend :: Extend w => (w a -> b, w a) -> w b
+  //.
+  //. Function wrapper for [`fantasy-land/extend`][].
+  //.
+  //. `fantasy-land/extend` implementations are provided for the following
+  //. built-in types: Array and Function.
+  //.
+  //. ```javascript
+  //. > extend(ss => ss.join(''), ['x', 'y', 'z'])
+  //. ['xyz', 'yz', 'z']
+  //.
+  //. > extend(f => f([3, 4]), reverse)([1, 2])
+  //. [4, 3, 2, 1]
+  //. ```
+  function extend(f, extend_) {
+    return Extend.methods.extend(extend_)(f);
+  }
+
+  //# duplicate :: Extend w => w a -> w (w a)
+  //.
+  //. Adds one level of nesting to a comonadic structure.
+  //.
+  //. This function is derived from [`extend`](#extend).
+  //.
+  //. ```javascript
+  //. > duplicate(Identity(1))
+  //. Identity(Identity(1))
+  //.
+  //. > duplicate([1])
+  //. [[1]]
+  //.
+  //. > duplicate([1, 2, 3])
+  //. [[1, 2, 3], [2, 3], [3]]
+  //.
+  //. > duplicate(reverse)([1, 2])([3, 4])
+  //. [4, 3, 2, 1]
+  //. ```
+  function duplicate(extend_) {
+    return extend(identity, extend_);
+  }
+
+  //# extract :: Comonad w => w a -> a
+  //.
+  //. Function wrapper for [`fantasy-land/extract`][].
+  //.
+  //. ```javascript
+  //. > extract(Identity(42))
+  //. 42
+  //. ```
+  function extract(comonad) {
+    return Comonad.methods.extract(comonad)();
+  }
+
+  //# contramap :: Contravariant f => (b -> a, f a) -> f b
+  //.
+  //. Function wrapper for [`fantasy-land/contramap`][].
+  //.
+  //. `fantasy-land/contramap` implementations are provided for the following
+  //. built-in types: Function.
+  //.
+  //. ```javascript
+  //. > contramap(s => s.length, Math.sqrt)('Sanctuary')
+  //. 3
+  //. ```
+  function contramap(f, contravariant) {
+    return Contravariant.methods.contramap(contravariant)(f);
+  }
+
+  return {
+    TypeClass: TypeClass,
+    Setoid: Setoid,
+    Ord: Ord,
+    Semigroupoid: Semigroupoid,
+    Category: Category,
+    Semigroup: Semigroup,
+    Monoid: Monoid,
+    Group: Group,
+    Filterable: Filterable,
+    Functor: Functor,
+    Bifunctor: Bifunctor,
+    Profunctor: Profunctor,
+    Apply: Apply,
+    Applicative: Applicative,
+    Chain: Chain,
+    ChainRec: ChainRec,
+    Monad: Monad,
+    Alt: Alt,
+    Plus: Plus,
+    Alternative: Alternative,
+    Foldable: Foldable,
+    Traversable: Traversable,
+    Extend: Extend,
+    Comonad: Comonad,
+    Contravariant: Contravariant,
+    equals: equals,
+    lt: lt,
+    lte: lte,
+    gt: gt,
+    gte: gte,
+    min: min,
+    max: max,
+    compose: compose,
+    id: id,
+    concat: concat,
+    empty: empty,
+    invert: invert,
+    filter: filter,
+    reject: reject,
+    map: map,
+    flip: flip,
+    bimap: bimap,
+    mapLeft: mapLeft,
+    promap: promap,
+    ap: ap,
+    lift2: lift2,
+    lift3: lift3,
+    apFirst: apFirst,
+    apSecond: apSecond,
+    of: of,
+    append: append,
+    prepend: prepend,
+    chain: chain,
+    join: join,
+    chainRec: chainRec,
+    alt: alt,
+    zero: zero,
+    reduce: reduce,
+    size: size,
+    elem: elem,
+    foldMap: foldMap,
+    reverse: reverse,
+    sort: sort,
+    sortBy: sortBy,
+    takeWhile: takeWhile,
+    dropWhile: dropWhile,
+    traverse: traverse,
+    sequence: sequence,
+    extend: extend,
+    duplicate: duplicate,
+    extract: extract,
+    contramap: contramap
+  };
+
+}));
+
+//. [Alt]:                      v:fantasyland/fantasy-land#alt
+//. [Alternative]:              v:fantasyland/fantasy-land#alternative
+//. [Applicative]:              v:fantasyland/fantasy-land#applicative
+//. [Apply]:                    v:fantasyland/fantasy-land#apply
+//. [Bifunctor]:                v:fantasyland/fantasy-land#bifunctor
+//. [Category]:                 v:fantasyland/fantasy-land#category
+//. [Chain]:                    v:fantasyland/fantasy-land#chain
+//. [ChainRec]:                 v:fantasyland/fantasy-land#chainrec
+//. [Comonad]:                  v:fantasyland/fantasy-land#comonad
+//. [Contravariant]:            v:fantasyland/fantasy-land#contravariant
+//. [Extend]:                   v:fantasyland/fantasy-land#extend
+//. [FL]:                       v:fantasyland/fantasy-land
+//. [Filterable]:               v:fantasyland/fantasy-land#filterable
+//. [Foldable]:                 v:fantasyland/fantasy-land#foldable
+//. [Functor]:                  v:fantasyland/fantasy-land#functor
+//. [Group]:                    v:fantasyland/fantasy-land#group
+//. [Monad]:                    v:fantasyland/fantasy-land#monad
+//. [Monoid]:                   v:fantasyland/fantasy-land#monoid
+//. [Ord]:                      v:fantasyland/fantasy-land#ord
+//. [Plus]:                     v:fantasyland/fantasy-land#plus
+//. [Profunctor]:               v:fantasyland/fantasy-land#profunctor
+//. [Semigroup]:                v:fantasyland/fantasy-land#semigroup
+//. [Semigroupoid]:             v:fantasyland/fantasy-land#semigroupoid
+//. [Setoid]:                   v:fantasyland/fantasy-land#setoid
+//. [Traversable]:              v:fantasyland/fantasy-land#traversable
+//. [`fantasy-land/alt`]:       v:fantasyland/fantasy-land#alt-method
+//. [`fantasy-land/ap`]:        v:fantasyland/fantasy-land#ap-method
+//. [`fantasy-land/bimap`]:     v:fantasyland/fantasy-land#bimap-method
+//. [`fantasy-land/chain`]:     v:fantasyland/fantasy-land#chain-method
+//. [`fantasy-land/chainRec`]:  v:fantasyland/fantasy-land#chainrec-method
+//. [`fantasy-land/compose`]:   v:fantasyland/fantasy-land#compose-method
+//. [`fantasy-land/concat`]:    v:fantasyland/fantasy-land#concat-method
+//. [`fantasy-land/contramap`]: v:fantasyland/fantasy-land#contramap-method
+//. [`fantasy-land/empty`]:     v:fantasyland/fantasy-land#empty-method
+//. [`fantasy-land/equals`]:    v:fantasyland/fantasy-land#equals-method
+//. [`fantasy-land/extend`]:    v:fantasyland/fantasy-land#extend-method
+//. [`fantasy-land/extract`]:   v:fantasyland/fantasy-land#extract-method
+//. [`fantasy-land/filter`]:    v:fantasyland/fantasy-land#filter-method
+//. [`fantasy-land/id`]:        v:fantasyland/fantasy-land#id-method
+//. [`fantasy-land/invert`]:    v:fantasyland/fantasy-land#invert-method
+//. [`fantasy-land/lte`]:       v:fantasyland/fantasy-land#lte-method
+//. [`fantasy-land/map`]:       v:fantasyland/fantasy-land#map-method
+//. [`fantasy-land/of`]:        v:fantasyland/fantasy-land#of-method
+//. [`fantasy-land/promap`]:    v:fantasyland/fantasy-land#promap-method
+//. [`fantasy-land/reduce`]:    v:fantasyland/fantasy-land#reduce-method
+//. [`fantasy-land/traverse`]:  v:fantasyland/fantasy-land#traverse-method
+//. [`fantasy-land/zero`]:      v:fantasyland/fantasy-land#zero-method
+//. [stable sort]:              https://en.wikipedia.org/wiki/Sorting_algorithm#Stability
+//. [type-classes]:             https://github.com/sanctuary-js/sanctuary-def#type-classes
+
+});
+return ___scope___.entry = "index.js";
+});
+FuseBox.pkg("sanctuary-type-identifiers", {}, function(___scope___){
+___scope___.file("index.js", function(exports, require, module, __filename, __dirname){
+
+/*
+        @@@@@@@            @@@@@@@         @@
+      @@       @@        @@       @@      @@@
+    @@   @@@ @@  @@    @@   @@@ @@  @@   @@@@@@ @@   @@@  @@ @@@      @@@@
+   @@  @@   @@@   @@  @@  @@   @@@   @@   @@@   @@   @@@  @@@   @@  @@@   @@
+   @@  @@   @@@   @@  @@  @@   @@@   @@   @@@   @@   @@@  @@@   @@  @@@@@@@@
+   @@  @@   @@@  @@   @@  @@   @@@  @@    @@@   @@   @@@  @@@   @@  @@@
+    @@   @@@ @@@@@     @@   @@@ @@@@@      @@@    @@@ @@  @@@@@@      @@@@@
+      @@                 @@                           @@  @@
+        @@@@@@@            @@@@@@@               @@@@@    @@
+                                                          */
+//. # sanctuary-type-identifiers
+//.
+//. A type is a set of values. Boolean, for example, is the type comprising
+//. `true` and `false`. A value may be a member of multiple types (`42` is a
+//. member of Number, PositiveNumber, Integer, and many other types).
+//.
+//. In certain situations it is useful to divide JavaScript values into
+//. non-overlapping types. The language provides two constructs for this
+//. purpose: the [`typeof`][1] operator and [`Object.prototype.toString`][2].
+//. Each has pros and cons, but neither supports user-defined types.
+//.
+//. This package specifies an [algorithm][3] for deriving a _type identifier_
+//. from any JavaScript value, and exports an implementation of the algorithm.
+//. Authors of algebraic data types may follow this specification in order to
+//. make their data types compatible with the algorithm.
+//.
+//. ### Algorithm
+//.
+//. 1.  Take any JavaScript value `x`.
+//.
+//. 2.  If `x` is `null` or `undefined`, go to step 6.
+//.
+//. 3.  If `x.constructor` evaluates to `null` or `undefined`, go to step 6.
+//.
+//. 4.  If `x.constructor.prototype === x`, go to step 6. This check prevents a
+//.     prototype object from being considered a member of its associated type.
+//.
+//. 5.  If `typeof x.constructor['@@type']` evaluates to `'string'`, return
+//.     the value of `x.constructor['@@type']`.
+//.
+//. 6.  Return the [`Object.prototype.toString`][2] representation of `x`
+//.     without the leading `'[object '` and trailing `']'`.
+//.
+//. ### Compatibility
+//.
+//. For an algebraic data type to be compatible with the [algorithm][3]:
+//.
+//.   - every member of the type must have a `constructor` property pointing
+//.     to an object known as the _type representative_;
+//.
+//.   - the type representative must have a `@@type` property; and
+//.
+//.   - the type representative's `@@type` property (the _type identifier_)
+//.     must be a string primitive, ideally `'<npm-package-name>/<type-name>'`.
+//.
+//. For example:
+//.
+//. ```javascript
+//. //  Identity :: a -> Identity a
+//. function Identity(x) {
+//.   if (!(this instanceof Identity)) return new Identity(x);
+//.   this.value = x;
+//. }
+//.
+//. Identity['@@type'] = 'my-package/Identity';
+//. ```
+//.
+//. Note that by using a constructor function the `constructor` property is set
+//. implicitly for each value created. Constructor functions are convenient for
+//. this reason, but are not required. This definition is also valid:
+//.
+//. ```javascript
+//. //  IdentityTypeRep :: TypeRep Identity
+//. var IdentityTypeRep = {
+//.   '@@type': 'my-package/Identity'
+//. };
+//.
+//. //  Identity :: a -> Identity a
+//. function Identity(x) {
+//.   return {constructor: IdentityTypeRep, value: x};
+//. }
+//. ```
+//.
+//. ### Usage
+//.
+//. ```javascript
+//. var Identity = require('my-package').Identity;
+//. var type = require('sanctuary-type-identifiers');
+//.
+//. type(null);         // => 'Null'
+//. type(true);         // => 'Boolean'
+//. type([1, 2, 3]);    // => 'Array'
+//. type(Identity);     // => 'Function'
+//. type(Identity(0));  // => 'my-package/Identity'
+//. ```
+//.
+//.
+//. [1]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof
+//. [2]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/toString
+//. [3]: #algorithm
+
+(function(f) {
+
+  'use strict';
+
+  if (typeof module === 'object' && typeof module.exports === 'object') {
+    module.exports = f();
+  } else if (typeof define === 'function' && define.amd != null) {
+    define([], f);
+  } else {
+    self.sanctuaryTypeIdentifiers = f();
+  }
+
+}(function() {
+
+  'use strict';
+
+  //  $$type :: String
+  var $$type = '@@type';
+
+  //  type :: Any -> String
+  function type(x) {
+    return x != null &&
+           x.constructor != null &&
+           x.constructor.prototype !== x &&
+           typeof x.constructor[$$type] === 'string' ?
+      x.constructor[$$type] :
+      Object.prototype.toString.call(x).slice('[object '.length, -']'.length);
+  }
+
+  return type;
+
+}));
+
+});
+return ___scope___.entry = "index.js";
 });
 FuseBox.pkg("jszip", {"core-js":"2.3.0"}, function(___scope___){
 ___scope___.file("lib/index.js", function(exports, require, module, __filename, __dirname){
