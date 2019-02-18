@@ -19,6 +19,8 @@
         <script>
             var openPropertiesAppCallback = function(propertiesName) {};
             var addOpeningButtonClickCallback = function(openingType) {};
+            var toggleBaysButtonClickCallback = function() {};
+            var toggleWallsButtonClickCallback = function() {};
             function openProperties(propertiesName) {
                 var i;
                 var x = document.getElementsByClassName("properties");
@@ -71,6 +73,8 @@
                         <button id="btnAddPADoor" onclick="addOpeningButtonClickCallback('paDoor')">PA Door</button>
                         <button id="btnAddWindow" onclick="addOpeningButtonClickCallback('window')">Window</button>
                         <button id="btnAddRollerDoor" onclick="addOpeningButtonClickCallback('rollerDoor')">Roller Door</button>
+                        <button id="btnToggleBays" onclick="toggleBaysButtonClickCallback()">Toggle Bays</button>
+                        <button id="btnToggleWalls" onclick="toggleWallsButtonClickCallback('toggleWalls')">Toggle Walls</button>
                         <button id="btnAddSkylight">Skylight</button>
                     </div>
                     <div id="addOpeningProperties" style="display:none">

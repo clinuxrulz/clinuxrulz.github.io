@@ -10,7 +10,7 @@ var sodium = require("sodiumjs");
 var ChangeBlocker_1 = require("./ChangeBlocker");
 var MouseButton_1 = require("./MouseButton");
 var OpeningFormProperties_1 = require("./OpeningFormProperties");
-var OpeningType_1 = require("./OpeningType");
+var OpeningType_1 = require("./model/OpeningType");
 var Option_1 = require("./Option");
 var SodiumUtil = require("./SodiumUtil");
 var Ray3D_1 = require("./math/Ray3D");
@@ -20,18 +20,21 @@ var AppModel_1 = require("./model/AppModel");
 var Operation_1 = require("./model/Operation");
 var TextureLoader_1 = require("./TextureLoader");
 var App = /** @class */ (function () {
-    function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked) {
+    function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked, sToggleBaysButtonClicked, sToggleWallsButtonClicked) {
         var _this = this;
         sodium.Transaction.run(function () {
             _this._cAddOpeningPropertiesVisible =
                 sAddOpeningButtonClicked
                     .mapTo(true)
                     .orElse(sPropertiesNameButtonClicked.mapTo(false))
+                    .orElse(sToggleBaysButtonClicked.mapTo(false))
+                    .orElse(sToggleWallsButtonClicked.mapTo(false))
                     .hold(false);
             var scene = new THREE.Scene();
             var camera = new THREE.PerspectiveCamera(75, 800.0 / 600.0, 500.0, 100000.0);
             var canvas = document.getElementById("canvas");
             var renderer = new THREE.WebGLRenderer({ canvas: canvas });
+            window['scene'] = scene;
             camera.up = new THREE.Vector3(0, 0, 1);
             var controls = new three_orbitcontrols_ts_1.OrbitControls(camera, canvas);
             controls.maxPolarAngle = 0.5 * Math.PI;
@@ -152,10 +155,12 @@ var App = /** @class */ (function () {
             };
             var textureLoader = new THREE.TextureLoader();
             var clModel = new sodium.CellLoop();
+            var clOverlayModelOp = new sodium.CellLoop();
+            // shed model
             (function () {
                 var lastModel = null;
                 var lastModelCleanup = null;
-                clModel.listen(function (mkModelEffect) {
+                var refreshShedModel = function (mkModelEffect) {
                     if (mkModelEffect == null) {
                         return;
                     }
@@ -169,6 +174,40 @@ var App = /** @class */ (function () {
                             }
                             lastModel = null;
                         }
+                        scene.add(model.threeObject3D);
+                        lastModel = model;
+                        lastModelCleanup = model.init();
+                        renderer.render(scene, camera);
+                    });
+                };
+                clModel.listen(refreshShedModel);
+                window['forceRefreshShed'] = function () {
+                    refreshShedModel(clModel.sample());
+                };
+            })();
+            // overlay model
+            (function () {
+                var lastModel = null;
+                var lastModelCleanup = null;
+                clOverlayModelOp.listen(function (mkModelEffectOp) {
+                    var cleanupLastModel = function () {
+                        if (lastModel != null) {
+                            scene.remove(lastModel.threeObject3D);
+                            if (lastModelCleanup != null) {
+                                lastModelCleanup();
+                                lastModelCleanup = null;
+                            }
+                            lastModel = null;
+                        }
+                    };
+                    if (mkModelEffectOp.isNone) {
+                        cleanupLastModel();
+                        return;
+                    }
+                    var mkModelEffect = mkModelEffectOp.fromSome();
+                    var pModel = mkModelEffect.mkModel(textureLoader);
+                    pModel.then(function (model) {
+                        cleanupLastModel();
                         scene.add(model.threeObject3D);
                         lastModel = model;
                         lastModelCleanup = model.init();
@@ -301,23 +340,26 @@ var App = /** @class */ (function () {
                         return Option_1.Option.some(Operation_1.Operation.idle());
                 }
             }))
-                .orElse(sAddOpeningButtonClicked.map(function (openingType) { return Operation_1.Operation.insertOpening(openingType); }));
+                .orElse(sAddOpeningButtonClicked.map(function (openingType) { return Operation_1.Operation.insertOpening(openingType); }))
+                .orElse(sToggleBaysButtonClicked.mapTo(Operation_1.Operation.toggleBays()))
+                .orElse(sToggleWallsButtonClicked.mapTo(Operation_1.Operation.toggleWalls()));
             // model
             var appModel = new AppModel_1.AppModel({
                 cMousePosOp: csMousePosOp,
                 sMousePressed: ssMousePressed,
                 cScreenPointToWorldRayOp: cScreenPosToWorldRayOp,
-                buildingParams: {
-                    cBuildingType: cBuildingType,
-                    cLength: eliminateOp(cLengthOp),
-                    cSpan: eliminateOp(cSpanOp),
-                    cHeight: eliminateOp(cHeightOp),
-                    cPitch: eliminateOp(cPitchOp)
+                buildingParamsChanges: {
+                    sSetBuildingType: sodium.Operational.updates(cBuildingType),
+                    sSetLength: sodium.Operational.updates(eliminateOp(cLengthOp)),
+                    sSetSpan: sodium.Operational.updates(eliminateOp(cSpanOp)),
+                    sSetHeight: sodium.Operational.updates(eliminateOp(cHeightOp)),
+                    sSetPitch: sodium.Operational.updates(eliminateOp(cPitchOp))
                 },
                 cOpeningFormPropertiesOp: cOpeningFormPropertiesOp,
                 sPerformOperation: sPerformOperation
             });
             clModel.loop(appModel.cModel);
+            clOverlayModelOp.loop(appModel.cOverlayModelOp);
             slSetFormProperties.loop(appModel.sSetFormProperties);
             appModel.sRepaint.listen(function (unused) {
                 renderer.render(scene, camera);
@@ -344,13 +386,12 @@ var App = /** @class */ (function () {
     App.debug = false;
     return App;
 }());
-function setAddOpeningPropertiesVisible(visible) {
-    window['setOpeningPropertiesVisible'](visible);
-}
 window.onload = function () {
     sodium.Transaction.run(function () {
         var ssPropertiesNameButtonClicked = new sodium.StreamSink();
         var ssAddOpeningButtonClicked = new sodium.StreamSink();
+        var ssToggleBaysButtonClicked = new sodium.StreamSink();
+        var ssToggleWallsButtonClicked = new sodium.StreamSink();
         window['openPropertiesAppCallback'] = function (propertiesName) {
             ssPropertiesNameButtonClicked.send(propertiesName);
         };
@@ -371,7 +412,14 @@ window.onload = function () {
             }
             ssAddOpeningButtonClicked.send(openingType2);
         };
-        var app = new App(ssPropertiesNameButtonClicked, ssAddOpeningButtonClicked);
+        window['toggleBaysButtonClickCallback'] = function () {
+            ssToggleBaysButtonClicked.send(sodium.Unit.UNIT);
+        };
+        window['toggleWallsButtonClickCallback'] = function () {
+            ssToggleWallsButtonClicked.listen(function () { });
+            ssToggleWallsButtonClicked.send(sodium.Unit.UNIT);
+        };
+        var app = new App(ssPropertiesNameButtonClicked, ssAddOpeningButtonClicked, ssToggleBaysButtonClicked, ssToggleWallsButtonClicked);
         app.cAddOpeningPropertiesVisible.listen(function (addOpeningPropertiesVisible) {
             window['setAddOpeningPropertiesVisible'](addOpeningPropertiesVisible);
         });
@@ -450,7 +498,7 @@ var OpeningFormProperties = /** @class */ (function () {
 exports.OpeningFormProperties = OpeningFormProperties;
 //# sourceMappingURL=OpeningFormProperties.js.map
 });
-___scope___.file("app/OpeningType.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/OpeningType.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -480,6 +528,20 @@ var Option = /** @class */ (function () {
     Object.defineProperty(Option.prototype, "is_none", {
         get: function () {
             return !this.is_some;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Option.prototype, "isSome", {
+        get: function () {
+            return this._a !== undefined;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Option.prototype, "isNone", {
+        get: function () {
+            return !this.isSome;
         },
         enumerable: true,
         configurable: true
@@ -608,12 +670,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var SodiumUtil = require("./SodiumUtil");
 var Option_1 = require("./Option");
-function cellLift2(ca, cb, fn) {
-    return ca.lift(cb, function (a, b) { return function () { return fn(a, b); }; }).map(function (x) { return x(); });
+function fixDeps(deps) {
+    var deps2 = deps || [];
+    if (deps2.length == 0) {
+        return deps2;
+    }
+    deps2 = deps2.slice(0);
+    for (var i = deps2.length - 1; i >= 0; --i) {
+        if (deps2[i] == undefined) {
+            deps2.splice(i, 1);
+        }
+    }
+    return deps2;
+}
+function cellLift2(ca, cb, fn, deps) {
+    var deps2 = fixDeps(deps);
+    return ca.lift(cb, sodium.lambda2(function (a, b) { return function () { return fn(a, b); }; }, deps2)).map(function (x) { return x(); });
 }
 exports.cellLift2 = cellLift2;
-function cellLift3(ca, cb, cc, fn) {
-    return ca.lift3(cb, cc, function (a, b, c) { return function () { return fn(a, b, c); }; }).map(function (x) { return x(); });
+function cellLift3(ca, cb, cc, fn, deps) {
+    var deps2 = fixDeps(deps);
+    return ca.lift3(cb, cc, sodium.lambda3(function (a, b, c) { return function () { return fn(a, b, c); }; }, deps2)).map(function (x) { return x(); });
 }
 exports.cellLift3 = cellLift3;
 function cellLiftArray(ca) {
@@ -642,6 +719,11 @@ function cellCalm(eqFn, ca) {
     });
 }
 exports.cellCalm = cellCalm;
+function cellPartialCalm(partialEqFn, ca) {
+    // the implementation happens to be identical to cellCalm<A>, even though intent is different.
+    return cellCalm(partialEqFn, ca);
+}
+exports.cellPartialCalm = cellPartialCalm;
 function safeCellLoop(cla, ca) {
     return sodium.Transaction.run(function () {
         var ssa = new sodium.StreamSink();
@@ -662,6 +744,24 @@ function safeStreamLoop(sla, sa) {
     });
 }
 exports.safeStreamLoop = safeStreamLoop;
+/**
+ * High order dependency tracking. If any newly created sodium objects within a value of a cell of a sodium object
+ * happen to accumulate state, this method will keep the accumulation of state up to date.
+ */
+function cellTrace(ca, extractor) {
+    var cKeepAlive = sodium.Cell.switchC(ca.map(function (a) {
+        return cellLiftArray(extractor(a).map(function (x) {
+            if (x instanceof sodium.Stream) {
+                return x.hold({});
+            }
+            else {
+                return x;
+            }
+        }));
+    }));
+    return ca.map(sodium.lambda1(function (a) { return a; }, [cKeepAlive]));
+}
+exports.cellTrace = cellTrace;
 function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
     if (toIdx - fromIdx == 0) {
         return new sodium.Cell([]);
@@ -931,42 +1031,61 @@ ___scope___.file("app/model/AppModel.js", function(exports, require, module, __f
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var ArrayUtil_1 = require("../ArrayUtil");
-var Building_1 = require("../Building");
+var Building_1 = require("./Building");
+var BuildingData_1 = require("./BuildingData");
+var BuildingType_1 = require("./BuildingType");
+var BuildingUtil = require("./BuildingUtil");
 var FormProperties_1 = require("../FormProperties");
 var MouseButton_1 = require("../MouseButton");
-var OpeningType_1 = require("../OpeningType");
+var OpeningType_1 = require("./OpeningType");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
 var IdleMode_1 = require("../modes/IdleMode");
 var InsertOpeningMode_1 = require("../modes/InsertOpeningMode");
+var ToggleBaysMode_1 = require("../modes/ToggleBaysMode");
+var ToggleWallsMode_1 = require("../modes/ToggleWallsMode");
 var OpeningFormProperties_1 = require("../OpeningFormProperties");
+var WallData_1 = require("./WallData");
 var AppModel = /** @class */ (function () {
     function AppModel(params) {
         var _this = this;
         sodium.Transaction.run(function () {
+            var sMouseLeftPressed = params.sMousePressed.filter(function (mouseButton) { return mouseButton == MouseButton_1.MouseButton.Left; }).mapTo(sodium.Unit.UNIT);
+            var slBuildingData = new sodium.StreamLoop();
+            var cBuildingData = slBuildingData.hold(BuildingData_1.BuildingData.create({
+                buildingType: BuildingType_1.BuildingType.GableRoofGarage,
+                length: 12000.0,
+                span: 6000.0,
+                height: 2400.0,
+                pitch: 15.0,
+                side1WallData: WallData_1.WallData.default_,
+                side2WallData: WallData_1.WallData.default_,
+                end1WallData: WallData_1.WallData.default_,
+                end2WallData: WallData_1.WallData.default_,
+                internalWallDatas: []
+            }));
+            cBuildingData.listen(function (buildingData) { return console.log(buildingData); });
             var clHighlightedStableNames = new sodium.CellLoop();
             var clRoofVisible = new sodium.CellLoop();
-            var slInsertOpening = new sodium.StreamLoop();
+            var slBuildingEffect = new sodium.StreamLoop();
             var building = new Building_1.Building({
-                cBuildingType: params.buildingParams.cBuildingType,
-                cLength: params.buildingParams.cLength,
-                cSpan: params.buildingParams.cSpan,
-                cHeight: params.buildingParams.cHeight,
-                cPitch: params.buildingParams.cPitch,
+                cBuildingData: cBuildingData,
                 cHighlightedStableNames: clHighlightedStableNames,
                 cRoofVisible: clRoofVisible,
-                sInsertOpening: slInsertOpening
+                sBuildingEffect: slBuildingEffect
             });
+            window['building'] = building;
             var cBays = sodium.Cell.switchC(building.cWalls.lift(building.cRoofs, function (walls, roofs) {
                 var ccBaysList = walls.map(function (wall) { return wall.cBays; }).concat(roofs.map(function (roof) { return roof.cBays; }));
                 return SodiumUtil.cellLiftArray(ccBaysList)
                     .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
             }));
-            params.buildingParams.cBuildingType.listen(function () { });
             cBays.listen(function () { });
             var cWallBays = sodium.Cell.switchC(building.cWalls
-                .map(function (walls) {
-                return SodiumUtil.cellLiftArray(walls.map(function (wall) { return wall.cBays; }))
+                .lift(building.cInternalWalls, function (walls, internalWalls) {
+                return SodiumUtil.cellLiftArray(walls
+                    .concat(internalWalls.map(function (internalWall) { return internalWall._2; }))
+                    .map(function (wall) { return wall.cBays; }))
                     .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
             }));
             cWallBays.listen(function () { });
@@ -976,14 +1095,34 @@ var AppModel = /** @class */ (function () {
                     idle: function () { return new IdleMode_1.IdleMode(); },
                     insertOpening: function (openingType) { return new InsertOpeningMode_1.InsertOpeningMode({
                         cMousePosOp: params.cMousePosOp,
-                        sMouseLeftPress: params.sMousePressed.filter(function (mouseButton) { return mouseButton == MouseButton_1.MouseButton.Left; }).mapTo(sodium.Unit.UNIT),
+                        sMouseLeftPressed: sMouseLeftPressed,
                         cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
                         cBays: cWallBays,
                         cOpeningTypeOp: new sodium.Cell(Option_1.Option.some(openingType)),
                         cOpeningFormPropertiesOp: params.cOpeningFormPropertiesOp
+                    }); },
+                    toggleWalls: function () { return new ToggleWallsMode_1.ToggleWallsMode({
+                        cMousePosOp: params.cMousePosOp,
+                        sMouseLeftPressed: sMouseLeftPressed,
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        cBays: cWallBays,
+                        cPhantomWalls: building.cPhantomInternalWalls
+                    }); },
+                    toggleBays: function () { return new ToggleBaysMode_1.ToggleBaysMode({
+                        cMousePosOp: params.cMousePosOp,
+                        sMouseLeftPressed: sMouseLeftPressed,
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        cBays: cWallBays
                     }); }
                 });
-            }, [params.cMousePosOp, params.sMousePressed, params.cScreenPointToWorldRayOp, cBays, params.cOpeningFormPropertiesOp]))
+            }, [
+                params.cMousePosOp,
+                sMouseLeftPressed,
+                params.cScreenPointToWorldRayOp,
+                cWallBays,
+                params.cOpeningFormPropertiesOp,
+                building.cPhantomInternalWalls
+            ]))
                 .hold(new IdleMode_1.IdleMode());
             var sSetFormProperties = SodiumUtil.streamFilterOption(params.sPerformOperation
                 .map(function (operation) {
@@ -1015,18 +1154,67 @@ var AppModel = /** @class */ (function () {
                     }
                 });
             }));
+            var cOverlayModelOp = SodiumUtil.cellPartialCalm(function (a, b) { return a.is_none && b.is_none; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cOverlayModelOp; })));
             clHighlightedStableNames.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cHighlightedStableNames; }))));
             clRoofVisible.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cRoofVisible; }))));
-            slInsertOpening.loop(sodium.Cell.switchS(cMode.map(function (mode) { return mode.sInsertOpening; })));
+            slBuildingEffect.loop(sodium.Cell.switchS(cMode.map(function (mode) { return mode.sBuildingEffect; })));
+            slBuildingData.loop(params.buildingParamsChanges.sSetBuildingType
+                .snapshot(cBuildingData, function (buildingType, buildingData) {
+                return buildingData.from({ buildingType: buildingType });
+            })
+                .orElse(params.buildingParamsChanges.sSetLength
+                .snapshot(cBuildingData, function (length, buildingData) {
+                return buildingData.from({ length: length });
+            }))
+                .orElse(params.buildingParamsChanges.sSetSpan
+                .snapshot(cBuildingData, function (span, buildingData) {
+                return buildingData.from({ span: span });
+            }))
+                .orElse(params.buildingParamsChanges.sSetHeight
+                .snapshot(cBuildingData, function (height, buildingData) {
+                return buildingData.from({ height: height });
+            }))
+                .orElse(params.buildingParamsChanges.sSetPitch
+                .snapshot(cBuildingData, function (pitch, buildingData) {
+                return buildingData.from({ pitch: pitch });
+            }))
+                .orElse(slBuildingEffect
+                .snapshot(cBuildingData, function (buildingEffect, buildingData) {
+                return performEffectOnBuilding(buildingData, buildingEffect);
+            })));
+            _this._cBuildingData = cBuildingData;
             _this._cModel = building.cModel;
+            _this._cOverlayModelOp = cOverlayModelOp;
             _this._cHighlightedStableNames = clHighlightedStableNames;
-            _this._sRepaint = sodium.Operational.updates(clHighlightedStableNames).mapTo(sodium.Unit.UNIT).orElse(slInsertOpening).mapTo(sodium.Unit.UNIT);
+            _this._sRepaint =
+                sodium.Operational
+                    .updates(clHighlightedStableNames)
+                    .mapTo(sodium.Unit.UNIT)
+                    .orElse(slBuildingEffect)
+                    .mapTo(sodium.Unit.UNIT)
+                    .orElse(sodium.Operational
+                    .updates(cOverlayModelOp)
+                    .mapTo(sodium.Unit.UNIT));
             _this._sSetFormProperties = sSetFormProperties;
         });
     }
+    Object.defineProperty(AppModel.prototype, "cBuildingData", {
+        get: function () {
+            return this._cBuildingData;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(AppModel.prototype, "cModel", {
         get: function () {
             return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AppModel.prototype, "cOverlayModelOp", {
+        get: function () {
+            return this._cOverlayModelOp;
         },
         enumerable: true,
         configurable: true
@@ -1055,12 +1243,55 @@ var AppModel = /** @class */ (function () {
     return AppModel;
 }());
 exports.AppModel = AppModel;
+function performEffectOnBuilding(buildingData, buildingEffect) {
+    return buildingEffect.match({
+        insertOpening: function (insertOpeningData) {
+            var wallLenses = BuildingUtil.wallLensesFromBuildingData(buildingData);
+            for (var i = 0; i < wallLenses.length; ++i) {
+                var wallLens = wallLenses[i];
+                if (wallLens._1 == insertOpeningData.wallStableName) {
+                    var wall = wallLens._2.get(buildingData);
+                    return wallLens._2.set(wall.from({
+                        openings: wall.openings.concat([
+                            insertOpeningData.openingData
+                        ])
+                    }), buildingData);
+                }
+            }
+            return buildingData;
+        },
+        toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
+            var internalWallLens = BuildingUtil.internalWallLens(bayMarkerIndex);
+            var internalWallDataOp = internalWallLens.get(buildingData);
+            if (internalWallDataOp.isNone) {
+                return internalWallLens.set(Option_1.Option.some(WallData_1.WallData.default_), buildingData);
+            }
+            else {
+                return internalWallLens.set(Option_1.Option.none(), buildingData);
+            }
+        },
+        toggleBay: function (wallStableName, bayIndex) {
+            var wallLenses = BuildingUtil.wallLensesFromBuildingData(buildingData);
+            for (var i = 0; i < wallLenses.length; ++i) {
+                var wallLens = wallLenses[i];
+                if (wallLens._1 == wallStableName) {
+                    var wall = wallLens._2.get(buildingData);
+                    var isBayOpenLens = BuildingUtil.wallIsBayOpenLens(bayIndex);
+                    var wall2 = isBayOpenLens.set(!isBayOpenLens.get(wall), wall);
+                    return wallLens._2.set(wall2, buildingData);
+                }
+            }
+            return buildingData;
+        }
+    });
+}
 //# sourceMappingURL=AppModel.js.map
 });
 ___scope___.file("app/ArrayUtil.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var Option_1 = require("./Option");
 function arrayJoin(x) {
     return [].concat.apply([], x);
 }
@@ -1074,29 +1305,71 @@ function arrayIncludes(array, elem) {
     return false;
 }
 exports.arrayIncludes = arrayIncludes;
+function arrayReduce(array, fn) {
+    if (array.length == 0) {
+        return Option_1.Option.none();
+    }
+    var accum = array[0];
+    for (var i = 1; i < array.length; ++i) {
+        accum = fn(accum, array[i]);
+    }
+    return Option_1.Option.some(accum);
+}
+exports.arrayReduce = arrayReduce;
+function arraySomes(array) {
+    var result = [];
+    array.forEach(function (aOp) {
+        if (aOp.isSome) {
+            result.push(aOp.fromSome());
+        }
+    });
+    return result;
+}
+exports.arraySomes = arraySomes;
 //# sourceMappingURL=ArrayUtil.js.map
 });
-___scope___.file("app/Building.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/Building.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
+var ArrayUtil_1 = require("../ArrayUtil");
+var BattenProperties_1 = require("./BattenProperties");
 var BuildingType_1 = require("./BuildingType");
-var TextureLoader_1 = require("./TextureLoader");
+var CeeProperties_1 = require("./CeeProperties");
+var GablePurlins_1 = require("./GablePurlins");
+var Lazy_1 = require("../Lazy");
+var Option_1 = require("../Option");
+var TextureLoader_1 = require("../TextureLoader");
+var Tuples_1 = require("../Tuples");
+var Portals_1 = require("./Portals");
 var Roof_1 = require("./Roof");
+var Slab_1 = require("../Slab");
 var Wall_1 = require("./Wall");
-var MkModelEffect_1 = require("./MkModelEffect");
-var Axes3D_1 = require("./math/Axes3D");
-var Util_1 = require("./math/Util");
-var Vector2D_1 = require("./math/Vector2D");
-var Vector3D_1 = require("./math/Vector3D");
-var Quaternion_1 = require("./math/Quaternion");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Axes3D_1 = require("../math/Axes3D");
+var Util_1 = require("../math/Util");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var Quaternion_1 = require("../math/Quaternion");
 var Building = /** @class */ (function () {
     function Building(params) {
         var _this = this;
         sodium.Transaction.run(function () {
+            var cBuildingType = params.cBuildingData.map(function (buildingData) { return buildingData.buildingType; });
+            var cLength = params.cBuildingData.map(function (buildingData) { return buildingData.length; });
+            var cSpan = params.cBuildingData.map(function (buildingData) { return buildingData.span; });
+            var cHeight = params.cBuildingData.map(function (buildingData) { return buildingData.height; });
+            var cPitch = params.cBuildingData.map(function (buildingData) { return buildingData.pitch; });
+            var cSide1WallData = params.cBuildingData.map(function (buildingData) { return buildingData.side1WallData; });
+            var cSide2WallData = params.cBuildingData.map(function (buildingData) { return buildingData.side2WallData; });
+            var cEnd1WallData = params.cBuildingData.map(function (buildingData) { return buildingData.end1WallData; });
+            var cEnd2WallData = params.cBuildingData.map(function (buildingData) { return buildingData.end2WallData; });
+            var cInteralWallDatas = params.cBuildingData.map(function (buildingData) { return buildingData.internalWallDatas; });
             var cMaxBaySize = new sodium.Cell(3500.0);
-            var cSide1BayMarkers = params.cLength.lift(cMaxBaySize, function (length, maxBaySize) {
+            var cSlabThickness = new sodium.Cell(100.0);
+            var cFFL = cSlabThickness;
+            var cSide1BayMarkers = cLength.lift(cMaxBaySize, function (length, maxBaySize) {
                 var numBays = Math.ceil(length / maxBaySize);
                 var baySize = length / numBays;
                 var numBayMarkers = numBays + 1;
@@ -1112,7 +1385,7 @@ var Building = /** @class */ (function () {
                     .slice(0)
                     .reverse();
             });
-            var cEnd1BayMarkers = params.cSpan.lift(cMaxBaySize, function (span, maxBaySize) {
+            var cEnd1BayMarkers = cSpan.lift(cMaxBaySize, function (span, maxBaySize) {
                 var numBays = Math.ceil(span / maxBaySize);
                 var baySize = span / numBays;
                 var numBayMarkers = numBays + 1;
@@ -1127,17 +1400,21 @@ var Building = /** @class */ (function () {
             var cWallCladdingTextureColour = new sodium.Cell(TextureLoader_1.CladdingTextureColour.ClassicCream);
             var cRoofCladdingTextureType = new sodium.Cell(TextureLoader_1.CladdingTextureType.Corrugate);
             var cRoofCladdingTextureColour = new sodium.Cell(TextureLoader_1.CladdingTextureColour.ManorRed);
-            var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
-                return height + 0.5 * span * Math.tan(Util_1.toRadians(pitch));
+            var cBattenProperties = cMaxBaySize.map(function (maxBaySize) {
+                return BattenProperties_1.BattenProperties.create({
+                    width: 0.04 * maxBaySize,
+                    height: 0.02 * maxBaySize
+                });
             });
-            var cSide1Wall = params.cBuildingType.map(function (buildingType) {
+            var cSide1Wall = cBuildingType.lift(cFFL, function (buildingType, ffl) {
                 return new Wall_1.Wall({
+                    cWallDataOp: cSide1WallData.map(function (x) { return Option_1.Option.some(x); }),
                     cStableName: new sodium.Cell("side1Wall"),
-                    cAxes: params.cSpan
+                    cAxes: cSpan
                         .map(function (span) {
-                        return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ));
+                        return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ));
                     }),
-                    cOutline: params.cLength.lift(params.cHeight, function (length, height) {
+                    cOutline: cLength.lift(cHeight, function (length, height) {
                         return [
                             Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
                             Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
@@ -1148,111 +1425,121 @@ var Building = /** @class */ (function () {
                     cCladdingTextureType: cWallCladdingTextureType,
                     cCladdingTextureColour: cWallCladdingTextureColour,
                     cBayMarkers: cSide1BayMarkers,
-                    cHighlightedStableNames: params.cHighlightedStableNames,
-                    sInsertOpening: params.sInsertOpening
+                    cBattenProperties: cBattenProperties,
+                    cHighlightedStableNames: params.cHighlightedStableNames
                 });
             });
-            var cSide2Wall = params.cBuildingType.map(function (buildingType) {
+            var cSide2Wall = cBuildingType.map(function (buildingType) {
                 switch (buildingType) {
                     default:
                     case BuildingType_1.BuildingType.GableRoofGarage:
                         return Building.mkSide2WallForGableGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
+                            cSide2WallData: cSide2WallData,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cWallCladdingTextureType: cWallCladdingTextureType,
                             cWallCladdingTextureColour: cWallCladdingTextureColour,
                             cSide2BayMarkers: cSide2BayMarkers,
-                            sInsertOpening: params.sInsertOpening
+                            cBattenProperties: cBattenProperties
                         });
                     case BuildingType_1.BuildingType.SkillionRoofGarage:
                         return Building.mkSide2WallForSkillionGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
-                            cPitch: params.cPitch,
+                            cSide2WallData: cSide2WallData,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cWallCladdingTextureType: cWallCladdingTextureType,
                             cWallCladdingTextureColour: cWallCladdingTextureColour,
                             cSide2BayMarkers: cSide2BayMarkers,
-                            sInsertOpening: params.sInsertOpening
+                            cBattenProperties: cBattenProperties
                         });
                 }
             });
-            var cEnd1Wall = params.cBuildingType.map(function (buildingType) {
+            var cEnd1Wall = cBuildingType.map(function (buildingType) {
                 switch (buildingType) {
                     default:
                     case BuildingType_1.BuildingType.GableRoofGarage:
                         return Building.mkEnd1WallForGableGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
-                            cPitch: params.cPitch,
+                            cEnd1WallData: cEnd1WallData,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cWallCladdingTextureType: cWallCladdingTextureType,
                             cWallCladdingTextureColour: cWallCladdingTextureColour,
                             cEnd1BayMarkers: cEnd1BayMarkers,
-                            sInsertOpening: params.sInsertOpening
+                            cBattenProperties: cBattenProperties
                         });
                     case BuildingType_1.BuildingType.SkillionRoofGarage:
                         return Building.mkEnd1WallForSkillionGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
-                            cPitch: params.cPitch,
+                            cEnd1WallData: cEnd1WallData,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cWallCladdingTextureType: cWallCladdingTextureType,
                             cWallCladdingTextureColour: cWallCladdingTextureColour,
                             cEnd1BayMarkers: cEnd1BayMarkers,
-                            sInsertOpening: params.sInsertOpening
+                            cBattenProperties: cBattenProperties
                         });
                 }
             });
-            var cEnd2Wall = params.cBuildingType.map(function (buildingType) {
+            var cEnd2Wall = cBuildingType.map(function (buildingType) {
                 switch (buildingType) {
                     default:
                     case BuildingType_1.BuildingType.GableRoofGarage:
                         return Building.mkEnd2WallForGableGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
-                            cPitch: params.cPitch,
+                            cEnd2WallData: cEnd2WallData,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cWallCladdingTextureType: cWallCladdingTextureType,
                             cWallCladdingTextureColour: cWallCladdingTextureColour,
                             cEnd2BayMarkers: cEnd2BayMarkers,
-                            sInsertOpening: params.sInsertOpening
+                            cBattenProperties: cBattenProperties
                         });
                     case BuildingType_1.BuildingType.SkillionRoofGarage:
                         return Building.mkEnd2WallForSkillionGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
-                            cPitch: params.cPitch,
+                            cEnd2WallData: cEnd2WallData,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cWallCladdingTextureType: cWallCladdingTextureType,
                             cWallCladdingTextureColour: cWallCladdingTextureColour,
                             cEnd2BayMarkers: cEnd2BayMarkers,
-                            sInsertOpening: params.sInsertOpening
+                            cBattenProperties: cBattenProperties
                         });
                 }
             });
-            var cCosPitch = params.cPitch.map(function (pitch) { return Math.cos(Util_1.toRadians(pitch)); });
-            var cSinPitch = params.cPitch.map(function (pitch) { return Math.sin(Util_1.toRadians(pitch)); });
-            var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return 0.5 * span / ca; });
             var cWalls = cSide1Wall.lift4(cSide2Wall, cEnd1Wall, cEnd2Wall, function (side1Wall, side2Wall, end1Wall, end2Wall) {
                 return [side1Wall, side2Wall, end1Wall, end2Wall];
             });
-            var cRoofs = params.cBuildingType.map(function (buildingType) {
+            var cRoofs = cBuildingType.map(function (buildingType) {
                 switch (buildingType) {
                     default:
                     case BuildingType_1.BuildingType.GableRoofGarage:
                         return Building.mkRoofsForGableGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
-                            cPitch: params.cPitch,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cRoofCladdingTextureType: cRoofCladdingTextureType,
                             cRoofCladdingTextureColour: cRoofCladdingTextureColour,
@@ -1262,10 +1549,11 @@ var Building = /** @class */ (function () {
                         });
                     case BuildingType_1.BuildingType.SkillionRoofGarage:
                         return Building.mkRoofsForSkillionGarage({
-                            cLength: params.cLength,
-                            cSpan: params.cSpan,
-                            cHeight: params.cHeight,
-                            cPitch: params.cPitch,
+                            cFFL: cFFL,
+                            cLength: cLength,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
                             cHighlightedStableNames: params.cHighlightedStableNames,
                             cRoofCladdingTextureType: cRoofCladdingTextureType,
                             cRoofCladdingTextureColour: cRoofCladdingTextureColour,
@@ -1274,14 +1562,128 @@ var Building = /** @class */ (function () {
                         });
                 }
             });
+            var slab = new Slab_1.Slab({
+                cAxes: cFFL.lift(cSlabThickness, function (ffl, slabThickness) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, ffl - 0.5 * slabThickness), Quaternion_1.Quaternion.identity);
+                }),
+                cOutline: cLength.lift(cSpan, function (length, span) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * length - 10.0, -0.5 * span - 10.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length + 10.0, -0.5 * span - 10.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length + 10.0, +0.5 * span + 10.0),
+                        Vector2D_1.Vector2D.create(-0.5 * length - 10.0, +0.5 * span + 10.0)
+                    ];
+                }),
+                cThickness: cSlabThickness
+            });
+            var cInternalWalls = cInteralWallDatas.lift(cSide1BayMarkers, function (internalWallDatas, side1BayMarkers) {
+                return ArrayUtil_1.arraySomes(internalWallDatas.map(function (internalWallData) {
+                    var bayMarkerIndex = internalWallData._1;
+                    if (bayMarkerIndex <= 0 || bayMarkerIndex >= side1BayMarkers.length - 1) {
+                        return Option_1.Option.none();
+                    }
+                    var centreX = side1BayMarkers[bayMarkerIndex];
+                    return Option_1.Option.some(Tuples_1.T2.of(bayMarkerIndex, Building.mkInternalWallForGableGarage({
+                        cInternalWallDatas: cInteralWallDatas,
+                        cFFL: cFFL,
+                        cMarkerIndex: new sodium.Cell(bayMarkerIndex),
+                        cCentreX: new sodium.Cell(centreX),
+                        cSpan: cSpan,
+                        cHeight: cHeight,
+                        cPitch: cPitch,
+                        cHighlightedStableNames: params.cHighlightedStableNames,
+                        cWallCladdingTextureType: cWallCladdingTextureType,
+                        cWallCladdingTextureColour: cWallCladdingTextureColour,
+                        cWallBayMarkers: cEnd1BayMarkers,
+                        cBattenProperties: cBattenProperties,
+                        cHighlighted: new sodium.Cell(false)
+                    })));
+                }));
+            });
+            var cPhantomInternalWalls = sodium.Cell.switchC(cBuildingType.map(function (buildingType) {
+                switch (buildingType) {
+                    default:
+                    case BuildingType_1.BuildingType.GableRoofGarage:
+                        return Building.mkPhantomInternalWallsForGableGarage({
+                            cFFL: cFFL,
+                            cSpan: cSpan,
+                            cHeight: cHeight,
+                            cPitch: cPitch,
+                            cWallCladdingTextureType: cWallCladdingTextureType,
+                            cWallCladdingTextureColour: cWallCladdingTextureColour,
+                            cSideBayMarkers: cSide1BayMarkers,
+                            cWallBayMarkers: cEnd1BayMarkers,
+                            cBattenProperties: cBattenProperties,
+                            cInternalWalls: cInternalWalls
+                        });
+                    case BuildingType_1.BuildingType.SkillionRoofGarage:
+                        return new sodium.Cell(Lazy_1.Lazy.pure([]));
+                }
+            }));
+            var cCeeProperties = cSpan
+                .lift(cMaxBaySize, function (span, maxBaySize) {
+                return CeeProperties_1.CeeProperties.create({
+                    webSize: span * 0.02,
+                    flangeSize: maxBaySize * 0.02,
+                    lipSize: 10.0,
+                    thickness: 1.0
+                });
+            });
+            var cPortalXMarkers = cSide1BayMarkers.lift3(cCeeProperties, cBattenProperties, function (side1BayMarkers, ceeProperties, battenProperties) {
+                var portalXMarkers = [];
+                for (var i = 0; i < side1BayMarkers.length; ++i) {
+                    var xMarker = void 0;
+                    if (i == 0) {
+                        xMarker = side1BayMarkers[i] + battenProperties.height + 0.5 * ceeProperties.flangeSize;
+                    }
+                    else if (i == side1BayMarkers.length - 1) {
+                        xMarker = side1BayMarkers[i] - battenProperties.height - 0.5 * ceeProperties.flangeSize;
+                    }
+                    else {
+                        xMarker = side1BayMarkers[i];
+                    }
+                    portalXMarkers.push(xMarker);
+                }
+                return portalXMarkers;
+            });
+            var portals = new Portals_1.Portals({
+                cAxes: cFFL.map(function (ffl) { return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, ffl), Quaternion_1.Quaternion.identity); }),
+                cBuildingType: cBuildingType,
+                cSpan: cSpan.lift(cBattenProperties, function (span, battenProperties) {
+                    return span - 2.0 * battenProperties.height;
+                }),
+                cHeight: cHeight.lift3(cPitch, cBattenProperties, function (height, pitch, battenProperties) {
+                    return height - battenProperties.height / Math.cos(Util_1.toRadians(pitch))
+                        + battenProperties.height * Math.tan(Util_1.toRadians(pitch));
+                }),
+                cPitch: cPitch,
+                cPortalXMarkers: cPortalXMarkers,
+                cCeeProperties: cCeeProperties
+            });
+            var purlins = new GablePurlins_1.GablePurlins({
+                cAxes: cFFL.map(function (ffl) { return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, ffl), Quaternion_1.Quaternion.identity); }),
+                cLength: cLength,
+                cSpan: cSpan,
+                cHeight: cHeight,
+                cPitch: cPitch,
+                cBattenProperties: cBattenProperties
+            });
             _this._cWalls = cWalls;
             _this._cRoofs = cRoofs;
-            _this._cModel = MkModelEffect_1.composeCListOfCModels(cWalls.lift(cRoofs, function (walls, roofs) {
-                return walls.map(function (wall) { return wall.cModel; }).concat(roofs.map(function (roof) { return roof.cModel; }));
+            _this._cInternalWalls = cInternalWalls;
+            _this._cModel = MkModelEffect_1.composeCListOfCModels(cWalls.lift3(cRoofs, cInternalWalls, function (walls, roofs, internalWalls) {
+                return ArrayUtil_1.arrayJoin([
+                    walls.map(function (wall) { return wall.cModel; }),
+                    roofs.map(function (roof) { return roof.cModel; }),
+                    internalWalls.map(function (internalWall) { return internalWall._2.cModel; }),
+                    [slab.cModel, portals.cModel, purlins.cModel]
+                ]);
             }));
+            _this._cPhantomInternalWalls = cPhantomInternalWalls;
         });
     }
     Object.defineProperty(Building.prototype, "cModel", {
+        //
         get: function () {
             return this._cModel;
         },
@@ -1302,13 +1704,98 @@ var Building = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Building.prototype, "cInternalWalls", {
+        get: function () {
+            return this._cInternalWalls;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Building.prototype, "cPhantomInternalWalls", {
+        get: function () {
+            return this._cPhantomInternalWalls;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Building.mkPhantomInternalWallsForGableGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            return params.cSideBayMarkers.lift(params.cInternalWalls, function (sideBayMarkers, internalWalls) { return Lazy_1.Lazy.create(function () {
+                var internalWallMarkerIndexSet = [];
+                internalWalls.forEach(function (internalWall) { return internalWallMarkerIndexSet[internalWall._1] = true; });
+                var result = [];
+                for (var i = 1; i < sideBayMarkers.length - 1; ++i) {
+                    if (internalWallMarkerIndexSet[i]) {
+                        continue;
+                    }
+                    var centreX = sideBayMarkers[i];
+                    result.push(Tuples_1.T2.of(i, Building.mkInternalWallForGableGarage({
+                        cInternalWallDatas: new sodium.Cell([]),
+                        cFFL: params.cFFL,
+                        cMarkerIndex: new sodium.Cell(i),
+                        cCentreX: new sodium.Cell(centreX),
+                        cSpan: params.cSpan,
+                        cHeight: params.cHeight,
+                        cPitch: params.cPitch,
+                        cHighlightedStableNames: new sodium.Cell([]),
+                        cWallCladdingTextureType: params.cWallCladdingTextureType,
+                        cWallCladdingTextureColour: params.cWallCladdingTextureColour,
+                        cWallBayMarkers: params.cWallBayMarkers,
+                        cBattenProperties: params.cBattenProperties,
+                        cHighlighted: new sodium.Cell(true)
+                    })));
+                }
+                return result;
+            }); });
+        });
+    };
+    Building.mkInternalWallForGableGarage = function (params) {
+        return sodium.Transaction.run(function () {
+            var cPeakHeight = params.cHeight.lift3(params.cSpan, params.cPitch, function (height, span, pitch) {
+                return height + 0.5 * span * Math.tan(Util_1.toRadians(pitch));
+            });
+            var phantomWall = new Wall_1.Wall({
+                cWallDataOp: params.cInternalWallDatas.lift(params.cMarkerIndex, function (internalWallDatas, markerIndex) {
+                    for (var i = 0; i < internalWallDatas.length; ++i) {
+                        var internalWallData = internalWallDatas[i];
+                        if (internalWallData._1 == markerIndex) {
+                            return Option_1.Option.some(internalWallData._2);
+                        }
+                    }
+                    return Option_1.Option.none();
+                }),
+                cStableName: params.cMarkerIndex.map(function (markerIndex) { return "internalWall[" + markerIndex + "]"; }),
+                cAxes: params.cFFL.lift(params.cCentreX, function (ffl, centreX) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(centreX, 0.0, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * span, height),
+                        Vector2D_1.Vector2D.create(0.0, peakHeight),
+                        Vector2D_1.Vector2D.create(-0.5 * span, height)
+                    ];
+                }),
+                cIsInternal: new sodium.Cell(true),
+                cCladdingTextureType: params.cWallCladdingTextureType,
+                cCladdingTextureColour: params.cWallCladdingTextureColour,
+                cBayMarkers: params.cWallBayMarkers,
+                cBattenProperties: params.cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                cHighlighted: params.cHighlighted
+            });
+            return phantomWall;
+        });
+    };
     Building.mkSide2WallForGableGarage = function (params) {
         return sodium.Transaction.run(function () {
             var side2Wall = new Wall_1.Wall({
+                cWallDataOp: params.cSide2WallData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("side2Wall"),
-                cAxes: params.cSpan
-                    .map(function (span) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.unitZ));
+                cAxes: params.cFFL
+                    .lift(params.cSpan, function (ffl, span) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.unitZ));
                 }),
                 cOutline: params.cLength.lift(params.cHeight, function (length, height) {
                     return [
@@ -1321,8 +1808,8 @@ var Building = /** @class */ (function () {
                 cCladdingTextureType: params.cWallCladdingTextureType,
                 cCladdingTextureColour: params.cWallCladdingTextureColour,
                 cBayMarkers: params.cSide2BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames,
-                sInsertOpening: params.sInsertOpening
+                cBattenProperties: params.cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames
             });
             return side2Wall;
         });
@@ -1333,10 +1820,11 @@ var Building = /** @class */ (function () {
                 return height + 0.5 * span * Math.tan(Util_1.toRadians(pitch));
             });
             var end1Wall = new Wall_1.Wall({
+                cWallDataOp: params.cEnd1WallData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("end1Wall"),
-                cAxes: params.cLength
-                    .map(function (length) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ));
+                cAxes: params.cFFL
+                    .lift(params.cLength, function (ffl, length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ));
                 }),
                 cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
                     return [
@@ -1350,8 +1838,8 @@ var Building = /** @class */ (function () {
                 cCladdingTextureType: params.cWallCladdingTextureType,
                 cCladdingTextureColour: params.cWallCladdingTextureColour,
                 cBayMarkers: params.cEnd1BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames,
-                sInsertOpening: params.sInsertOpening
+                cBattenProperties: params.cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames
             });
             return end1Wall;
         });
@@ -1362,10 +1850,11 @@ var Building = /** @class */ (function () {
                 return height + 0.5 * span * Math.tan(Util_1.toRadians(pitch));
             });
             var end2Wall = new Wall_1.Wall({
+                cWallDataOp: params.cEnd2WallData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("end2Wall"),
-                cAxes: params.cLength
-                    .map(function (length) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
+                cAxes: params.cFFL
+                    .lift(params.cLength, function (ffl, length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
                 }),
                 cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
                     return [
@@ -1379,8 +1868,8 @@ var Building = /** @class */ (function () {
                 cCladdingTextureType: params.cWallCladdingTextureType,
                 cCladdingTextureColour: params.cWallCladdingTextureColour,
                 cBayMarkers: params.cEnd2BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames,
-                sInsertOpening: params.sInsertOpening
+                cBattenProperties: params.cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames
             });
             return end2Wall;
         });
@@ -1391,10 +1880,11 @@ var Building = /** @class */ (function () {
                 return height + span * Math.tan(Util_1.toRadians(pitch));
             });
             var side2Wall = new Wall_1.Wall({
+                cWallDataOp: params.cSide2WallData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("side2Wall"),
-                cAxes: params.cSpan
-                    .map(function (span) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.unitZ));
+                cAxes: params.cFFL
+                    .lift(params.cSpan, function (ffl, span) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.unitZ));
                 }),
                 cOutline: params.cLength.lift(cPeakHeight, function (length, peakHeight) {
                     return [
@@ -1407,8 +1897,8 @@ var Building = /** @class */ (function () {
                 cCladdingTextureType: params.cWallCladdingTextureType,
                 cCladdingTextureColour: params.cWallCladdingTextureColour,
                 cBayMarkers: params.cSide2BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames,
-                sInsertOpening: params.sInsertOpening
+                cBattenProperties: params.cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames
             });
             return side2Wall;
         });
@@ -1419,10 +1909,11 @@ var Building = /** @class */ (function () {
                 return height + span * Math.tan(Util_1.toRadians(pitch));
             });
             var end1Wall = new Wall_1.Wall({
+                cWallDataOp: params.cEnd1WallData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("end1Wall"),
-                cAxes: params.cLength
-                    .map(function (length) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ));
+                cAxes: params.cFFL
+                    .lift(params.cLength, function (ffl, length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ));
                 }),
                 cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
                     return [
@@ -1435,8 +1926,8 @@ var Building = /** @class */ (function () {
                 cCladdingTextureType: params.cWallCladdingTextureType,
                 cCladdingTextureColour: params.cWallCladdingTextureColour,
                 cBayMarkers: params.cEnd1BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames,
-                sInsertOpening: params.sInsertOpening
+                cBattenProperties: params.cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames
             });
             return end1Wall;
         });
@@ -1447,10 +1938,11 @@ var Building = /** @class */ (function () {
                 return height + span * Math.tan(Util_1.toRadians(pitch));
             });
             var end2Wall = new Wall_1.Wall({
+                cWallDataOp: params.cEnd2WallData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("end2Wall"),
-                cAxes: params.cLength
-                    .map(function (length) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
+                cAxes: params.cFFL
+                    .lift(params.cLength, function (ffl, length) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ));
                 }),
                 cOutline: params.cSpan.lift3(params.cHeight, cPeakHeight, function (span, height, peakHeight) {
                     return [
@@ -1463,8 +1955,8 @@ var Building = /** @class */ (function () {
                 cCladdingTextureType: params.cWallCladdingTextureType,
                 cCladdingTextureColour: params.cWallCladdingTextureColour,
                 cBayMarkers: params.cEnd2BayMarkers,
-                cHighlightedStableNames: params.cHighlightedStableNames,
-                sInsertOpening: params.sInsertOpening
+                cBattenProperties: params.cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames
             });
             return end2Wall;
         });
@@ -1476,8 +1968,8 @@ var Building = /** @class */ (function () {
             var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return 0.5 * span / ca; });
             var side1Roof = new Roof_1.Roof({
                 cStableName: new sodium.Cell("side1Roof"),
-                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
+                cAxes: params.cFFL.lift5(params.cSpan, params.cHeight, cCosPitch, cSinPitch, function (ffl, span, height, ca, sa) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl + height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
                 }),
                 cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
                     return [
@@ -1495,8 +1987,8 @@ var Building = /** @class */ (function () {
             });
             var side2Roof = new Roof_1.Roof({
                 cStableName: new sodium.Cell("side2Roof"),
-                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa)));
+                cAxes: params.cFFL.lift5(params.cSpan, params.cHeight, cCosPitch, cSinPitch, function (ffl, span, height, ca, sa) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, ffl + height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa)));
                 }),
                 cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
                     return [
@@ -1522,8 +2014,8 @@ var Building = /** @class */ (function () {
             var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return span / ca; });
             var side1Roof = new Roof_1.Roof({
                 cStableName: new sodium.Cell("side1Roof"),
-                cAxes: params.cSpan.lift4(params.cHeight, cCosPitch, cSinPitch, function (span, height, ca, sa) {
-                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
+                cAxes: params.cFFL.lift5(params.cSpan, params.cHeight, cCosPitch, cSinPitch, function (ffl, span, height, ca, sa) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl + height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
                 }),
                 cOutline: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
                     return [
@@ -1547,7 +2039,38 @@ var Building = /** @class */ (function () {
 exports.Building = Building;
 //# sourceMappingURL=Building.js.map
 });
-___scope___.file("app/BuildingType.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/BattenProperties.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var BattenProperties = /** @class */ (function () {
+    function BattenProperties(width, height) {
+        this._width = width;
+        this._height = height;
+    }
+    Object.defineProperty(BattenProperties.prototype, "width", {
+        get: function () {
+            return this._width;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BattenProperties.prototype, "height", {
+        get: function () {
+            return this._height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    BattenProperties.create = function (params) {
+        return new BattenProperties(params.width, params.height);
+    };
+    return BattenProperties;
+}());
+exports.BattenProperties = BattenProperties;
+//# sourceMappingURL=BattenProperties.js.map
+});
+___scope___.file("app/model/BuildingType.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -1564,737 +2087,647 @@ var BuildingType;
 })(BuildingType = exports.BuildingType || (exports.BuildingType = {}));
 //# sourceMappingURL=BuildingType.js.map
 });
-___scope___.file("app/TextureLoader.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/CeeProperties.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var THREE = require("three");
-var JSZip = require("jszip");
-var Tuples_1 = require("./Tuples");
-var CladdingTextureType;
-(function (CladdingTextureType) {
-    CladdingTextureType["CClad"] = "c_clad";
-    CladdingTextureType["Corrugate"] = "corrugated";
-    CladdingTextureType["KPanel"] = "k_panel";
-    CladdingTextureType["Monoclad"] = "monoclad";
-    CladdingTextureType["MonocladWallCladding"] = "monoclad_wall_cladding";
-})(CladdingTextureType = exports.CladdingTextureType || (exports.CladdingTextureType = {}));
-var CladdingTextureColour;
-(function (CladdingTextureColour) {
-    CladdingTextureColour["Aries"] = "aries";
-    CladdingTextureColour["Astro"] = "astro";
-    CladdingTextureColour["Basalt"] = "basalt";
-    CladdingTextureColour["Celestian"] = "celestian";
-    CladdingTextureColour["ClassicCream"] = "classic_cream";
-    CladdingTextureColour["Colorbond"] = "colorbond";
-    CladdingTextureColour["Cosmic"] = "cosmic";
-    CladdingTextureColour["CottageGreen"] = "cottage_green";
-    CladdingTextureColour["Cove"] = "cove";
-    CladdingTextureColour["DeepOcean"] = "deep_ocean";
-    CladdingTextureColour["Dune"] = "dune";
-    CladdingTextureColour["EveningHaze"] = "evening_haze";
-    CladdingTextureColour["Galactic"] = "galactic";
-    CladdingTextureColour["Gully"] = "gully";
-    CladdingTextureColour["Ironstrone"] = "ironstone";
-    CladdingTextureColour["Jasper"] = "jasper";
-    CladdingTextureColour["Mangrove"] = "mangrove";
-    CladdingTextureColour["ManorRed"] = "manor_red";
-    CladdingTextureColour["Monument"] = "monument";
-    CladdingTextureColour["NightSky"] = "night_sky";
-    CladdingTextureColour["PaleEucalypt"] = "pale_eucalypt";
-    CladdingTextureColour["Paperbark"] = "paperbark";
-    CladdingTextureColour["Rhea"] = "rhea";
-    CladdingTextureColour["ShaleGrey"] = "shale_grey";
-    CladdingTextureColour["Surfmist"] = "surfmist";
-    CladdingTextureColour["Terrain"] = "terrain";
-    CladdingTextureColour["Wallaby"] = "wallaby";
-    CladdingTextureColour["WhiteHaven"] = "whitehaven";
-    CladdingTextureColour["Windspray"] = "windspray";
-    CladdingTextureColour["WoodlandGrey"] = "woodlandGrey";
-    CladdingTextureColour["Zinc"] = "zinc";
-})(CladdingTextureColour = exports.CladdingTextureColour || (exports.CladdingTextureColour = {}));
-function mkCladdingTexturePath(claddingTextureType, claddingTextureColour) {
-    var folder = "textures/skm/" + claddingTextureType;
-    var file_mid_name;
-    switch (claddingTextureType) {
-        case CladdingTextureType.CClad:
-            file_mid_name = "c-clad";
-            break;
-        case CladdingTextureType.KPanel:
-            file_mid_name = "k-panel";
-            break;
-        default:
-            file_mid_name = claddingTextureType;
-            break;
+var CeeProperties = /** @class */ (function () {
+    function CeeProperties(webSize, flangeSize, lipSize, thickness) {
+        this._webSize = webSize;
+        this._flangeSize = flangeSize;
+        this._lipSize = lipSize;
+        this._thickness = thickness;
     }
-    var file_name = "stramit_" + file_mid_name + "_" + claddingTextureColour + ".skm";
-    return folder + "/" + file_name;
-}
-exports.mkCladdingTexturePath = mkCladdingTexturePath;
-var claddingTextureCache = new Map();
-function loadCladdingTexture(textureLoader, claddingTextureType, claddingTextureColour) {
-    var texturePath = mkCladdingTexturePath(claddingTextureType, claddingTextureColour);
-    var existing = claddingTextureCache.get(texturePath);
-    if (existing) {
-        return existing;
-    }
-    var pTexture;
-    pTexture =
-        loadSketchupTexture(texturePath)
-            .then(function (sketchupTexture) {
-            return new Promise(function (resolve, reject) {
-                textureLoader.load(sketchupTexture.image.src, function onLoad(texture) {
-                    texture.wrapS = THREE.RepeatWrapping;
-                    texture.wrapT = THREE.RepeatWrapping;
-                    texture.repeat.set(1.0 / 25.4 / sketchupTexture.xScale, 1.0 / 25.4 / sketchupTexture.yScale);
-                    resolve(Tuples_1.T2.of(sketchupTexture, texture));
-                }, function onProgress(event) { }, function opError(event) {
-                    reject(event);
-                });
-            });
-        });
-    claddingTextureCache.set(texturePath, pTexture);
-    return pTexture;
-}
-exports.loadCladdingTexture = loadCladdingTexture;
-var SketchupTexture = /** @class */ (function () {
-    function SketchupTexture(xScale, yScale, image) {
-        this._xScale = xScale;
-        this._yScale = yScale;
-        this._image = image;
-    }
-    Object.defineProperty(SketchupTexture.prototype, "xScale", {
+    Object.defineProperty(CeeProperties.prototype, "webSize", {
         get: function () {
-            return this._xScale;
+            return this._webSize;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(SketchupTexture.prototype, "yScale", {
+    Object.defineProperty(CeeProperties.prototype, "flangeSize", {
         get: function () {
-            return this._yScale;
+            return this._flangeSize;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(SketchupTexture.prototype, "image", {
+    Object.defineProperty(CeeProperties.prototype, "lipSize", {
         get: function () {
-            return this._image;
+            return this._lipSize;
         },
         enumerable: true,
         configurable: true
     });
-    return SketchupTexture;
-}());
-exports.SketchupTexture = SketchupTexture;
-function loadGrass() {
-    var zip = new JSZip();
-    return fetch("textures/grass.zip")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(JSZip.loadAsync)
-        .then(function (zip) { return zip.file("grass-512.jpg").async("base64"); })
-        .then(function (imageData) {
-        var image = new Image();
-        image.src = "data:image/jpg;base64," + imageData;
-        return image;
+    Object.defineProperty(CeeProperties.prototype, "thickness", {
+        get: function () {
+            return this._thickness;
+        },
+        enumerable: true,
+        configurable: true
     });
-}
-exports.loadGrass = loadGrass;
-function loadGrass2() {
-    return fetch("textures/grass.jpg")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(function (blob) {
-        var objectURL = URL.createObjectURL(blob);
-        var image = new Image();
-        image.src = objectURL;
-        return image;
-    });
-}
-exports.loadGrass2 = loadGrass2;
-function loadSky() {
-    var zip = new JSZip();
-    return fetch("textures/sky.zip")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(JSZip.loadAsync)
-        .then(function (zip) { return zip.file("sky-1024x256.jpg").async("base64"); })
-        .then(function (imageData) {
-        var image = new Image();
-        image.src = "data:image/jpg;base64," + imageData;
-        return image;
-    });
-}
-exports.loadSky = loadSky;
-function loadSky2() {
-    return fetch("textures/sky-dome-texture.jpg")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(function (blob) {
-        var objectURL = URL.createObjectURL(blob);
-        var image = new Image();
-        image.src = objectURL;
-        return image;
-    });
-}
-exports.loadSky2 = loadSky2;
-// example path "textures/skm/c_clad/stramit_c-clad_aries.skm"
-function loadSketchupTexture(path) {
-    var zip = new JSZip();
-    return fetch(path)
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(JSZip.loadAsync)
-        .then(function (zip) {
-        return zip
-            .file("document.xml")
-            .async("text")
-            .then(function success(text) {
-            var parser = new DOMParser();
-            var properties = parser.parseFromString(text, "text/xml");
-            var tmp = properties.children[0].children[0].children[0];
-            var tmp2 = tmp.children[0].children[0];
-            var xScale = Number.parseFloat(tmp.getAttribute("xScale"));
-            var yScale = Number.parseFloat(tmp.getAttribute("yScale"));
-            var path = tmp2.getAttribute("path");
-            return zip
-                .file("ref/" + path)
-                .async("base64")
-                .then(function success(imageData) {
-                var imageData2 = "data:image/bmp;base64," + imageData;
-                var image = new Image();
-                image.src = imageData2;
-                return new SketchupTexture(xScale, yScale, image);
-            });
-        });
-    });
-}
-exports.loadSketchupTexture = loadSketchupTexture;
-//# sourceMappingURL=TextureLoader.js.map
-});
-___scope___.file("app/Tuples.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var T2 = /** @class */ (function () {
-    function T2(a, b) {
-        this._a = a;
-        this._b = b;
-    }
-    T2.of = function (a, b) {
-        return new T2(a, b);
+    CeeProperties.create = function (params) {
+        return new CeeProperties(params.webSize, params.flangeSize, params.lipSize, params.thickness);
     };
-    Object.defineProperty(T2.prototype, "_1", {
-        get: function () {
-            return this._a;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(T2.prototype, "_2", {
-        get: function () {
-            return this._b;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return T2;
+    return CeeProperties;
 }());
-exports.T2 = T2;
-//# sourceMappingURL=Tuples.js.map
+exports.CeeProperties = CeeProperties;
+//# sourceMappingURL=CeeProperties.js.map
 });
-___scope___.file("app/Roof.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/GablePurlins.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var BattenPlane_1 = require("./BattenPlane");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Axes3D_1 = require("../math/Axes3D");
+var CAG_1 = require("../math/CAG");
+var Polygon2D_1 = require("../math/Polygon2D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var Util_1 = require("../math/Util");
+var GablePurlins = /** @class */ (function () {
+    function GablePurlins(params) {
+        var cRoofPlaneHeight = params.cSpan.lift(params.cPitch, function (span, pitch) {
+            return 0.5 * span / Math.cos(Util_1.toRadians(pitch));
+        });
+        var cBattenHeights = params.cBattenProperties.lift(cRoofPlaneHeight, function (battenProperties, roofPlaneHeight) {
+            var result = [];
+            var maxGap = 1200.0;
+            var start = 0.5 * battenProperties.width;
+            var end = roofPlaneHeight - 0.5 * battenProperties.width - 100.0;
+            var cover = end - start;
+            var numGaps = Math.ceil(cover / maxGap);
+            var gapSize = cover / numGaps;
+            var qtyRuns = numGaps + 1;
+            for (var i = 0; i < qtyRuns; ++i) {
+                result.push(start + i * gapSize);
+            }
+            return result;
+        });
+        var side1BattenPlane = new BattenPlane_1.BattenPlane({
+            cAxes: params.cAxes.lift4(params.cSpan, params.cHeight, params.cPitch, function (axes, span, height, pitch) {
+                var ca = Math.cos(Util_1.toRadians(pitch));
+                var sa = Math.sin(Util_1.toRadians(pitch));
+                return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa))));
+            }),
+            cOutlineCAG: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
+                return CAG_1.CAG.fromPolygons([
+                    Polygon2D_1.Polygon2D.create({
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                        ],
+                        holes: []
+                    })
+                ]);
+            }),
+            cBattenHeights: cBattenHeights,
+            cBattenProperties: params.cBattenProperties
+        });
+        var side2BattenPlane = new BattenPlane_1.BattenPlane({
+            cAxes: params.cAxes.lift4(params.cSpan, params.cHeight, params.cPitch, function (axes, span, height, pitch) {
+                var ca = Math.cos(Util_1.toRadians(pitch));
+                var sa = Math.sin(Util_1.toRadians(pitch));
+                return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa))));
+            }),
+            cOutlineCAG: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
+                return CAG_1.CAG.fromPolygons([
+                    Polygon2D_1.Polygon2D.create({
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                        ],
+                        holes: []
+                    })
+                ]);
+            }),
+            cBattenHeights: cBattenHeights,
+            cBattenProperties: params.cBattenProperties
+        });
+        var cModel = MkModelEffect_1.composeListOfCModels([
+            side1BattenPlane.cModel,
+            side2BattenPlane.cModel
+        ]);
+        this._cModel = cModel;
+    }
+    Object.defineProperty(GablePurlins.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return GablePurlins;
+}());
+exports.GablePurlins = GablePurlins;
+//# sourceMappingURL=GablePurlins.js.map
+});
+___scope___.file("app/model/BattenPlane.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
-var CSG2D = require("csg2d");
-var SodiumUtil = require("./SodiumUtil");
-var Bay_1 = require("./Bay");
-var Axes3D_1 = require("./math/Axes3D");
-var MkModelEffect_1 = require("./MkModelEffect");
-var Quaternion_1 = require("./math/Quaternion");
-var TextureSpace_1 = require("./math/TextureSpace");
-var Vector2D_1 = require("./math/Vector2D");
-var Vector3D_1 = require("./math/Vector3D");
-var Roof = /** @class */ (function () {
-    function Roof(params) {
+var THREE = require("three");
+var MkModelEffect_1 = require("../MkModelEffect");
+var CAG_1 = require("../math/CAG");
+var Line2D_1 = require("../math/Line2D");
+var Polygon2D_1 = require("../math/Polygon2D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var BattenPlane = /** @class */ (function () {
+    function BattenPlane(params) {
         var _this = this;
         sodium.Transaction.run(function () {
-            var cTextureSpace = params
-                .cAxes
-                .map(function (axes) {
-                return TextureSpace_1.TextureSpace.create({
-                    axes: axes,
-                    xScale: 1.0,
-                    yScale: 1.0
-                });
-            });
-            var cBayOutlines = SodiumUtil.cellLift2(params.cOutline, params.cBayMarkers, function (outline, bayMarkers) {
-                var minY = Number.POSITIVE_INFINITY;
-                var maxY = Number.NEGATIVE_INFINITY;
-                for (var i = 0; i < outline.length; ++i) {
-                    var pt = outline[i];
-                    minY = Math.min(minY, pt.y);
-                    maxY = Math.max(maxY, pt.y);
-                }
-                var intersectPolyMinY = minY - 100.0;
-                var intersectPolyMaxY = maxY + 100.0;
-                var outlinePolygon = [];
-                for (var i = 0; i < outline.length; ++i) {
-                    var pt = outline[i];
-                    outlinePolygon.push([pt.x, pt.y]);
-                }
-                var csgOutlinePolygon = CSG2D.fromPolygons([outlinePolygon]);
-                var result = [];
-                for (var i = 0; i < bayMarkers.length - 1; ++i) {
-                    var marker1 = bayMarkers[i];
-                    var marker2 = bayMarkers[i + 1];
-                    var csgIntersectingPolygon = CSG2D.fromPolygons([[
-                            [marker1, intersectPolyMinY],
-                            [marker2, intersectPolyMinY],
-                            [marker2, intersectPolyMaxY],
-                            [marker1, intersectPolyMaxY]
-                        ]]);
-                    var intersection = csgOutlinePolygon.intersect(csgIntersectingPolygon).toPolygons();
-                    var intersection2 = intersection[0];
-                    var bayOutline = [];
-                    for (var j = 0; j < intersection2.length - 1; ++j) {
-                        var pt = intersection2[j];
-                        bayOutline.push(Vector2D_1.Vector2D.create(pt.x, pt.y));
+            var cBattenLines = params.cOutlineCAG
+                .lift(params.cBattenHeights, function (outlineCAG, battenHeights) { return function () {
+                var outlinePolygons = outlineCAG.toPolygons();
+                var minX = Number.POSITIVE_INFINITY;
+                var maxX = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outlinePolygons.length; ++i) {
+                    var outlinePolygon = outlinePolygons[i].outline;
+                    for (var j = 0; j < outlinePolygon.length; ++j) {
+                        var pt = outlinePolygon[j];
+                        minX = Math.min(minX, pt.x);
+                        maxX = Math.max(maxX, pt.x);
                     }
-                    result.push(bayOutline);
+                }
+                var result = [];
+                for (var i = 0; i < battenHeights.length; ++i) {
+                    var atY = battenHeights[i];
+                    var battenCAG = CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: [
+                                Vector2D_1.Vector2D.create(minX - 100.0, atY - 1.0),
+                                Vector2D_1.Vector2D.create(maxX + 100.0, atY - 1.0),
+                                Vector2D_1.Vector2D.create(maxX + 100.0, atY + 1.0),
+                                Vector2D_1.Vector2D.create(maxX - 100.0, atY + 1.0)
+                            ],
+                            holes: []
+                        })
+                    ]);
+                    var battensInOutlineCAG = outlineCAG.intersect(battenCAG);
+                    var battensInOutlinePolygons = battensInOutlineCAG.toPolygons();
+                    for (var j = 0; j < battensInOutlinePolygons.length; ++j) {
+                        var battenPolygon = battensInOutlinePolygons[j];
+                        var battenMinX = Number.POSITIVE_INFINITY;
+                        var battenMaxX = Number.NEGATIVE_INFINITY;
+                        var battenOutline = battenPolygon.outline;
+                        for (var k = 0; k < battenOutline.length; ++k) {
+                            var pt = battenOutline[k];
+                            battenMinX = Math.min(battenMinX, pt.x);
+                            battenMaxX = Math.max(battenMaxX, pt.x);
+                        }
+                        if (Number.isFinite(battenMinX) && Number.isFinite(battenMaxX)) {
+                            result.push(Line2D_1.Line2D.create(Vector2D_1.Vector2D.create(battenMinX, atY), Vector2D_1.Vector2D.create(battenMaxX, atY)));
+                        }
+                    }
                 }
                 return result;
-            });
-            var cBays = SodiumUtil.cellLift3(params.cAxes, params.cBayMarkers, cBayOutlines, function (axes, bayMarkers, bayOutlines) {
-                var bays = [];
-                for (var i = 0; i < bayMarkers.length - 1; ++i) {
-                    var marker1 = bayMarkers[i];
-                    var marker2 = bayMarkers[i + 1];
-                    var centreX = 0.5 * (marker1 + marker2);
-                    var bayAxes = axes.fromThisSpace(Axes3D_1.Axes3D
-                        .create(Vector3D_1.Vector3D.create(centreX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
-                    var bayOutline2 = bayOutlines[i].map(function (pt) { return Vector2D_1.Vector2D.create(pt.x - centreX, pt.y); });
-                    (function () {
-                        var stableIndex = i;
-                        bays.push(new Bay_1.Bay({
-                            cParentStableName: params.cStableName,
-                            cStableName: params.cStableName.map(function (stableName) { return stableName + ('.bay[' + stableIndex + ']'); }),
-                            cBayIndex: new sodium.Cell(stableIndex),
-                            cAxes: new sodium.Cell(bayAxes),
-                            cOutline: new sodium.Cell(bayOutline2),
-                            cCladdingTextureType: params.cCladdingTextureType,
-                            cCladdingTextureColour: params.cCladdingTextureColour,
-                            cTextureSpace: cTextureSpace,
-                            cHighlightedStableNames: params.cHighlightedStableNames,
-                            cVisible: params.cVisible
+            }; })
+                .map(function (x) { return x(); });
+            var cModel = params.cBattenProperties.lift(cBattenLines, function (battenProperties, battenLines) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var battenGeometries = battenLines.map(function (battenLine) {
+                        var o = battenLine.v1.add(battenLine.v2).scale(0.5).toVector3D();
+                        var u = battenLine.v2.sub(battenLine.v1).toVector3D().normalize();
+                        var w = Vector3D_1.Vector3D.create(0.0, 0.0, 1.0);
+                        var q = Quaternion_1.Quaternion.fromWU(w, u);
+                        var o2 = o.sub(w.scale(0.5 * battenProperties.height));
+                        var geometry = new THREE.BoxGeometry(battenLine.length(), battenProperties.width, battenProperties.height);
+                        var matrix1 = new THREE.Matrix4().makeRotationFromQuaternion(MkModelEffect_1.quaternionToTHREE(q));
+                        var matrix2 = new THREE.Matrix4().makeTranslation(o2.x, o2.y, o2.z);
+                        var matrix = matrix1.multiply(matrix2);
+                        geometry.applyMatrix(matrix);
+                        return geometry;
+                    });
+                    var geometry = new THREE.Geometry();
+                    for (var i = 0; i < battenGeometries.length; ++i) {
+                        var battenGeometry = battenGeometries[i];
+                        geometry.merge(battenGeometry);
+                    }
+                    var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+                    var mesh = new THREE.Mesh(geometry, material);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                        var cleanups = [];
+                        cleanups.push(params.cAxes.listen(function (axes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
                         }));
-                    })();
-                }
-                return bays;
+                        return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                    }, mesh));
+                });
             });
-            _this._cBays = cBays;
-            _this._cModel = MkModelEffect_1.composeCListOfCModels(cBays.map(function (bays) { return bays.map(function (bay) { return bay.cModel; }); }));
+            _this._cModel = cModel;
         });
     }
-    Object.defineProperty(Roof.prototype, "cModel", {
+    Object.defineProperty(BattenPlane.prototype, "cModel", {
         get: function () {
             return this._cModel;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Roof.prototype, "cBays", {
-        get: function () {
-            return this._cBays;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Roof;
+    return BattenPlane;
 }());
-exports.Roof = Roof;
-//# sourceMappingURL=Roof.js.map
+exports.BattenPlane = BattenPlane;
+//# sourceMappingURL=BattenPlane.js.map
 });
-___scope___.file("app/Bay.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/MkModelEffect.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
+var Option_1 = require("./Option");
+var PromiseUtil = require("./PromiseUtil");
+var SodiumUtil = require("./SodiumUtil");
 var THREE = require("three");
-var ArrayUtil = require("./ArrayUtil");
-var TextureLoader_1 = require("./TextureLoader");
-var Axes3D_1 = require("./math/Axes3D");
-var MkModelEffect_1 = require("./MkModelEffect");
-var Outline3D_1 = require("./math/Outline3D");
-var Quaternion_1 = require("./math/Quaternion");
-var Vector3D_1 = require("./math/Vector3D");
-var Bay = /** @class */ (function () {
-    function Bay(params) {
-        var _this = this;
-        sodium.Transaction.run(function () {
-            _this._cParentStableName = params.cParentStableName;
-            _this._cStableName = params.cStableName;
-            _this._cBayIndex = params.cBayIndex;
-            _this._cModel =
-                params.cAxes.lift5(params.cOutline, params.cCladdingTextureType, params.cCladdingTextureColour, params.cTextureSpace, function (axes, outline, claddingTextureType, claddingTextureColour, textureSpace) {
-                    return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
-                        if (outline.length == 0) {
-                            return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, new THREE.Group()));
-                        }
-                        var shape = new THREE.Shape();
-                        shape.moveTo(outline[0].x, outline[0].y);
-                        for (var i = 1; i < outline.length + 1; ++i) {
-                            var j = i % outline.length;
-                            shape.lineTo(outline[j].x, outline[j].y);
-                        }
-                        var geometry = new THREE.ExtrudeBufferGeometry(shape, {
-                            depth: 30.0,
-                            UVGenerator: new BayUVGenerator(textureSpace.toSpace(axes))
-                        });
-                        return TextureLoader_1.loadCladdingTexture(textureLoader, claddingTextureType, claddingTextureColour)
-                            .then(function (texture) {
-                            var material = new THREE.MeshStandardMaterial({ map: texture._2 });
-                            var mesh = new THREE.Mesh(geometry, material);
-                            return MkModelEffect_1.Model.create(function () {
-                                var cleanups = [];
-                                var cHighlighted = params.cStableName.lift(params.cHighlightedStableNames, function (stableName, highlightedStableNames) {
-                                    return ArrayUtil.arrayIncludes(highlightedStableNames, stableName);
-                                });
-                                cleanups.push(params.cAxes.listen(function (axes) {
-                                    // counter the extrude direction
-                                    var axes2 = axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, -30.0), Quaternion_1.Quaternion.identity));
-                                    //
-                                    MkModelEffect_1.THREEObject3DSetAxes(mesh, axes2);
-                                }));
-                                cleanups.push(cHighlighted.listen(function (highlighted) {
-                                    if (highlighted) {
-                                        material.color.setHex(0x7FFF7F);
-                                    }
-                                    else {
-                                        material.color.setHex(0xFFFFFF);
-                                    }
-                                }));
-                                cleanups.push(params.cVisible.listen(function (visible) { return mesh.visible = visible; }));
-                                return function () {
-                                    cleanups.forEach(function (cleanup) { return cleanup(); });
-                                    cleanups = [];
-                                };
-                            }, mesh);
-                        });
-                    });
-                });
-            _this._cRayOpCollisionTimeOpFn =
-                function (cRayOp) {
-                    return params.cAxes
-                        .lift(params.cOutline, function (axes, outline) {
-                        return Outline3D_1.Outline3D.create({
-                            axes: axes,
-                            outline: outline
-                        });
-                    })
-                        .lift(cRayOp, function (outline, rayOp) {
-                        return rayOp.bind(function (ray) { return outline.rayIntersectionTimeOp(ray); });
-                    });
-                };
+var disableCaching = false;
+var Model = /** @class */ (function () {
+    function Model(initCallback, threeObject3D) {
+        this._initCallback = initCallback;
+        this._threeObject3D = threeObject3D;
+    }
+    Model.create = function (initCallback, threeObject3D) {
+        return new Model(initCallback, threeObject3D);
+    };
+    Object.defineProperty(Model.prototype, "initCallback", {
+        get: function () {
+            return this._initCallback;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Model.prototype, "threeObject3D", {
+        get: function () {
+            return this._threeObject3D;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Model.prototype.init = function () {
+        return this.initCallback();
+    };
+    return Model;
+}());
+exports.Model = Model;
+var MkModelEffect = /** @class */ (function () {
+    function MkModelEffect(mkModelEffect) {
+        this._mkModelEffectOp = Option_1.Option.some(mkModelEffect);
+        this._modelOp = Option_1.Option.none();
+    }
+    MkModelEffect.create = function (mkModelEffect) {
+        return new MkModelEffect(mkModelEffect);
+    };
+    MkModelEffect.prototype.mkModel = function (textureLoader) {
+        if (disableCaching) {
+            return this._mkModelEffectOp.fromSome()(textureLoader);
+        }
+        else {
+            if (this._modelOp.is_some) {
+                return this._modelOp.fromSome();
+            }
+            else {
+                var result = this._mkModelEffectOp.fromSome()(textureLoader);
+                this._modelOp = Option_1.Option.some(result);
+                this._mkModelEffectOp = Option_1.Option.none();
+                return result;
+            }
+        }
+    };
+    Object.defineProperty(MkModelEffect, "empty", {
+        get: function () {
+            return MkModelEffect._empty;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    MkModelEffect.compose = function (mkModelEffects) {
+        return MkModelEffect.create(function (textureLoader) {
+            return PromiseUtil
+                .listOfPromisesToPromiseOfList(mkModelEffects.map(function (mkModelEffect) { return mkModelEffect.mkModel(textureLoader); }))
+                .then(function (models) { return composeModels(models); });
         });
-    }
-    Object.defineProperty(Bay.prototype, "cParentStableName", {
-        get: function () {
-            return this._cParentStableName;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Bay.prototype, "cStableName", {
-        get: function () {
-            return this._cStableName;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Bay.prototype, "cBayIndex", {
-        get: function () {
-            return this._cBayIndex;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Bay.prototype, "cModel", {
-        get: function () {
-            return this._cModel;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Bay.prototype.cRayOpCollisionTimeOp = function (cRayOp) {
-        return this._cRayOpCollisionTimeOpFn(cRayOp);
     };
-    return Bay;
+    MkModelEffect._empty = MkModelEffect.create(function (textureLoader) { return Promise.resolve(Model.create(function () { return function () { }; }, new THREE.Group())); });
+    return MkModelEffect;
 }());
-exports.Bay = Bay;
-var BayUVGenerator = /** @class */ (function () {
-    function BayUVGenerator(textureSpace) {
-        this._textureSpace = textureSpace;
+exports.MkModelEffect = MkModelEffect;
+function THREEObject3DSetAxes(object, axes) {
+    var origin = axes.origin;
+    var orientation = axes.orientation;
+    object.position.set(origin.x, origin.y, origin.z);
+    object.quaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
+    object.matrixWorldNeedsUpdate = true;
+}
+exports.THREEObject3DSetAxes = THREEObject3DSetAxes;
+function vector2DToTHREE(pt) {
+    return new THREE.Vector2(pt.x, pt.y);
+}
+exports.vector2DToTHREE = vector2DToTHREE;
+function vector3DToTHREE(pt) {
+    return new THREE.Vector3(pt.x, pt.y, pt.z);
+}
+exports.vector3DToTHREE = vector3DToTHREE;
+function quaternionToTHREE(q) {
+    return new THREE.Quaternion(q.x, q.y, q.z, q.w);
+}
+exports.quaternionToTHREE = quaternionToTHREE;
+function composeCListOfCModels(cListOfCModels) {
+    return sodium.Cell.switchC(cListOfCModels.map(composeListOfCModels));
+}
+exports.composeCListOfCModels = composeCListOfCModels;
+function composeListOfCModels(listOfCModels) {
+    return arrayOfCellToCellOfArray(listOfCModels, 0, listOfCModels.length)
+        .map(function (mkModelEffects) {
+        return MkModelEffect.compose(mkModelEffects);
+    });
+}
+exports.composeListOfCModels = composeListOfCModels;
+function composeModels(models) {
+    var group = new THREE.Group();
+    models.forEach(function (model) { return group.add(model.threeObject3D); });
+    return Model.create(function () {
+        var cleanups = [];
+        models.forEach(function (model) { return cleanups.push(model.init()); });
+        return function () {
+            cleanups.forEach(function (cleanup) { return cleanup(); });
+            cleanups = [];
+        };
+    }, group);
+}
+function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
+    if (toIdx - fromIdx == 0) {
+        return new sodium.Cell([]);
     }
-    BayUVGenerator.prototype.generateTopUV = function (geometry, vertices, indexA, indexB, indexC) {
-        var a_x = vertices[indexA * 3];
-        var a_y = vertices[indexA * 3 + 1];
-        var a_z = vertices[indexA * 3 + 2];
-        var b_x = vertices[indexB * 3];
-        var b_y = vertices[indexB * 3 + 1];
-        var b_z = vertices[indexB * 3 + 2];
-        var c_x = vertices[indexC * 3];
-        var c_y = vertices[indexC * 3 + 1];
-        var c_z = vertices[indexC * 3 + 2];
-        var tpt1 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(a_x, a_y, a_z)));
-        var tpt2 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(b_x, b_y, b_z)));
-        var tpt3 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(c_x, c_y, c_z)));
-        return [tpt1, tpt2, tpt3];
-    };
-    BayUVGenerator.prototype.generateSideWallUV = function (geometry, vertices, indexA, indexB, indexC, indexD) {
-        var a_x = vertices[indexA * 3];
-        var a_y = vertices[indexA * 3 + 1];
-        var a_z = vertices[indexA * 3 + 2];
-        var b_x = vertices[indexB * 3];
-        var b_y = vertices[indexB * 3 + 1];
-        var b_z = vertices[indexB * 3 + 2];
-        var c_x = vertices[indexC * 3];
-        var c_y = vertices[indexC * 3 + 1];
-        var c_z = vertices[indexC * 3 + 2];
-        var d_x = vertices[indexD * 3];
-        var d_y = vertices[indexD * 3 + 1];
-        var d_z = vertices[indexD * 3 + 2];
-        var tpt1 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(a_x, a_y, a_z)));
-        var tpt2 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(b_x, b_y, b_z)));
-        var tpt3 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(c_x, c_y, c_z)));
-        var tpt4 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(d_x, d_y, d_z)));
-        return [tpt1, tpt2, tpt3, tpt4];
-    };
-    return BayUVGenerator;
-}());
-//# sourceMappingURL=Bay.js.map
+    else if (toIdx - fromIdx == 1) {
+        return list[fromIdx].map(function (a) { return [a]; });
+    }
+    else {
+        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
+        return SodiumUtil.cellLift2(arrayOfCellToCellOfArray(list, fromIdx, pivot), arrayOfCellToCellOfArray(list, pivot, toIdx), function (list1, list2) { return list1.concat(list2); });
+    }
+}
+//# sourceMappingURL=MkModelEffect.js.map
 });
-___scope___.file("app/math/Axes3D.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/PromiseUtil.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Vector3D_1 = require("./Vector3D");
-var Quaternion_1 = require("./Quaternion");
-var Axes3D = /** @class */ (function () {
-    function Axes3D(origin, orientation) {
-        this._origin = origin;
-        this._orientation = orientation;
+function promiseLift2(pa, pb, f) {
+    return pa.then(function (a) { return pb.then(function (b) { return f(a, b); }); });
+}
+exports.promiseLift2 = promiseLift2;
+function promiseLift3(pa, pb, pc, f) {
+    return pa.then(function (a) { return promiseLift2(pb, pc, function (b, c) { return f(a, b, c); }); });
+}
+exports.promiseLift3 = promiseLift3;
+function promiseLift4(pa, pb, pc, pd, f) {
+    return pa.then(function (a) { return promiseLift3(pb, pc, pd, function (b, c, d) { return f(a, b, c, d); }); });
+}
+exports.promiseLift4 = promiseLift4;
+function promiseLift5(pa, pb, pc, pd, pe, f) {
+    return pa.then(function (a) { return promiseLift4(pb, pc, pd, pe, function (b, c, d, e) { return f(a, b, c, d, e); }); });
+}
+exports.promiseLift5 = promiseLift5;
+function promiseLift6(pa, pb, pc, pd, pe, pf, fn) {
+    return pa.then(function (a) { return promiseLift5(pb, pc, pd, pe, pf, function (b, c, d, e, f) { return fn(a, b, c, d, e, f); }); });
+}
+exports.promiseLift6 = promiseLift6;
+function listOfPromisesToPromiseOfList(promises) {
+    return _listOfPromiseToPromiseOfList(promises, 0, promises.length);
+}
+exports.listOfPromisesToPromiseOfList = listOfPromisesToPromiseOfList;
+function _listOfPromiseToPromiseOfList(promises, fromIdx, toIdx) {
+    if (toIdx - fromIdx == 0) {
+        return Promise.resolve([]);
     }
-    Axes3D.identity_$LI$ = function () { if (Axes3D.identity == null)
-        Axes3D.identity = Axes3D.Builder.fromOriginOrientation().setOrigin(Vector3D_1.Vector3D.zero_$LI$()).setOrientation(Quaternion_1.Quaternion.identity_$LI$()).build(); return Axes3D.identity; };
-    ;
-    Axes3D.create = function (origin, orientation) {
-        return new Axes3D(origin, orientation);
+    else if (toIdx - fromIdx == 1) {
+        return promises[fromIdx].then(function (value) { return [value]; });
+    }
+    else {
+        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
+        return _listOfPromiseToPromiseOfList(promises, fromIdx, pivot)
+            .then(function (list1) {
+            return _listOfPromiseToPromiseOfList(promises, pivot, toIdx)
+                .then(function (list2) { return list1.concat(list2); });
+        });
+    }
+}
+//# sourceMappingURL=PromiseUtil.js.map
+});
+___scope___.file("app/math/CAG.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var CSG2D = require("csg2d");
+var Polygon2D_1 = require("./Polygon2D");
+var Vector2D_1 = require("./Vector2D");
+var Option_1 = require("../Option");
+// Constructive Area Geometry
+var CAG = /** @class */ (function () {
+    function CAG(csg) {
+        this._csg = csg;
+    }
+    CAG.prototype.subtract = function (cag) {
+        return new CAG(this._csg.subtract(cag._csg));
     };
-    Object.defineProperty(Axes3D.prototype, "origin", {
-        get: function () {
-            return this._origin;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "orientation", {
-        get: function () {
-            return this._orientation;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "o", {
-        get: function () {
-            return this.origin;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "u", {
-        get: function () {
-            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitX_$LI$());
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "v", {
-        get: function () {
-            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitY_$LI$());
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "w", {
-        get: function () {
-            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitZ_$LI$());
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Axes3D.prototype.pointToThisSpace = function (p) {
-        return this.orientation.conjugate().rotate$Vector3D(p.sub(this.origin));
+    CAG.prototype.union = function (cag) {
+        return new CAG(this._csg.union(cag._csg));
     };
-    Axes3D.prototype.vectorToThisSpace = function (v) {
-        return this.orientation.conjugate().rotate$Vector3D(v);
+    CAG.prototype.intersect = function (cag) {
+        return new CAG(this._csg.intersect(cag._csg));
     };
-    Axes3D.prototype.toThisSpace = function (axes) {
-        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointToThisSpace(axes.origin)).setOrientation(this.orientation.conjugate().times(axes.orientation)).build();
+    CAG.fromPolygons = function (polygons) {
+        var polygons2 = [];
+        for (var i = 0; i < polygons.length; ++i) {
+            var polygon = polygons[i];
+            var polygon2 = [];
+            for (var j = 0; j < polygon.outline.length; ++j) {
+                var pt = polygon.outline[j];
+                polygon2.push([pt.x, pt.y]);
+            }
+            polygons2.push(polygon2);
+            for (var j = 0; j < polygon.holes.length; ++j) {
+                var hole = polygon.holes[j];
+                var hole2 = [];
+                for (var k = 0; k < hole.length; ++k) {
+                    var pt = hole[k];
+                    hole2.push([pt.x, pt.y]);
+                }
+                polygons2.push(hole2);
+            }
+        }
+        return new CAG(CSG2D.fromPolygons(polygons2));
     };
-    Axes3D.prototype.pointFromThisSpace = function (p) {
-        return this.orientation.rotate$Vector3D(p).add(this.origin);
+    CAG.prototype.toPolygons = function () {
+        var polygons = this._csg.toPolygons();
+        var outlines = [];
+        var holes = [];
+        for (var i = 0; i < polygons.length; ++i) {
+            var polygon = polygons[i];
+            var polygon2 = [];
+            for (var j = 0; j < polygon.length; ++j) {
+                var pt = polygon[j];
+                polygon2.push(Vector2D_1.Vector2D.create(pt.x, pt.y));
+            }
+            var area = calcArea(polygon2);
+            if (area < 0.0) {
+                // its a hole
+                holes.push(polygon2);
+            }
+            else {
+                // its a outline
+                outlines.push(polygon2);
+            }
+        }
+        var holeBelongsToIdxOpArray = holes.map(function (hole) { return findOutlineThatHoleBelongsTo(outlines, hole); });
+        var polygons2 = [];
+        for (var i = 0; i < outlines.length; ++i) {
+            var outline = outlines[i];
+            var holes2 = [];
+            for (var j = 0; j < holeBelongsToIdxOpArray.length; ++j) {
+                var holeBelongsToIdxOp = holeBelongsToIdxOpArray[j];
+                if (holeBelongsToIdxOp.isSome) {
+                    var holeBelongsToIdx = holeBelongsToIdxOp.fromSome();
+                    if (holeBelongsToIdx == i) {
+                        holes2.push(holes[j]);
+                    }
+                }
+            }
+            polygons2.push(Polygon2D_1.Polygon2D.create({
+                outline: outline,
+                holes: holes2
+            }));
+        }
+        return polygons2;
     };
-    Axes3D.prototype.vectorFromThisSpace = function (v) {
-        return this.orientation.rotate$Vector3D(v);
-    };
-    Axes3D.prototype.fromThisSpace = function (axes) {
-        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointFromThisSpace(axes.origin)).setOrientation(this.orientation.times(axes.orientation)).build();
-    };
-    Axes3D.prototype.invert = function () {
-        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.orientation.conjugate().rotate$Vector3D(this.origin.scale(-1.0))).setOrientation(this.orientation.conjugate()).build();
-    };
-    Axes3D.prototype.times = function (axes) {
-        return this.fromThisSpace(axes);
-    };
-    /**
-     *
-     * @return {string}
-     */
-    Axes3D.prototype.toString = function () {
-        return "(origin:" + this.origin.toString() + ", orientation: " + this.orientation.toString() + ")";
-    };
-    return Axes3D;
+    return CAG;
 }());
-exports.Axes3D = Axes3D;
-Axes3D["__class"] = "Axes3D";
-(function (Axes3D) {
-    var FromOriginOrientationBuilder = /** @class */ (function () {
-        function FromOriginOrientationBuilder() {
-            this.originX = 0;
-            this.originY = 0;
-            this.originZ = 0;
-            this.orientation = null;
+exports.CAG = CAG;
+function calcArea(outline) {
+    var total = 0.0;
+    for (var i = 0; i < outline.length; ++i) {
+        var pt1 = outline[i];
+        var pt2 = outline[(i == outline.length - 1) ? 0 : i + 1];
+        total += pt1.cross(pt2);
+    }
+    return 0.5 * total;
+}
+function findOutlineThatHoleBelongsTo(outlines, hole) {
+    var bestInsideCount = Number.NEGATIVE_INFINITY;
+    var bestOutlineIdx = -1;
+    for (var i = 0; i < outlines.length; ++i) {
+        var outline = outlines[i];
+        var insideCount = 0;
+        for (var j = 0; j < hole.length; ++j) {
+            var pt = hole[j];
+            if (isPointInsidePolygon(pt, outline)) {
+                ++insideCount;
+            }
         }
-        /**
-         *
-         * @param {Vector3D} origin
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOrigin = function (origin) {
-            this.originX = origin.getX();
-            this.originY = origin.getY();
-            this.originZ = origin.getZ();
-            return this;
-        };
-        /**
-         *
-         * @param {number} originX
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginX = function (originX) {
-            this.originX = originX;
-            return this;
-        };
-        /**
-         *
-         * @param {number} originX
-         * @param {number} originY
-         * @param {number} originZ
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginXYZ = function (originX, originY, originZ) {
-            this.originX = originX;
-            this.originY = originY;
-            this.originZ = originZ;
-            return this;
-        };
-        /**
-         *
-         * @param {number} originY
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginY = function (originY) {
-            this.originY = originY;
-            return this;
-        };
-        /**
-         *
-         * @param {number} originZ
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginZ = function (originZ) {
-            this.originZ = originZ;
-            return this;
-        };
-        /**
-         *
-         * @param {Quaternion} orientation
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOrientation = function (orientation) {
-            this.orientation = orientation;
-            return this;
-        };
-        /**
-         *
-         * @return {Axes3D}
-         */
-        FromOriginOrientationBuilder.prototype.build = function () {
-            return new Axes3D(Vector3D_1.Vector3D.create(this.originX, this.originY, this.originZ), this.orientation);
-        };
-        return FromOriginOrientationBuilder;
-    }());
-    Axes3D.FromOriginOrientationBuilder = FromOriginOrientationBuilder;
-    FromOriginOrientationBuilder["__class"] = "Axes3D.FromOriginOrientationBuilder";
-    FromOriginOrientationBuilder["__interfaces"] = ["Axes3D.FromOriginOrientationSetOriginYStep", "Axes3D.FromOriginOrientationSetOrientationStep", "Axes3D.FromOriginOrientationSetOriginXStep", "Axes3D.BuildStep", "Axes3D.FromOriginOrientationSetOriginZStep"];
-    var Builder = /** @class */ (function () {
-        function Builder() {
+        if (insideCount > bestInsideCount) {
+            bestInsideCount = insideCount;
+            bestOutlineIdx = i;
         }
-        Builder.fromOriginOrientation = function () {
-            return new Axes3D.FromOriginOrientationBuilder();
-        };
-        return Builder;
-    }());
-    Axes3D.Builder = Builder;
-    Builder["__class"] = "Axes3D.Builder";
-})(Axes3D = exports.Axes3D || (exports.Axes3D = {}));
-exports.Axes3D = Axes3D;
-Axes3D.identity_$LI$();
-//# sourceMappingURL=Axes3D.js.map
+    }
+    if (bestOutlineIdx == -1) {
+        return Option_1.Option.none();
+    }
+    else {
+        return Option_1.Option.some(bestOutlineIdx);
+    }
+}
+function isPointInsidePolygon(point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    var x = point.x, y = point.y;
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i].x, yi = vs[i].y;
+        var xj = vs[j].x, yj = vs[j].y;
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect)
+            inside = !inside;
+    }
+    return inside;
+}
+;
+//# sourceMappingURL=CAG.js.map
+});
+___scope___.file("app/math/Polygon2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Polygon2D = /** @class */ (function () {
+    function Polygon2D(outline, holes) {
+        this._outline = outline;
+        this._holes = holes;
+    }
+    Object.defineProperty(Polygon2D.prototype, "outline", {
+        get: function () {
+            return this._outline;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Polygon2D.prototype, "holes", {
+        get: function () {
+            return this._holes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Polygon2D.create = function (params) {
+        return new Polygon2D(params.outline, params.holes);
+    };
+    return Polygon2D;
+}());
+exports.Polygon2D = Polygon2D;
+//# sourceMappingURL=Polygon2D.js.map
+});
+___scope___.file("app/math/Line2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Line2D = /** @class */ (function () {
+    function Line2D(v1, v2) {
+        this._v1 = v1;
+        this._v2 = v2;
+    }
+    Object.defineProperty(Line2D.prototype, "v1", {
+        get: function () {
+            return this._v1;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Line2D.prototype, "v2", {
+        get: function () {
+            return this._v2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Line2D.create = function (v1, v2) {
+        return new Line2D(v1, v2);
+    };
+    Line2D.prototype.length = function () {
+        return this.v1.distance(this.v2);
+    };
+    Line2D.prototype.lengthSquared = function () {
+        return this.v1.distanceSquared(this.v2);
+    };
+    return Line2D;
+}());
+exports.Line2D = Line2D;
+//# sourceMappingURL=Line2D.js.map
 });
 ___scope___.file("app/math/Quaternion.js", function(exports, require, module, __filename, __dirname){
 
@@ -2685,171 +3118,1150 @@ exports.Quaternion = Quaternion;
 Quaternion.identity_$LI$();
 //# sourceMappingURL=Quaternion.js.map
 });
-___scope___.file("app/MkModelEffect.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/math/Axes3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector3D_1 = require("./Vector3D");
+var Quaternion_1 = require("./Quaternion");
+var Axes3D = /** @class */ (function () {
+    function Axes3D(origin, orientation) {
+        this._origin = origin;
+        this._orientation = orientation;
+    }
+    Axes3D.identity_$LI$ = function () { if (Axes3D.identity == null)
+        Axes3D.identity = Axes3D.Builder.fromOriginOrientation().setOrigin(Vector3D_1.Vector3D.zero_$LI$()).setOrientation(Quaternion_1.Quaternion.identity_$LI$()).build(); return Axes3D.identity; };
+    ;
+    Axes3D.create = function (origin, orientation) {
+        return new Axes3D(origin, orientation);
+    };
+    Object.defineProperty(Axes3D.prototype, "origin", {
+        get: function () {
+            return this._origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "orientation", {
+        get: function () {
+            return this._orientation;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "o", {
+        get: function () {
+            return this.origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "u", {
+        get: function () {
+            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitX_$LI$());
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "v", {
+        get: function () {
+            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitY_$LI$());
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "w", {
+        get: function () {
+            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitZ_$LI$());
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Axes3D.prototype.pointToThisSpace = function (p) {
+        return this.orientation.conjugate().rotate$Vector3D(p.sub(this.origin));
+    };
+    Axes3D.prototype.vectorToThisSpace = function (v) {
+        return this.orientation.conjugate().rotate$Vector3D(v);
+    };
+    Axes3D.prototype.toThisSpace = function (axes) {
+        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointToThisSpace(axes.origin)).setOrientation(this.orientation.conjugate().times(axes.orientation)).build();
+    };
+    Axes3D.prototype.pointFromThisSpace = function (p) {
+        return this.orientation.rotate$Vector3D(p).add(this.origin);
+    };
+    Axes3D.prototype.vectorFromThisSpace = function (v) {
+        return this.orientation.rotate$Vector3D(v);
+    };
+    Axes3D.prototype.fromThisSpace = function (axes) {
+        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointFromThisSpace(axes.origin)).setOrientation(this.orientation.times(axes.orientation)).build();
+    };
+    Axes3D.prototype.invert = function () {
+        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.orientation.conjugate().rotate$Vector3D(this.origin.scale(-1.0))).setOrientation(this.orientation.conjugate()).build();
+    };
+    Axes3D.prototype.times = function (axes) {
+        return this.fromThisSpace(axes);
+    };
+    /**
+     *
+     * @return {string}
+     */
+    Axes3D.prototype.toString = function () {
+        return "(origin:" + this.origin.toString() + ", orientation: " + this.orientation.toString() + ")";
+    };
+    return Axes3D;
+}());
+exports.Axes3D = Axes3D;
+Axes3D["__class"] = "Axes3D";
+(function (Axes3D) {
+    var FromOriginOrientationBuilder = /** @class */ (function () {
+        function FromOriginOrientationBuilder() {
+            this.originX = 0;
+            this.originY = 0;
+            this.originZ = 0;
+            this.orientation = null;
+        }
+        /**
+         *
+         * @param {Vector3D} origin
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOrigin = function (origin) {
+            this.originX = origin.getX();
+            this.originY = origin.getY();
+            this.originZ = origin.getZ();
+            return this;
+        };
+        /**
+         *
+         * @param {number} originX
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginX = function (originX) {
+            this.originX = originX;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originX
+         * @param {number} originY
+         * @param {number} originZ
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginXYZ = function (originX, originY, originZ) {
+            this.originX = originX;
+            this.originY = originY;
+            this.originZ = originZ;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originY
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginY = function (originY) {
+            this.originY = originY;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originZ
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginZ = function (originZ) {
+            this.originZ = originZ;
+            return this;
+        };
+        /**
+         *
+         * @param {Quaternion} orientation
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOrientation = function (orientation) {
+            this.orientation = orientation;
+            return this;
+        };
+        /**
+         *
+         * @return {Axes3D}
+         */
+        FromOriginOrientationBuilder.prototype.build = function () {
+            return new Axes3D(Vector3D_1.Vector3D.create(this.originX, this.originY, this.originZ), this.orientation);
+        };
+        return FromOriginOrientationBuilder;
+    }());
+    Axes3D.FromOriginOrientationBuilder = FromOriginOrientationBuilder;
+    FromOriginOrientationBuilder["__class"] = "Axes3D.FromOriginOrientationBuilder";
+    FromOriginOrientationBuilder["__interfaces"] = ["Axes3D.FromOriginOrientationSetOriginYStep", "Axes3D.FromOriginOrientationSetOrientationStep", "Axes3D.FromOriginOrientationSetOriginXStep", "Axes3D.BuildStep", "Axes3D.FromOriginOrientationSetOriginZStep"];
+    var Builder = /** @class */ (function () {
+        function Builder() {
+        }
+        Builder.fromOriginOrientation = function () {
+            return new Axes3D.FromOriginOrientationBuilder();
+        };
+        return Builder;
+    }());
+    Axes3D.Builder = Builder;
+    Builder["__class"] = "Axes3D.Builder";
+})(Axes3D = exports.Axes3D || (exports.Axes3D = {}));
+exports.Axes3D = Axes3D;
+Axes3D.identity_$LI$();
+//# sourceMappingURL=Axes3D.js.map
+});
+___scope___.file("app/math/Util.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function toRadians(degrees) {
+    return degrees * Math.PI / 180.0;
+}
+exports.toRadians = toRadians;
+//# sourceMappingURL=Util.js.map
+});
+___scope___.file("app/Lazy.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option_1 = require("./Option");
+var Lazy = /** @class */ (function () {
+    function Lazy(calcOp, cacheOp) {
+        this._calcOp = calcOp;
+        this._cacheOp = cacheOp;
+    }
+    Lazy.create = function (calc) {
+        return new Lazy(Option_1.Option.some(calc), Option_1.Option.none());
+    };
+    Lazy.pure = function (a) {
+        return new Lazy(Option_1.Option.none(), Option_1.Option.some(a));
+    };
+    Lazy.prototype.get = function () {
+        if (this._cacheOp.is_some) {
+            return this._cacheOp.fromSome();
+        }
+        else {
+            var result = this._calcOp.fromSome()();
+            this._cacheOp = Option_1.Option.some(result);
+            this._calcOp = Option_1.Option.none();
+            return result;
+        }
+    };
+    Lazy.prototype.map = function (fn) {
+        var _this = this;
+        return Lazy.create(function () { return fn(_this.get()); });
+    };
+    Lazy.prototype.lift2 = function (lb, fn) {
+        var _this = this;
+        return Lazy.create(function () { return fn(_this.get(), lb.get()); });
+    };
+    Lazy.prototype.lift3 = function (lb, lc, fn) {
+        var _this = this;
+        return Lazy.create(function () { return fn(_this.get(), lb.get(), lc.get()); });
+    };
+    Lazy.prototype.lift4 = function (lb, lc, ld, fn) {
+        var _this = this;
+        return Lazy.create(function () { return fn(_this.get(), lb.get(), lc.get(), ld.get()); });
+    };
+    Lazy.prototype.lift5 = function (lb, lc, ld, le, fn) {
+        var _this = this;
+        return Lazy.create(function () { return fn(_this.get(), lb.get(), lc.get(), ld.get(), le.get()); });
+    };
+    Lazy.prototype.lift6 = function (lb, lc, ld, le, lf, fn) {
+        var _this = this;
+        return Lazy.create(function () { return fn(_this.get(), lb.get(), lc.get(), ld.get(), le.get(), lf.get()); });
+    };
+    return Lazy;
+}());
+exports.Lazy = Lazy;
+//# sourceMappingURL=Lazy.js.map
+});
+___scope___.file("app/TextureLoader.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var THREE = require("three");
+var JSZip = require("jszip");
+var Tuples_1 = require("./Tuples");
+var CladdingTextureType;
+(function (CladdingTextureType) {
+    CladdingTextureType["CClad"] = "c_clad";
+    CladdingTextureType["Corrugate"] = "corrugated";
+    CladdingTextureType["KPanel"] = "k_panel";
+    CladdingTextureType["Monoclad"] = "monoclad";
+    CladdingTextureType["MonocladWallCladding"] = "monoclad_wall_cladding";
+})(CladdingTextureType = exports.CladdingTextureType || (exports.CladdingTextureType = {}));
+var CladdingTextureColour;
+(function (CladdingTextureColour) {
+    CladdingTextureColour["Aries"] = "aries";
+    CladdingTextureColour["Astro"] = "astro";
+    CladdingTextureColour["Basalt"] = "basalt";
+    CladdingTextureColour["Celestian"] = "celestian";
+    CladdingTextureColour["ClassicCream"] = "classic_cream";
+    CladdingTextureColour["Colorbond"] = "colorbond";
+    CladdingTextureColour["Cosmic"] = "cosmic";
+    CladdingTextureColour["CottageGreen"] = "cottage_green";
+    CladdingTextureColour["Cove"] = "cove";
+    CladdingTextureColour["DeepOcean"] = "deep_ocean";
+    CladdingTextureColour["Dune"] = "dune";
+    CladdingTextureColour["EveningHaze"] = "evening_haze";
+    CladdingTextureColour["Galactic"] = "galactic";
+    CladdingTextureColour["Gully"] = "gully";
+    CladdingTextureColour["Ironstrone"] = "ironstone";
+    CladdingTextureColour["Jasper"] = "jasper";
+    CladdingTextureColour["Mangrove"] = "mangrove";
+    CladdingTextureColour["ManorRed"] = "manor_red";
+    CladdingTextureColour["Monument"] = "monument";
+    CladdingTextureColour["NightSky"] = "night_sky";
+    CladdingTextureColour["PaleEucalypt"] = "pale_eucalypt";
+    CladdingTextureColour["Paperbark"] = "paperbark";
+    CladdingTextureColour["Rhea"] = "rhea";
+    CladdingTextureColour["ShaleGrey"] = "shale_grey";
+    CladdingTextureColour["Surfmist"] = "surfmist";
+    CladdingTextureColour["Terrain"] = "terrain";
+    CladdingTextureColour["Wallaby"] = "wallaby";
+    CladdingTextureColour["WhiteHaven"] = "whitehaven";
+    CladdingTextureColour["Windspray"] = "windspray";
+    CladdingTextureColour["WoodlandGrey"] = "woodlandGrey";
+    CladdingTextureColour["Zinc"] = "zinc";
+})(CladdingTextureColour = exports.CladdingTextureColour || (exports.CladdingTextureColour = {}));
+function mkCladdingTexturePath(claddingTextureType, claddingTextureColour) {
+    var folder = "textures/skm/" + claddingTextureType;
+    var file_mid_name;
+    switch (claddingTextureType) {
+        case CladdingTextureType.CClad:
+            file_mid_name = "c-clad";
+            break;
+        case CladdingTextureType.KPanel:
+            file_mid_name = "k-panel";
+            break;
+        default:
+            file_mid_name = claddingTextureType;
+            break;
+    }
+    var file_name = "stramit_" + file_mid_name + "_" + claddingTextureColour + ".skm";
+    return folder + "/" + file_name;
+}
+exports.mkCladdingTexturePath = mkCladdingTexturePath;
+var claddingTextureCache = new Map();
+function loadCladdingTexture(textureLoader, claddingTextureType, claddingTextureColour) {
+    var texturePath = mkCladdingTexturePath(claddingTextureType, claddingTextureColour);
+    var existing = claddingTextureCache.get(texturePath);
+    if (existing) {
+        return existing;
+    }
+    var pTexture;
+    pTexture =
+        loadSketchupTexture(texturePath)
+            .then(function (sketchupTexture) {
+            return new Promise(function (resolve, reject) {
+                textureLoader.load(sketchupTexture.image.src, function onLoad(texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.repeat.set(1.0 / 25.4 / sketchupTexture.xScale, 1.0 / 25.4 / sketchupTexture.yScale);
+                    resolve(Tuples_1.T2.of(sketchupTexture, texture));
+                }, function onProgress(event) { }, function opError(event) {
+                    reject(event);
+                });
+            });
+        });
+    claddingTextureCache.set(texturePath, pTexture);
+    return pTexture;
+}
+exports.loadCladdingTexture = loadCladdingTexture;
+var SketchupTexture = /** @class */ (function () {
+    function SketchupTexture(xScale, yScale, image) {
+        this._xScale = xScale;
+        this._yScale = yScale;
+        this._image = image;
+    }
+    Object.defineProperty(SketchupTexture.prototype, "xScale", {
+        get: function () {
+            return this._xScale;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SketchupTexture.prototype, "yScale", {
+        get: function () {
+            return this._yScale;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SketchupTexture.prototype, "image", {
+        get: function () {
+            return this._image;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return SketchupTexture;
+}());
+exports.SketchupTexture = SketchupTexture;
+function loadGrass() {
+    var zip = new JSZip();
+    return fetch("textures/grass.zip")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(JSZip.loadAsync)
+        .then(function (zip) { return zip.file("grass-512.jpg").async("base64"); })
+        .then(function (imageData) {
+        var image = new Image();
+        image.src = "data:image/jpg;base64," + imageData;
+        return image;
+    });
+}
+exports.loadGrass = loadGrass;
+function loadGrass2() {
+    return fetch("textures/grass.jpg")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(function (blob) {
+        var objectURL = URL.createObjectURL(blob);
+        var image = new Image();
+        image.src = objectURL;
+        return image;
+    });
+}
+exports.loadGrass2 = loadGrass2;
+function loadSky() {
+    var zip = new JSZip();
+    return fetch("textures/sky.zip")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(JSZip.loadAsync)
+        .then(function (zip) { return zip.file("sky-1024x256.jpg").async("base64"); })
+        .then(function (imageData) {
+        var image = new Image();
+        image.src = "data:image/jpg;base64," + imageData;
+        return image;
+    });
+}
+exports.loadSky = loadSky;
+function loadSky2() {
+    return fetch("textures/sky-dome-texture.jpg")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(function (blob) {
+        var objectURL = URL.createObjectURL(blob);
+        var image = new Image();
+        image.src = objectURL;
+        return image;
+    });
+}
+exports.loadSky2 = loadSky2;
+// example path "textures/skm/c_clad/stramit_c-clad_aries.skm"
+function loadSketchupTexture(path) {
+    var zip = new JSZip();
+    return fetch(path)
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(JSZip.loadAsync)
+        .then(function (zip) {
+        return zip
+            .file("document.xml")
+            .async("text")
+            .then(function success(text) {
+            var parser = new DOMParser();
+            var properties = parser.parseFromString(text, "text/xml");
+            var tmp = properties.children[0].children[0].children[0];
+            var tmp2 = tmp.children[0].children[0];
+            var xScale = Number.parseFloat(tmp.getAttribute("xScale"));
+            var yScale = Number.parseFloat(tmp.getAttribute("yScale"));
+            var path = tmp2.getAttribute("path");
+            return zip
+                .file("ref/" + path)
+                .async("base64")
+                .then(function success(imageData) {
+                var imageData2 = "data:image/bmp;base64," + imageData;
+                var image = new Image();
+                image.src = imageData2;
+                return new SketchupTexture(xScale, yScale, image);
+            });
+        });
+    });
+}
+exports.loadSketchupTexture = loadSketchupTexture;
+//# sourceMappingURL=TextureLoader.js.map
+});
+___scope___.file("app/Tuples.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var T2 = /** @class */ (function () {
+    function T2(a, b) {
+        this._a = a;
+        this._b = b;
+    }
+    T2.of = function (a, b) {
+        return new T2(a, b);
+    };
+    Object.defineProperty(T2.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T2.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return T2;
+}());
+exports.T2 = T2;
+//# sourceMappingURL=Tuples.js.map
+});
+___scope___.file("app/model/Portals.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
-var Option_1 = require("./Option");
-var PromiseUtil = require("./PromiseUtil");
-var SodiumUtil = require("./SodiumUtil");
 var THREE = require("three");
-var Model = /** @class */ (function () {
-    function Model(initCallback, threeObject3D) {
-        this._initCallback = initCallback;
-        this._threeObject3D = threeObject3D;
-    }
-    Model.create = function (initCallback, threeObject3D) {
-        return new Model(initCallback, threeObject3D);
-    };
-    Object.defineProperty(Model.prototype, "initCallback", {
-        get: function () {
-            return this._initCallback;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Model.prototype, "threeObject3D", {
-        get: function () {
-            return this._threeObject3D;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Model.prototype.init = function () {
-        return this.initCallback();
-    };
-    return Model;
-}());
-exports.Model = Model;
-var MkModelEffect = /** @class */ (function () {
-    function MkModelEffect(mkModelEffect) {
-        this._mkModelEffectOp = Option_1.Option.some(mkModelEffect);
-        this._modelOp = Option_1.Option.none();
-    }
-    MkModelEffect.create = function (mkModelEffect) {
-        return new MkModelEffect(mkModelEffect);
-    };
-    MkModelEffect.prototype.mkModel = function (textureLoader) {
-        if (this._modelOp.is_some) {
-            return this._modelOp.fromSome();
-        }
-        else {
-            var result = this._mkModelEffectOp.fromSome()(textureLoader);
-            this._modelOp = Option_1.Option.some(result);
-            this._mkModelEffectOp = Option_1.Option.none();
-            return result;
-        }
-    };
-    return MkModelEffect;
-}());
-exports.MkModelEffect = MkModelEffect;
-function THREEObject3DSetAxes(object, axes) {
-    var origin = axes.origin;
-    var orientation = axes.orientation;
-    object.position.set(origin.x, origin.y, origin.z);
-    object.quaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
-    object.matrixWorldNeedsUpdate = true;
-}
-exports.THREEObject3DSetAxes = THREEObject3DSetAxes;
-function vector2DToTHREE(pt) {
-    return new THREE.Vector2(pt.x, pt.y);
-}
-exports.vector2DToTHREE = vector2DToTHREE;
-function vector3DToTHREE(pt) {
-    return new THREE.Vector3(pt.x, pt.y, pt.z);
-}
-exports.vector3DToTHREE = vector3DToTHREE;
-function quaternionToTHREE(q) {
-    return new THREE.Quaternion(q.x, q.y, q.z, q.w);
-}
-exports.quaternionToTHREE = quaternionToTHREE;
-function composeCListOfCModels(cListOfCModels) {
-    return sodium.Cell.switchC(cListOfCModels.map(composeListOfCModels));
-}
-exports.composeCListOfCModels = composeCListOfCModels;
-function composeListOfCModels(listOfCModels) {
-    return arrayOfCellToCellOfArray(listOfCModels, 0, listOfCModels.length)
-        .map(function (mkModelEffects) {
-        return MkModelEffect.create(function (textureLoader) {
-            return PromiseUtil
-                .listOfPromisesToPromiseOfList(mkModelEffects.map(function (mkModelEffect) { return mkModelEffect.mkModel(textureLoader); }))
-                .then(function (models) { return composeModels(models); });
+var BuildingType_1 = require("./BuildingType");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Axes3D_1 = require("../math/Axes3D");
+var Vector3D_1 = require("../math/Vector3D");
+var Quaternion_1 = require("../math/Quaternion");
+var GablePortal_1 = require("./GablePortal");
+var SkillionPortal_1 = require("./SkillionPortal");
+var Portals = /** @class */ (function () {
+    function Portals(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cSinglePortalModel = sodium.Cell.switchC(params.cBuildingType.map(function (buildingType) {
+                switch (buildingType) {
+                    default:
+                    case BuildingType_1.BuildingType.GableRoofGarage:
+                        return new GablePortal_1.GablePortal({
+                            cAxes: params.cAxes,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cCeeProperties: params.cCeeProperties
+                        })
+                            .cModel;
+                    case BuildingType_1.BuildingType.SkillionRoofGarage:
+                        return new SkillionPortal_1.SkillionPortal({
+                            cAxes: params.cAxes,
+                            cSpan: params.cSpan,
+                            cHeight: params.cHeight,
+                            cPitch: params.cPitch,
+                            cCeeProperties: params.cCeeProperties
+                        })
+                            .cModel;
+                }
+            }));
+            var cModel = params.cPortalXMarkers.lift(cSinglePortalModel, function (portalXMarkers, singlePortalModel) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    return singlePortalModel
+                        .mkModel(textureLoader)
+                        .then(function (model) {
+                        var model2 = model.threeObject3D;
+                        var group = new THREE.Group();
+                        var meshes = [];
+                        for (var i = 0; i < portalXMarkers.length; ++i) {
+                            var mesh = new THREE.Mesh(model2.geometry, model2.material);
+                            meshes.push(mesh);
+                            group.add(mesh);
+                        }
+                        return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                            var cleanups = [];
+                            var _loop_1 = function (i) {
+                                (function () {
+                                    var markerIdx = i;
+                                    var markerX = portalXMarkers[i];
+                                    var cPortalAxes = params.cAxes.map(function (axes) {
+                                        return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(markerX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
+                                    });
+                                    cleanups.push(cPortalAxes.listen(function (portalAxes) {
+                                        MkModelEffect_1.THREEObject3DSetAxes(meshes[markerIdx], portalAxes);
+                                    }));
+                                })();
+                            };
+                            for (var i = 0; i < portalXMarkers.length; ++i) {
+                                _loop_1(i);
+                            }
+                            return function () {
+                                cleanups.forEach(function (cleanup) { return cleanup(); });
+                            };
+                        }, group));
+                    });
+                });
+            });
+            _this._cModel = cModel;
         });
+    }
+    Object.defineProperty(Portals.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
     });
-}
-exports.composeListOfCModels = composeListOfCModels;
-function composeModels(models) {
-    var group = new THREE.Group();
-    models.forEach(function (model) { return group.add(model.threeObject3D); });
-    return Model.create(function () {
-        var cleanups = [];
-        models.forEach(function (model) { return cleanups.push(model.init()); });
-        return function () {
-            cleanups.forEach(function (cleanup) { return cleanup(); });
-            cleanups = [];
-        };
-    }, group);
-}
-function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
-    if (toIdx - fromIdx == 0) {
-        return new sodium.Cell([]);
-    }
-    else if (toIdx - fromIdx == 1) {
-        return list[fromIdx].map(function (a) { return [a]; });
-    }
-    else {
-        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
-        return SodiumUtil.cellLift2(arrayOfCellToCellOfArray(list, fromIdx, pivot), arrayOfCellToCellOfArray(list, pivot, toIdx), function (list1, list2) { return list1.concat(list2); });
-    }
-}
-//# sourceMappingURL=MkModelEffect.js.map
+    return Portals;
+}());
+exports.Portals = Portals;
+//# sourceMappingURL=Portals.js.map
 });
-___scope___.file("app/PromiseUtil.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/GablePortal.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function promiseLift2(pa, pb, f) {
-    return pa.then(function (a) { return pb.then(function (b) { return f(a, b); }); });
-}
-exports.promiseLift2 = promiseLift2;
-function promiseLift3(pa, pb, pc, f) {
-    return pa.then(function (a) { return promiseLift2(pb, pc, function (b, c) { return f(a, b, c); }); });
-}
-exports.promiseLift3 = promiseLift3;
-function promiseLift4(pa, pb, pc, pd, f) {
-    return pa.then(function (a) { return promiseLift3(pb, pc, pd, function (b, c, d) { return f(a, b, c, d); }); });
-}
-exports.promiseLift4 = promiseLift4;
-function promiseLift5(pa, pb, pc, pd, pe, f) {
-    return pa.then(function (a) { return promiseLift4(pb, pc, pd, pe, function (b, c, d, e) { return f(a, b, c, d, e); }); });
-}
-exports.promiseLift5 = promiseLift5;
-function promiseLift6(pa, pb, pc, pd, pe, pf, fn) {
-    return pa.then(function (a) { return promiseLift5(pb, pc, pd, pe, pf, function (b, c, d, e, f) { return fn(a, b, c, d, e, f); }); });
-}
-exports.promiseLift6 = promiseLift6;
-function listOfPromisesToPromiseOfList(promises) {
-    return _listOfPromiseToPromiseOfList(promises, 0, promises.length);
-}
-exports.listOfPromisesToPromiseOfList = listOfPromisesToPromiseOfList;
-function _listOfPromiseToPromiseOfList(promises, fromIdx, toIdx) {
-    if (toIdx - fromIdx == 0) {
-        return Promise.resolve([]);
-    }
-    else if (toIdx - fromIdx == 1) {
-        return promises[fromIdx].then(function (value) { return [value]; });
-    }
-    else {
-        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
-        return _listOfPromiseToPromiseOfList(promises, fromIdx, pivot)
-            .then(function (list1) {
-            return _listOfPromiseToPromiseOfList(promises, pivot, toIdx)
-                .then(function (list2) { return list1.concat(list2); });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var MkModelEffect_1 = require("../MkModelEffect");
+var ThreeJSUtil = require("../ThreeJSUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var Util_1 = require("../math/Util");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var Quaternion_1 = require("../math/Quaternion");
+var GablePortal = /** @class */ (function () {
+    function GablePortal(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cModel = params.cSpan.lift4(params.cHeight, params.cPitch, params.cCeeProperties, function (span, height, pitch, ceeProperties) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var shapePts = [
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, -0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize, -0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize, +0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, +0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, +0.5 * ceeProperties.webSize - ceeProperties.lipSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, +0.5 * ceeProperties.webSize - ceeProperties.lipSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, +0.5 * ceeProperties.webSize - ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize + ceeProperties.thickness, +0.5 * ceeProperties.webSize - ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize + ceeProperties.thickness, -0.5 * ceeProperties.webSize + ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, -0.5 * ceeProperties.webSize + ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, -0.5 * ceeProperties.webSize + ceeProperties.lipSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, -0.5 * ceeProperties.webSize + ceeProperties.lipSize)
+                    ];
+                    var rotZ90 = Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.zero, Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.negUnitX));
+                    var shapePts2 = shapePts.map(function (pt) { return rotZ90.pointFromThisSpace(pt.toVector3D()).xyToVector2D(); });
+                    var shape = new THREE.Shape();
+                    for (var i = 0; i < shapePts2.length; ++i) {
+                        var pt = shapePts2[i];
+                        if (i == 0) {
+                            shape.moveTo(pt.x, pt.y);
+                        }
+                        else {
+                            shape.lineTo(pt.x, pt.y);
+                        }
+                    }
+                    shape.closePath();
+                    var halfWebMultTan = 0.5 * ceeProperties.webSize * Math.tan(Util_1.toRadians(pitch));
+                    var halfWebDivCos = 0.5 * ceeProperties.webSize / Math.cos(Util_1.toRadians(pitch));
+                    var bufferedGeometry = ThreeJSUtil.profiledContourGeometry(shape, [
+                        new THREE.Vector2(-0.5 * span + 0.5 * ceeProperties.webSize, 0.0),
+                        new THREE.Vector2(-0.5 * span + 0.5 * ceeProperties.webSize, height + halfWebMultTan - halfWebDivCos),
+                        new THREE.Vector2(0.0, height - halfWebDivCos + 0.5 * span * Math.tan(Util_1.toRadians(pitch))),
+                        new THREE.Vector2(+0.5 * span - 0.5 * ceeProperties.webSize, height + halfWebMultTan - halfWebDivCos),
+                        new THREE.Vector2(+0.5 * span - 0.5 * ceeProperties.webSize, 0.0)
+                    ], false);
+                    bufferedGeometry.rotateX(0.5 * Math.PI);
+                    bufferedGeometry.rotateZ(0.5 * Math.PI);
+                    var geometry = new THREE.Geometry().fromBufferGeometry(bufferedGeometry);
+                    geometry.computeFlatVertexNormals();
+                    geometry.computeFaceNormals();
+                    var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+                    var mesh = new THREE.Mesh(new THREE.BufferGeometry().fromGeometry(geometry), material);
+                    mesh.position.set(0.0, 0.0, 2000.0);
+                    mesh.matrixWorldNeedsUpdate = true;
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, mesh));
+                });
+            });
+            _this._cModel = cModel;
         });
     }
+    Object.defineProperty(GablePortal.prototype, "cModel", {
+        // webSize = span * 0.02
+        // flangeSize = span * 0.02
+        // battenHeight = baySize * 0.02
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return GablePortal;
+}());
+exports.GablePortal = GablePortal;
+//# sourceMappingURL=GablePortal.js.map
+});
+___scope___.file("app/ThreeJSUtil.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var THREE = require("three");
+function profiledContourGeometry(profileShape, contour, contourClosed) {
+    contourClosed = contourClosed !== undefined ? contourClosed : true;
+    var profileGeometry = new THREE.ShapeBufferGeometry(profileShape);
+    profileGeometry.rotateX(Math.PI * .5);
+    var profile = profileGeometry.attributes.position;
+    var profilePoints = new Float32Array(profile.count * contour.length * 3);
+    for (var i = 0; i < contour.length; i++) {
+        var v1 = new THREE.Vector2().subVectors(contour[i - 1 < 0 ? contour.length - 1 : i - 1], contour[i]);
+        var v2 = new THREE.Vector2().subVectors(contour[i + 1 == contour.length ? 0 : i + 1], contour[i]);
+        var angle = v2.angle() - v1.angle();
+        var halfAngle = angle * .5;
+        var hA = halfAngle;
+        var tA = v2.angle() + Math.PI * .5;
+        if (!contourClosed) {
+            if (i == 0 || i == contour.length - 1) {
+                hA = Math.PI * .5;
+            }
+            if (i == contour.length - 1) {
+                tA = v1.angle() - Math.PI * .5;
+            }
+        }
+        var shift = Math.tan(hA - Math.PI * .5);
+        console.log(shift);
+        var shiftMatrix = new THREE.Matrix4().set(1, 0, 0, 0, -shift, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        var tempAngle = tA;
+        var rotationMatrix = new THREE.Matrix4().set(Math.cos(tempAngle), -Math.sin(tempAngle), 0, 0, Math.sin(tempAngle), Math.cos(tempAngle), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        var translationMatrix = new THREE.Matrix4().set(1, 0, 0, contour[i].x, 0, 1, 0, contour[i].y, 0, 0, 1, 0, 0, 0, 0, 1);
+        var cloneProfile = profile.clone();
+        shiftMatrix.applyToBufferAttribute(cloneProfile);
+        rotationMatrix.applyToBufferAttribute(cloneProfile);
+        translationMatrix.applyToBufferAttribute(cloneProfile);
+        profilePoints.set(cloneProfile.array, cloneProfile.count * i * 3);
+    }
+    var fullProfileGeometry = new THREE.BufferGeometry();
+    fullProfileGeometry.addAttribute("position", new THREE.BufferAttribute(profilePoints, 3));
+    var index = [];
+    var lastCorner = contourClosed == false ? contour.length - 1 : contour.length;
+    for (var i = 0; i < lastCorner; i++) {
+        for (var j = 0; j < profile.count; j++) {
+            var currCorner = i;
+            var nextCorner = i + 1 == contour.length ? 0 : i + 1;
+            var currPoint = j;
+            var nextPoint = j + 1 == profile.count ? 0 : j + 1;
+            var a = nextPoint + profile.count * currCorner;
+            var b = currPoint + profile.count * currCorner;
+            var c = currPoint + profile.count * nextCorner;
+            var d = nextPoint + profile.count * nextCorner;
+            index.push(a, b, d);
+            index.push(b, c, d);
+        }
+    }
+    console.log(index);
+    fullProfileGeometry.setIndex(index);
+    fullProfileGeometry.computeVertexNormals();
+    return fullProfileGeometry;
 }
-//# sourceMappingURL=PromiseUtil.js.map
+exports.profiledContourGeometry = profiledContourGeometry;
+//# sourceMappingURL=ThreeJSUtil.js.map
+});
+___scope___.file("app/model/SkillionPortal.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var MkModelEffect_1 = require("../MkModelEffect");
+var ThreeJSUtil = require("../ThreeJSUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var Util_1 = require("../math/Util");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var Quaternion_1 = require("../math/Quaternion");
+var SkillionPortal = /** @class */ (function () {
+    function SkillionPortal(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cModel = params.cSpan.lift4(params.cHeight, params.cPitch, params.cCeeProperties, function (span, height, pitch, ceeProperties) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var shapePts = [
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, -0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize, -0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize, +0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, +0.5 * ceeProperties.webSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, +0.5 * ceeProperties.webSize - ceeProperties.lipSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, +0.5 * ceeProperties.webSize - ceeProperties.lipSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, +0.5 * ceeProperties.webSize - ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize + ceeProperties.thickness, +0.5 * ceeProperties.webSize - ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(-0.5 * ceeProperties.flangeSize + ceeProperties.thickness, -0.5 * ceeProperties.webSize + ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, -0.5 * ceeProperties.webSize + ceeProperties.thickness),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize - ceeProperties.thickness, -0.5 * ceeProperties.webSize + ceeProperties.lipSize),
+                        Vector2D_1.Vector2D.create(+0.5 * ceeProperties.flangeSize, -0.5 * ceeProperties.webSize + ceeProperties.lipSize)
+                    ];
+                    var rotZ90 = Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.zero, Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.negUnitX));
+                    var shapePts2 = shapePts.map(function (pt) { return rotZ90.pointFromThisSpace(pt.toVector3D()).xyToVector2D(); });
+                    var shape = new THREE.Shape();
+                    for (var i = 0; i < shapePts2.length; ++i) {
+                        var pt = shapePts2[i];
+                        if (i == 0) {
+                            shape.moveTo(pt.x, pt.y);
+                        }
+                        else {
+                            shape.lineTo(pt.x, pt.y);
+                        }
+                    }
+                    shape.closePath();
+                    var halfWebMultTan = 0.5 * ceeProperties.webSize * Math.tan(Util_1.toRadians(pitch));
+                    var halfWebDivCos = 0.5 * ceeProperties.webSize / Math.cos(Util_1.toRadians(pitch));
+                    var bufferedGeometry = ThreeJSUtil.profiledContourGeometry(shape, [
+                        new THREE.Vector2(-0.5 * span + 0.5 * ceeProperties.webSize, 0.0),
+                        new THREE.Vector2(-0.5 * span + 0.5 * ceeProperties.webSize, height + halfWebMultTan - halfWebDivCos),
+                        new THREE.Vector2(+0.5 * span - 0.5 * ceeProperties.webSize, height - halfWebMultTan - halfWebDivCos + span * Math.tan(Util_1.toRadians(pitch))),
+                        new THREE.Vector2(+0.5 * span - 0.5 * ceeProperties.webSize, 0.0)
+                    ], false);
+                    bufferedGeometry.rotateX(0.5 * Math.PI);
+                    bufferedGeometry.rotateZ(0.5 * Math.PI);
+                    var geometry = new THREE.Geometry().fromBufferGeometry(bufferedGeometry);
+                    geometry.computeFlatVertexNormals();
+                    geometry.computeFaceNormals();
+                    var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+                    var mesh = new THREE.Mesh(new THREE.BufferGeometry().fromGeometry(geometry), material);
+                    mesh.position.set(0.0, 0.0, 2000.0);
+                    mesh.matrixWorldNeedsUpdate = true;
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, mesh));
+                });
+            });
+            _this._cModel = cModel;
+        });
+    }
+    Object.defineProperty(SkillionPortal.prototype, "cModel", {
+        // webSize = span * 0.02
+        // flangeSize = span * 0.02
+        // battenHeight = baySize * 0.02
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return SkillionPortal;
+}());
+exports.SkillionPortal = SkillionPortal;
+//# sourceMappingURL=SkillionPortal.js.map
+});
+___scope___.file("app/model/Roof.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var CSG2D = require("csg2d");
+var SodiumUtil = require("../SodiumUtil");
+var Bay_1 = require("./Bay");
+var Axes3D_1 = require("../math/Axes3D");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Quaternion_1 = require("../math/Quaternion");
+var TextureSpace_1 = require("../math/TextureSpace");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var Roof = /** @class */ (function () {
+    function Roof(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cTextureSpace = params
+                .cAxes
+                .map(function (axes) {
+                return TextureSpace_1.TextureSpace.create({
+                    axes: axes,
+                    xScale: 1.0,
+                    yScale: 1.0
+                });
+            });
+            var cBayOutlines = SodiumUtil.cellLift2(params.cOutline, params.cBayMarkers, function (outline, bayMarkers) {
+                var minY = Number.POSITIVE_INFINITY;
+                var maxY = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outline.length; ++i) {
+                    var pt = outline[i];
+                    minY = Math.min(minY, pt.y);
+                    maxY = Math.max(maxY, pt.y);
+                }
+                var intersectPolyMinY = minY - 100.0;
+                var intersectPolyMaxY = maxY + 100.0;
+                var outlinePolygon = [];
+                for (var i = 0; i < outline.length; ++i) {
+                    var pt = outline[i];
+                    outlinePolygon.push([pt.x, pt.y]);
+                }
+                var csgOutlinePolygon = CSG2D.fromPolygons([outlinePolygon]);
+                var result = [];
+                for (var i = 0; i < bayMarkers.length - 1; ++i) {
+                    var marker1 = bayMarkers[i];
+                    var marker2 = bayMarkers[i + 1];
+                    var csgIntersectingPolygon = CSG2D.fromPolygons([[
+                            [marker1, intersectPolyMinY],
+                            [marker2, intersectPolyMinY],
+                            [marker2, intersectPolyMaxY],
+                            [marker1, intersectPolyMaxY]
+                        ]]);
+                    var intersection = csgOutlinePolygon.intersect(csgIntersectingPolygon).toPolygons();
+                    var intersection2 = intersection[0];
+                    var bayOutline = [];
+                    for (var j = 0; j < intersection2.length - 1; ++j) {
+                        var pt = intersection2[j];
+                        bayOutline.push(Vector2D_1.Vector2D.create(pt.x, pt.y));
+                    }
+                    result.push(bayOutline);
+                }
+                return result;
+            });
+            var cBays = SodiumUtil.cellLift3(params.cAxes, params.cBayMarkers, cBayOutlines, function (axes, bayMarkers, bayOutlines) {
+                var bays = [];
+                for (var i = 0; i < bayMarkers.length - 1; ++i) {
+                    var marker1 = bayMarkers[i];
+                    var marker2 = bayMarkers[i + 1];
+                    var centreX = 0.5 * (marker1 + marker2);
+                    var bayAxes = axes.fromThisSpace(Axes3D_1.Axes3D
+                        .create(Vector3D_1.Vector3D.create(centreX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
+                    var bayOutline2 = bayOutlines[i].map(function (pt) { return Vector2D_1.Vector2D.create(pt.x - centreX, pt.y); });
+                    (function () {
+                        var stableIndex = i;
+                        bays.push(new Bay_1.Bay({
+                            cParentStableName: params.cStableName,
+                            cStableName: params.cStableName.map(function (stableName) { return stableName + ('.bay[' + stableIndex + ']'); }),
+                            cBayIndex: new sodium.Cell(stableIndex),
+                            cAxes: new sodium.Cell(bayAxes),
+                            cOutline: new sodium.Cell(bayOutline2),
+                            cCladdingTextureType: params.cCladdingTextureType,
+                            cCladdingTextureColour: params.cCladdingTextureColour,
+                            cTextureSpace: cTextureSpace,
+                            cHighlightedStableNames: params.cHighlightedStableNames,
+                            cVisible: params.cVisible
+                        }));
+                    })();
+                }
+                return bays;
+            });
+            _this._cBays = cBays;
+            _this._cModel = MkModelEffect_1.composeCListOfCModels(cBays.map(function (bays) { return bays.map(function (bay) { return bay.cModel; }); }));
+        });
+    }
+    Object.defineProperty(Roof.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Roof.prototype, "cBays", {
+        get: function () {
+            return this._cBays;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Roof;
+}());
+exports.Roof = Roof;
+//# sourceMappingURL=Roof.js.map
+});
+___scope___.file("app/model/Bay.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var ArrayUtil = require("../ArrayUtil");
+var Option_1 = require("../Option");
+var TextureLoader_1 = require("../TextureLoader");
+var Axes3D_1 = require("../math/Axes3D");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Outline3D_1 = require("../math/Outline3D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector3D_1 = require("../math/Vector3D");
+var Bay = /** @class */ (function () {
+    function Bay(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cHighlighted = params.cHighlighted || new sodium.Cell(false);
+            var cOpacity_op;
+            if (params.cOpacity) {
+                cOpacity_op = Option_1.Option.some(params.cOpacity);
+            }
+            else {
+                cOpacity_op = Option_1.Option.none();
+            }
+            _this._cParentStableName = params.cParentStableName;
+            _this._cStableName = params.cStableName;
+            _this._cBayIndex = params.cBayIndex;
+            _this._cModel =
+                params.cAxes.lift5(params.cOutline, params.cCladdingTextureType, params.cCladdingTextureColour, params.cTextureSpace, function (axes, outline, claddingTextureType, claddingTextureColour, textureSpace) {
+                    return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                        if (outline.length == 0) {
+                            return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, new THREE.Group()));
+                        }
+                        return TextureLoader_1.loadCladdingTexture(textureLoader, claddingTextureType, claddingTextureColour)
+                            .then(function (texture) {
+                            var shape = new THREE.Shape();
+                            shape.moveTo(outline[0].x, outline[0].y);
+                            for (var i = 1; i < outline.length + 1; ++i) {
+                                var j = i % outline.length;
+                                shape.lineTo(outline[j].x, outline[j].y);
+                            }
+                            var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                                depth: 30.0,
+                                UVGenerator: new BayUVGenerator(textureSpace.toSpace(axes))
+                            });
+                            var material = new THREE.MeshStandardMaterial({ map: texture._2 });
+                            var mesh = new THREE.Mesh(geometry, material);
+                            return MkModelEffect_1.Model.create(function () {
+                                var cleanups = [];
+                                var cHighlighted2 = cHighlighted.lift3(params.cStableName, params.cHighlightedStableNames, function (highlighted, stableName, highlightedStableNames) {
+                                    return highlighted || ArrayUtil.arrayIncludes(highlightedStableNames, stableName);
+                                });
+                                cleanups.push(params.cAxes.listen(function (axes) {
+                                    // counter the extrude direction
+                                    var axes2 = axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, -30.0), Quaternion_1.Quaternion.identity));
+                                    //
+                                    MkModelEffect_1.THREEObject3DSetAxes(mesh, axes2);
+                                }));
+                                cleanups.push(cHighlighted2.listen(function (highlighted) {
+                                    if (highlighted) {
+                                        material.color.setHex(0x7FFF7F);
+                                    }
+                                    else {
+                                        material.color.setHex(0xFFFFFF);
+                                    }
+                                }));
+                                cleanups.push(params.cVisible.listen(function (visible) { return mesh.visible = visible; }));
+                                if (cOpacity_op.isSome) {
+                                    var cOpacity = cOpacity_op.fromSome();
+                                    cleanups.push(cOpacity.listen(function (opacity) {
+                                        if (opacity == 1.0) {
+                                            material.transparent = false;
+                                            material.opacity = opacity;
+                                        }
+                                        else {
+                                            material.transparent = true;
+                                            material.opacity = opacity;
+                                        }
+                                    }));
+                                }
+                                return function () {
+                                    cleanups.forEach(function (cleanup) { return cleanup(); });
+                                    cleanups = [];
+                                };
+                            }, mesh);
+                        });
+                    });
+                });
+            _this._cRayOpCollisionTimeOpFn =
+                function (cRayOp) {
+                    return params.cAxes
+                        .lift(params.cOutline, function (axes, outline) {
+                        return Outline3D_1.Outline3D.create({
+                            axes: axes,
+                            outline: outline
+                        });
+                    })
+                        .lift(cRayOp, function (outline, rayOp) {
+                        return rayOp.bind(function (ray) { return outline.rayIntersectionTimeOp(ray); });
+                    });
+                };
+        });
+    }
+    Object.defineProperty(Bay.prototype, "cParentStableName", {
+        get: function () {
+            return this._cParentStableName;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Bay.prototype, "cStableName", {
+        get: function () {
+            return this._cStableName;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Bay.prototype, "cBayIndex", {
+        get: function () {
+            return this._cBayIndex;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Bay.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Bay.prototype.cRayOpCollisionTimeOp = function (cRayOp) {
+        return this._cRayOpCollisionTimeOpFn(cRayOp);
+    };
+    return Bay;
+}());
+exports.Bay = Bay;
+var BayUVGenerator = /** @class */ (function () {
+    function BayUVGenerator(textureSpace) {
+        this._textureSpace = textureSpace;
+    }
+    BayUVGenerator.prototype.generateTopUV = function (geometry, vertices, indexA, indexB, indexC) {
+        var a_x = vertices[indexA * 3];
+        var a_y = vertices[indexA * 3 + 1];
+        var a_z = vertices[indexA * 3 + 2];
+        var b_x = vertices[indexB * 3];
+        var b_y = vertices[indexB * 3 + 1];
+        var b_z = vertices[indexB * 3 + 2];
+        var c_x = vertices[indexC * 3];
+        var c_y = vertices[indexC * 3 + 1];
+        var c_z = vertices[indexC * 3 + 2];
+        var tpt1 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(a_x, a_y, a_z)));
+        var tpt2 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(b_x, b_y, b_z)));
+        var tpt3 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(c_x, c_y, c_z)));
+        return [tpt1, tpt2, tpt3];
+    };
+    BayUVGenerator.prototype.generateSideWallUV = function (geometry, vertices, indexA, indexB, indexC, indexD) {
+        var a_x = vertices[indexA * 3];
+        var a_y = vertices[indexA * 3 + 1];
+        var a_z = vertices[indexA * 3 + 2];
+        var b_x = vertices[indexB * 3];
+        var b_y = vertices[indexB * 3 + 1];
+        var b_z = vertices[indexB * 3 + 2];
+        var c_x = vertices[indexC * 3];
+        var c_y = vertices[indexC * 3 + 1];
+        var c_z = vertices[indexC * 3 + 2];
+        var d_x = vertices[indexD * 3];
+        var d_y = vertices[indexD * 3 + 1];
+        var d_z = vertices[indexD * 3 + 2];
+        var tpt1 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(a_x, a_y, a_z)));
+        var tpt2 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(b_x, b_y, b_z)));
+        var tpt3 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(c_x, c_y, c_z)));
+        var tpt4 = MkModelEffect_1.vector2DToTHREE(this._textureSpace.worldPtToTexturePt(Vector3D_1.Vector3D.create(d_x, d_y, d_z)));
+        return [tpt1, tpt2, tpt3, tpt4];
+    };
+    return BayUVGenerator;
+}());
+//# sourceMappingURL=Bay.js.map
 });
 ___scope___.file("app/math/Outline3D.js", function(exports, require, module, __filename, __dirname){
 
@@ -2997,26 +4409,94 @@ var TextureSpace = /** @class */ (function () {
 exports.TextureSpace = TextureSpace;
 //# sourceMappingURL=TextureSpace.js.map
 });
-___scope___.file("app/Wall.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/Slab.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
+var THREE = require("three");
+var MkModelEffect_1 = require("./MkModelEffect");
+var Axes3D_1 = require("./math/Axes3D");
+var Quaternion_1 = require("./math/Quaternion");
+var Vector3D_1 = require("./math/Vector3D");
+var Slab = /** @class */ (function () {
+    function Slab(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cModel = params.cOutline.lift(params.cThickness, function (outline, thickness) {
+                if (outline.length == 0) {
+                    return MkModelEffect_1.MkModelEffect.empty;
+                }
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var shape = new THREE.Shape();
+                    shape.moveTo(outline[0].x, outline[0].y);
+                    for (var i = 1; i < outline.length + 1; ++i) {
+                        var j = i % outline.length;
+                        shape.lineTo(outline[j].x, outline[j].y);
+                    }
+                    var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                        depth: thickness
+                    });
+                    var material = new THREE.MeshStandardMaterial({ color: 0xAAAAAA });
+                    var mesh = new THREE.Mesh(geometry, material);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                        var cleanups = [];
+                        cleanups.push(params.cAxes.listen(function (axes) {
+                            // half counter the extrude direction
+                            var axes2 = axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, -0.5 * thickness), Quaternion_1.Quaternion.identity));
+                            //
+                            MkModelEffect_1.THREEObject3DSetAxes(mesh, axes2);
+                        }));
+                        return function () {
+                            cleanups.forEach(function (cleanup) { return cleanup(); });
+                            cleanups = [];
+                        };
+                    }, mesh));
+                });
+            });
+            _this._cModel = cModel;
+        });
+    }
+    Object.defineProperty(Slab.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Slab;
+}());
+exports.Slab = Slab;
+//# sourceMappingURL=Slab.js.map
+});
+___scope___.file("app/model/Wall.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
 var CSG2D = require("csg2d");
-var SodiumUtil = require("./SodiumUtil");
+var SodiumUtil = require("../SodiumUtil");
+var BattenPlane_1 = require("./BattenPlane");
 var Bay_1 = require("./Bay");
 var Opening_1 = require("./Opening");
-var Axes3D_1 = require("./math/Axes3D");
-var MkModelEffect_1 = require("./MkModelEffect");
-var Tuples_1 = require("./Tuples");
-var Quaternion_1 = require("./math/Quaternion");
-var TextureSpace_1 = require("./math/TextureSpace");
-var Vector2D_1 = require("./math/Vector2D");
-var Vector3D_1 = require("./math/Vector3D");
+var Option_1 = require("../Option");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Axes3D_1 = require("../math/Axes3D");
+var Line2D_1 = require("../math/Line2D");
+var Outline3D_1 = require("../math/Outline3D");
+var Quaternion_1 = require("../math/Quaternion");
+var TextureSpace_1 = require("../math/TextureSpace");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var ArrayUtil_1 = require("../ArrayUtil");
+var CAG_1 = require("../math/CAG");
+var Polygon2D_1 = require("../math/Polygon2D");
 var Wall = /** @class */ (function () {
     function Wall(params) {
         var _this = this;
         sodium.Transaction.run(function () {
+            var cIsInternal = cIsInternal || new sodium.Cell(false);
             var cTextureSpace = params
                 .cAxes
                 .map(function (axes) {
@@ -3063,15 +4543,11 @@ var Wall = /** @class */ (function () {
                 }
                 return result;
             });
-            var slOpeningDatas = new sodium.StreamLoop();
-            var cOpeningDatas = slOpeningDatas.hold([]);
-            slOpeningDatas.loop(params.sInsertOpening
-                .snapshot(params.cStableName, function (insertOpeningData, stableName) { return Tuples_1.T2.of(stableName, insertOpeningData); })
-                .filter(function (stableName_insertOpeningData) { return stableName_insertOpeningData._1 == stableName_insertOpeningData._2.wallStableName; })
-                .map(function (stableName_insertOpeningData) { return stableName_insertOpeningData._2; })
-                .snapshot(cOpeningDatas, function (insertOpeningData, openingDatas) {
-                return openingDatas.concat(insertOpeningData.openingData);
-            }));
+            var cOpeningDatas = params.cWallDataOp.map(function (wallDataOp) {
+                return wallDataOp
+                    .map(function (wallData) { return wallData.openings; })
+                    .orSome([]);
+            });
             var cOpenings = cOpeningDatas.map(sodium.lambda1(function (openingDatas) {
                 var openings = [];
                 for (var i = 0; i < openingDatas.length; ++i) {
@@ -3088,44 +4564,151 @@ var Wall = /** @class */ (function () {
                     })();
                 }
                 return openings;
-            }, [params.cAxes, params.cBayMarkers]));
-            var cBays = SodiumUtil.cellLift3(params.cAxes, params.cBayMarkers, cBayOutlines, function (axes, bayMarkers, bayOutlines) {
+            }, [params.cStableName, params.cAxes, params.cBayMarkers]));
+            var cDashedLineModel = params.cAxes.lift(params.cOutline, function (axes, outline) {
+                if (outline.length == 0) {
+                    return MkModelEffect_1.MkModelEffect.empty;
+                }
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var shape = new THREE.Shape();
+                    shape.moveTo(outline[0].x, outline[0].y);
+                    for (var i = 1; i < outline.length + 1; ++i) {
+                        var j = i % outline.length;
+                        shape.lineTo(outline[j].x, outline[j].y);
+                    }
+                    var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                        depth: 30.0
+                    });
+                    var material = new THREE.MeshStandardMaterial({
+                        transparent: true,
+                        opacity: 0.5
+                    });
+                    var mesh = new THREE.Mesh(geometry, material);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                        var cleanups = [];
+                        cleanups.push(params.cAxes.listen(function (axes) {
+                            // counter the extrude direction
+                            var axes2 = axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, -30.0), Quaternion_1.Quaternion.identity));
+                            //
+                            MkModelEffect_1.THREEObject3DSetAxes(mesh, axes2);
+                        }));
+                        return function () {
+                            cleanups.forEach(function (cleanup) { return cleanup(); });
+                            cleanups = [];
+                        };
+                    }, mesh));
+                });
+            });
+            var cBays = SodiumUtil.cellLift3(params.cBayMarkers, cBayOutlines, params.cWallDataOp, function (bayMarkers, bayOutlines, wallDataOp) {
+                var openBayIndices = wallDataOp.map(function (wallData) { return wallData.openBayIndices; }).orSome([]);
                 var bays = [];
                 for (var i = 0; i < bayMarkers.length - 1; ++i) {
-                    var marker1 = bayMarkers[i];
-                    var marker2 = bayMarkers[i + 1];
-                    var centreX = 0.5 * (marker1 + marker2);
-                    var bayAxes = axes.fromThisSpace(Axes3D_1.Axes3D
-                        .create(Vector3D_1.Vector3D.create(centreX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
-                    var bayOutline2 = bayOutlines[i].map(function (pt) { return Vector2D_1.Vector2D.create(pt.x - centreX, pt.y); });
                     (function () {
+                        var marker1 = bayMarkers[i];
+                        var marker2 = bayMarkers[i + 1];
+                        var centreX = 0.5 * (marker1 + marker2);
+                        var bayOutline2 = bayOutlines[i].map(function (pt) { return Vector2D_1.Vector2D.create(pt.x - centreX, pt.y); });
                         var stableIndex = i;
+                        var visible = !ArrayUtil_1.arrayIncludes(openBayIndices, stableIndex);
                         bays.push(new Bay_1.Bay({
                             cParentStableName: params.cStableName,
                             cStableName: params.cStableName.map(function (stableName) { return stableName + ('.bay[' + stableIndex + ']'); }),
                             cBayIndex: new sodium.Cell(stableIndex),
-                            cAxes: new sodium.Cell(bayAxes),
+                            cAxes: params.cAxes.map(function (axes) {
+                                return axes.fromThisSpace(Axes3D_1.Axes3D
+                                    .create(Vector3D_1.Vector3D.create(centreX, 0.0, 0.0), Quaternion_1.Quaternion.identity));
+                            }),
                             cOutline: new sodium.Cell(bayOutline2),
                             cCladdingTextureType: params.cCladdingTextureType,
                             cCladdingTextureColour: params.cCladdingTextureColour,
                             cTextureSpace: cTextureSpace,
                             cHighlightedStableNames: params.cHighlightedStableNames,
-                            cVisible: new sodium.Cell(true)
+                            cVisible: new sodium.Cell(visible),
+                            cHighlighted: params.cHighlighted,
+                            cOpacity: params.cOpacity
                         }));
                     })();
                 }
                 return bays;
+            }, [params.cStableName, params.cCladdingTextureType, params.cCladdingTextureColour, cTextureSpace, params.cHighlightedStableNames, params.cHighlighted, params.cOpacity]);
+            var girts = new BattenPlane_1.BattenPlane({
+                cAxes: params.cAxes,
+                cOutlineCAG: params.cOutline.map(function (outline) {
+                    return CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: outline,
+                            holes: []
+                        })
+                    ]);
+                }),
+                cBattenHeights: params.cOutline.lift(params.cBattenProperties, function (outline, battenProperties) {
+                    if (outline.length == 0) {
+                        return [];
+                    }
+                    var minY = Number.POSITIVE_INFINITY;
+                    var maxY = Number.NEGATIVE_INFINITY;
+                    for (var i = 0; i < outline.length; ++i) {
+                        var pt = outline[i];
+                        minY = Math.min(minY, pt.y);
+                        maxY = Math.max(maxY, pt.y);
+                    }
+                    var startY = minY + 300.0;
+                    var endY = maxY - 0.5 * battenProperties.width;
+                    var cover = endY - startY;
+                    var numGaps = Math.ceil(cover / 1200.0);
+                    var gapSize = cover / numGaps;
+                    var numRuns = numGaps;
+                    var result = [];
+                    for (var i = 0; i < numRuns; ++i) {
+                        result.push(startY + i * gapSize);
+                    }
+                    return result;
+                }),
+                cBattenProperties: params.cBattenProperties
             });
-            _this._cBays = cBays;
             _this._cModel = MkModelEffect_1.composeCListOfCModels(cOpenings.lift(cBays, function (openings, bays) {
                 return openings.map(function (opening) { return opening.cModel; })
-                    .concat(bays.map(function (bay) { return bay.cModel; }));
+                    .concat(bays.map(function (bay) { return bay.cModel; }))
+                    .concat([girts.cModel]);
             }));
+            _this._cDashedLineModel = cDashedLineModel;
+            _this._cOpenings = cOpenings;
+            _this._cBays = cBays;
+            _this._cRayOpCollisionTimeOpFn =
+                function (cRayOp) {
+                    return params.cAxes
+                        .lift(params.cOutline, function (axes, outline) {
+                        return Outline3D_1.Outline3D.create({
+                            axes: axes,
+                            outline: outline
+                        });
+                    })
+                        .lift(cRayOp, function (outline, rayOp) {
+                        return rayOp.bind(function (ray) { return outline.rayIntersectionTimeOp(ray); });
+                    });
+                };
+            _this._cIsInternal = cIsInternal;
+            _this._cAxes = params.cAxes;
+            _this._cOutline = params.cOutline;
         });
     }
     Object.defineProperty(Wall.prototype, "cModel", {
         get: function () {
             return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Wall.prototype, "cDashedLineModel", {
+        get: function () {
+            return this._cDashedLineModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Wall.prototype, "cOpenings", {
+        get: function () {
+            return this._cOpenings;
         },
         enumerable: true,
         configurable: true
@@ -3137,22 +4720,71 @@ var Wall = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Wall.prototype, "cRayOpCollisionTimeOpFn", {
+        get: function () {
+            return this._cRayOpCollisionTimeOpFn;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Wall.prototype, "cIsInternal", {
+        get: function () {
+            return this._cIsInternal;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Wall.prototype, "cAxes", {
+        get: function () {
+            return this._cAxes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Wall.prototype, "cOutline", {
+        get: function () {
+            return this._cOutline;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Wall.prototype, "cGroundLineOp", {
+        get: function () {
+            return this.cAxes.lift(this.cOutline, function (axes, outline) {
+                if (outline.length == 0) {
+                    return Option_1.Option.none();
+                }
+                var minX = Number.POSITIVE_INFINITY;
+                var maxX = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outline.length; ++i) {
+                    var x = outline[i].x;
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                }
+                var pt1 = axes.pointFromThisSpace(Vector3D_1.Vector3D.create(minX, 0.0, 0.0)).xyToVector2D();
+                var pt2 = axes.pointFromThisSpace(Vector3D_1.Vector3D.create(maxX, 0.0, 0.0)).xyToVector2D();
+                return Option_1.Option.some(Line2D_1.Line2D.create(pt1, pt2));
+            });
+        },
+        enumerable: true,
+        configurable: true
+    });
     return Wall;
 }());
 exports.Wall = Wall;
 //# sourceMappingURL=Wall.js.map
 });
-___scope___.file("app/Opening.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/Opening.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var THREE = require("three");
-var Option_1 = require("./Option");
-var Axes3D_1 = require("./math/Axes3D");
-var MkModelEffect_1 = require("./MkModelEffect");
-var Quaternion_1 = require("./math/Quaternion");
-var Vector3D_1 = require("./math/Vector3D");
+var Option_1 = require("../Option");
+var Axes3D_1 = require("../math/Axes3D");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector3D_1 = require("../math/Vector3D");
 var Opening = /** @class */ (function () {
     function Opening(params) {
         var _this = this;
@@ -3221,15 +4853,240 @@ var Opening = /** @class */ (function () {
 exports.Opening = Opening;
 //# sourceMappingURL=Opening.js.map
 });
-___scope___.file("app/math/Util.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/BuildingData.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function toRadians(degrees) {
-    return degrees * Math.PI / 180.0;
+var BuildingData = /** @class */ (function () {
+    function BuildingData(params) {
+        this._params = params;
+    }
+    Object.defineProperty(BuildingData.prototype, "buildingType", {
+        get: function () {
+            return this._params.buildingType;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "length", {
+        get: function () {
+            return this._params.length;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "span", {
+        get: function () {
+            return this._params.span;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "height", {
+        get: function () {
+            return this._params.height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "pitch", {
+        get: function () {
+            return this._params.pitch;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "side1WallData", {
+        get: function () {
+            return this._params.side1WallData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "side2WallData", {
+        get: function () {
+            return this._params.side2WallData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "end1WallData", {
+        get: function () {
+            return this._params.end1WallData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "end2WallData", {
+        get: function () {
+            return this._params.end2WallData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "internalWallDatas", {
+        get: function () {
+            return this._params.internalWallDatas;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    BuildingData.create = function (params) {
+        return new BuildingData(params);
+    };
+    BuildingData.prototype.from = function (params) {
+        return BuildingData.create(Object.assign({}, this._params, params));
+    };
+    return BuildingData;
+}());
+exports.BuildingData = BuildingData;
+//# sourceMappingURL=BuildingData.js.map
+});
+___scope___.file("app/model/BuildingUtil.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Lens_1 = require("../Lens");
+var Option_1 = require("../Option");
+var Tuples_1 = require("../Tuples");
+function wallLensesFromBuildingData(buildingData) {
+    var internalWallLenses = buildingData.internalWallDatas.map(function (internalWallData) {
+        var outerLens = internalWallLens(internalWallData._1);
+        return Tuples_1.T2.of("internalWall[" + internalWallData._1 + "]", Lens_1.Lens.create(function (buildingData2) {
+            return Tuples_1.T2.of(outerLens.get(buildingData2).orSome_(function () { return internalWallData._2; }), function (wallData) {
+                return outerLens.set(Option_1.Option.some(wallData), buildingData2);
+            });
+        }));
+    });
+    return [
+        Tuples_1.T2.of("side1Wall", side1WallLens),
+        Tuples_1.T2.of("side2Wall", side2WallLens),
+        Tuples_1.T2.of("end1Wall", end1WallLens),
+        Tuples_1.T2.of("end2Wall", end2WallLens)
+    ].concat(internalWallLenses);
 }
-exports.toRadians = toRadians;
-//# sourceMappingURL=Util.js.map
+exports.wallLensesFromBuildingData = wallLensesFromBuildingData;
+var side1WallLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.side1WallData, function (side1WallData) { return buildingData.from({ side1WallData: side1WallData }); });
+});
+var side2WallLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.side2WallData, function (side2WallData) { return buildingData.from({ side2WallData: side2WallData }); });
+});
+var end1WallLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.end1WallData, function (end1WallData) { return buildingData.from({ end1WallData: end1WallData }); });
+});
+var end2WallLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.end2WallData, function (end2WallData) { return buildingData.from({ end2WallData: end2WallData }); });
+});
+function internalWallLens(markerIndex) {
+    return Lens_1.Lens.fromGetterAndSetter(function (buildingData) {
+        var _loop_1 = function (i) {
+            (function () {
+                var internalWallData = buildingData.internalWallDatas[i];
+                if (internalWallData._1 == markerIndex) {
+                    return Option_1.Option.some(internalWallData._2);
+                }
+            })();
+        };
+        for (var i = 0; i < buildingData.internalWallDatas.length; ++i) {
+            _loop_1(i);
+        }
+        return Option_1.Option.none();
+    }, function (wallDataOp, buildingData) {
+        var indexOp = Option_1.Option.none();
+        for (var i = 0; i < buildingData.internalWallDatas.length; ++i) {
+            if (buildingData.internalWallDatas[i]._1 == markerIndex) {
+                indexOp = Option_1.Option.some(i);
+                break;
+            }
+        }
+        var internalWallDatas2;
+        if (wallDataOp.isNone) {
+            if (indexOp.isNone) {
+                return buildingData;
+            }
+            else {
+                var index = indexOp.fromSome();
+                internalWallDatas2 = buildingData.internalWallDatas.slice(0);
+                internalWallDatas2.splice(index, 1);
+            }
+        }
+        else {
+            var wallData = wallDataOp.fromSome();
+            if (indexOp.isNone) {
+                internalWallDatas2 = buildingData.internalWallDatas.concat([Tuples_1.T2.of(markerIndex, wallData)]);
+            }
+            else {
+                var index = indexOp.fromSome();
+                internalWallDatas2 = buildingData.internalWallDatas.slice(0);
+                internalWallDatas2[index] = Tuples_1.T2.of(markerIndex, wallData);
+            }
+        }
+        return buildingData.from({ internalWallDatas: internalWallDatas2 });
+    });
+}
+exports.internalWallLens = internalWallLens;
+function wallIsBayOpenLens(bayIndex) {
+    return Lens_1.Lens.create(function (wallData) {
+        var indexOp = Option_1.Option.none();
+        for (var i = 0; i < wallData.openBayIndices.length; ++i) {
+            if (wallData.openBayIndices[i] == bayIndex) {
+                indexOp = Option_1.Option.some(i);
+                break;
+            }
+        }
+        return Tuples_1.T2.of(indexOp.isSome, function (isOpen) {
+            if (indexOp.isSome) {
+                var index = indexOp.fromSome();
+                if (isOpen) {
+                    return wallData;
+                }
+                else {
+                    var openBayIndices2 = wallData.openBayIndices.slice(0);
+                    openBayIndices2.splice(index, 1);
+                    return wallData.from({ openBayIndices: openBayIndices2 });
+                }
+            }
+            else {
+                if (!isOpen) {
+                    return wallData;
+                }
+                else {
+                    var openBayIndices2 = wallData.openBayIndices.concat([bayIndex]);
+                    return wallData.from({ openBayIndices: openBayIndices2 });
+                }
+            }
+        });
+    });
+}
+exports.wallIsBayOpenLens = wallIsBayOpenLens;
+//# sourceMappingURL=BuildingUtil.js.map
+});
+___scope___.file("app/Lens.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Tuples_1 = require("./Tuples");
+var Lens = /** @class */ (function () {
+    function Lens(getSet) {
+        this._getSet = getSet;
+    }
+    Lens.create = function (getSet) {
+        return new Lens(getSet);
+    };
+    Lens.fromGetterAndSetter = function (getter, setter) {
+        return new Lens(function (s) { return Tuples_1.T2.of(getter(s), function (a) { return setter(a, s); }); });
+    };
+    Lens.prototype.get = function (s) {
+        return this._getSet(s)._1;
+    };
+    Lens.prototype.set = function (a, s) {
+        return this._getSet(s)._2(a);
+    };
+    return Lens;
+}());
+exports.Lens = Lens;
+//# sourceMappingURL=Lens.js.map
 });
 ___scope___.file("app/FormProperties.js", function(exports, require, module, __filename, __dirname){
 
@@ -3310,9 +5167,17 @@ ___scope___.file("app/modes/Mode.js", function(exports, require, module, __filen
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
+var Option_1 = require("../Option");
 var Mode = /** @class */ (function () {
     function Mode() {
     }
+    Object.defineProperty(Mode.prototype, "cOverlayModelOp", {
+        get: function () {
+            return new sodium.Cell(Option_1.Option.none());
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Mode.prototype, "cHighlightedStableNames", {
         get: function () {
             return new sodium.Cell([]);
@@ -3327,7 +5192,7 @@ var Mode = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Mode.prototype, "sInsertOpening", {
+    Object.defineProperty(Mode.prototype, "sBuildingEffect", {
         get: function () {
             return new sodium.Stream();
         },
@@ -3355,12 +5220,13 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var Mode_1 = require("./Mode");
-var InsertOpeningData_1 = require("../InsertOpeningData");
+var InsertOpeningData_1 = require("../model/InsertOpeningData");
 var Option_1 = require("../Option");
+var BuildingEffect_1 = require("../model/BuildingEffect");
 var SodiumUtil = require("../SodiumUtil");
 var Tuples_1 = require("../Tuples");
-var OpeningData_1 = require("../OpeningData");
-var OpeningType_1 = require("../OpeningType");
+var OpeningData_1 = require("../model/OpeningData");
+var OpeningType_1 = require("../model/OpeningType");
 var InsertOpeningMode = /** @class */ (function (_super) {
     __extends(InsertOpeningMode, _super);
     function InsertOpeningMode(params) {
@@ -3401,7 +5267,7 @@ var InsertOpeningMode = /** @class */ (function (_super) {
                     return closestOp.map(function (closest) { return closest._1; });
                 });
             }));
-            var sInsertOpening = SodiumUtil.streamFilterOption(params.sMouseLeftPress
+            var sInsertOpening = SodiumUtil.streamFilterOption(params.sMouseLeftPressed
                 .snapshot1(cBayUnderMouseOp)
                 .snapshot3(params.cOpeningTypeOp, params.cOpeningFormPropertiesOp, function (bayUnderMouseOp, openingTypeOp, openingFormPropertiesOp) {
                 return bayUnderMouseOp.lift3(openingTypeOp, openingFormPropertiesOp, function (bayUnderMouse, openingType, openingFormProperties) {
@@ -3425,7 +5291,9 @@ var InsertOpeningMode = /** @class */ (function (_super) {
                         .orSome_(function () { return new sodium.Cell([]); });
                 }));
             _this._cRoofVisible = new sodium.Cell(false);
-            _this._sInsertOpening = sInsertOpening;
+            _this._sBuildingEffect =
+                sInsertOpening
+                    .map(BuildingEffect_1.BuildingEffect.insertOpening);
         });
         return _this;
     }
@@ -3443,9 +5311,9 @@ var InsertOpeningMode = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(InsertOpeningMode.prototype, "sInsertOpening", {
+    Object.defineProperty(InsertOpeningMode.prototype, "sBuildingEffect", {
         get: function () {
-            return this._sInsertOpening;
+            return this._sBuildingEffect;
         },
         enumerable: true,
         configurable: true
@@ -3455,7 +5323,7 @@ var InsertOpeningMode = /** @class */ (function (_super) {
 exports.InsertOpeningMode = InsertOpeningMode;
 //# sourceMappingURL=InsertOpeningMode.js.map
 });
-___scope___.file("app/InsertOpeningData.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/InsertOpeningData.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3486,7 +5354,103 @@ var InsertOpeningData = /** @class */ (function () {
 exports.InsertOpeningData = InsertOpeningData;
 //# sourceMappingURL=InsertOpeningData.js.map
 });
-___scope___.file("app/OpeningData.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/BuildingEffect.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var BuildingEffect = /** @class */ (function () {
+    function BuildingEffect() {
+    }
+    BuildingEffect.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            insertOpening: function (insertOpeningData) {
+                if (cases.insertOpening) {
+                    return cases.insertOpening(insertOpeningData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
+                if (cases.toggleInternalWallByBayMarkerIndex) {
+                    return cases.toggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleBay: function (wallStableName, bayIndex) {
+                if (cases.toggleBay) {
+                    return cases.toggleBay(wallStableName, bayIndex);
+                }
+                else {
+                    return default_;
+                }
+            }
+        });
+    };
+    BuildingEffect.insertOpening = function (insertOpeningData) {
+        return new BuildingEffectInsertOpening(insertOpeningData);
+    };
+    BuildingEffect.toggleInternalWallByBayMarkerIndex = function (bayMarkerIndex) {
+        return new BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+    };
+    BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
+        return new BuildingEffectToggleBay(wallStableName, bayIndex);
+    };
+    return BuildingEffect;
+}());
+exports.BuildingEffect = BuildingEffect;
+var BuildingEffectInsertOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertOpening, _super);
+    function BuildingEffectInsertOpening(insertOpeningData) {
+        var _this = _super.call(this) || this;
+        _this._insertOpeningData = insertOpeningData;
+        return _this;
+    }
+    BuildingEffectInsertOpening.prototype.match = function (cases) {
+        return cases.insertOpening(this._insertOpeningData);
+    };
+    return BuildingEffectInsertOpening;
+}(BuildingEffect));
+var BuildingEffectToggleInternalWallByBayMarkerIndex = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleInternalWallByBayMarkerIndex, _super);
+    function BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex) {
+        var _this = _super.call(this) || this;
+        _this._bayMarkerIndex = bayMarkerIndex;
+        return _this;
+    }
+    BuildingEffectToggleInternalWallByBayMarkerIndex.prototype.match = function (cases) {
+        return cases.toggleInternalWallByBayMarkerIndex(this._bayMarkerIndex);
+    };
+    return BuildingEffectToggleInternalWallByBayMarkerIndex;
+}(BuildingEffect));
+var BuildingEffectToggleBay = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleBay, _super);
+    function BuildingEffectToggleBay(wallStableName, bayIndex) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._bayIndex = bayIndex;
+        return _this;
+    }
+    BuildingEffectToggleBay.prototype.match = function (cases) {
+        return cases.toggleBay(this._wallStableName, this._bayIndex);
+    };
+    return BuildingEffectToggleBay;
+}(BuildingEffect));
+//# sourceMappingURL=BuildingEffect.js.map
+});
+___scope___.file("app/model/OpeningData.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3541,6 +5505,276 @@ var OpeningData = /** @class */ (function () {
 exports.OpeningData = OpeningData;
 //# sourceMappingURL=OpeningData.js.map
 });
+___scope___.file("app/modes/ToggleBaysMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Mode_1 = require("./Mode");
+var ArrayUtil_1 = require("../ArrayUtil");
+var SodiumUtil = require("../SodiumUtil");
+var Tuples_1 = require("../Tuples");
+var BuildingEffect_1 = require("../model/BuildingEffect");
+var ToggleBaysMode = /** @class */ (function (_super) {
+    __extends(ToggleBaysMode, _super);
+    function ToggleBaysMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
+                return mousePosOp.bind(screenPointToWorldRayOp);
+            });
+            var cBayUnderMouseOp = sodium.Cell.switchC(params.cBays.map(sodium.lambda1(function (bays) {
+                return SodiumUtil.cellLiftArray(bays.map(function (bay) {
+                    return bay
+                        .cRayOpCollisionTimeOp(cMouseRayOp)
+                        .map(function (tOp) { return tOp.map(function (t) { return Tuples_1.T2.of(bay, t); }); });
+                }))
+                    .map(function (x) { return ArrayUtil_1.arraySomes(x); })
+                    .map(function (bays2) {
+                    return ArrayUtil_1.arrayReduce(bays2, function (a, b) { return a._2 < b._2 ? a : b; })
+                        .map(function (a) { return a._1; });
+                });
+            }, [cMouseRayOp])));
+            var cHighlightedStableNames = SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cBayUnderMouseOp.map(function (bayUnderMouseOp) {
+                return bayUnderMouseOp
+                    .map(function (bayUnderMouse) {
+                    return bayUnderMouse
+                        .cStableName
+                        .map(function (stableName) { return [stableName]; });
+                })
+                    .orSome_(function () { return new sodium.Cell([]); });
+            })));
+            //cHighlightedStableNames.listen(x => console.log(x));
+            var cRoofVisible = new sodium.Cell(false);
+            var sBuildingEffect = SodiumUtil.streamFilterOption(params.sMouseLeftPressed
+                .snapshot1(cBayUnderMouseOp)
+                .map(function (bayUnderMouseOp) {
+                return bayUnderMouseOp
+                    .map(function (bayUnderMouse) {
+                    return BuildingEffect_1.BuildingEffect.toggleBay(bayUnderMouse.cParentStableName.sample(), bayUnderMouse.cBayIndex.sample());
+                });
+            }));
+            _this._cHighlightedStableNames = cHighlightedStableNames;
+            _this._cRoofVisible = cRoofVisible;
+            _this._sBuildingEffect = sBuildingEffect;
+        });
+        return _this;
+    }
+    Object.defineProperty(ToggleBaysMode.prototype, "cHighlightedStableNames", {
+        get: function () {
+            return this._cHighlightedStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ToggleBaysMode.prototype, "cRoofVisible", {
+        get: function () {
+            return this._cRoofVisible;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ToggleBaysMode.prototype, "sBuildingEffect", {
+        get: function () {
+            return this._sBuildingEffect;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return ToggleBaysMode;
+}(Mode_1.Mode));
+exports.ToggleBaysMode = ToggleBaysMode;
+//# sourceMappingURL=ToggleBaysMode.js.map
+});
+___scope___.file("app/modes/ToggleWallsMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var ArrayUtil_1 = require("../ArrayUtil");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Tuples_1 = require("../Tuples");
+var BuildingEffect_1 = require("../model/BuildingEffect");
+var Mode_1 = require("./Mode");
+var ToggleWallsMode = /** @class */ (function (_super) {
+    __extends(ToggleWallsMode, _super);
+    function ToggleWallsMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
+                return mousePosOp.bind(screenPointToWorldRayOp);
+            });
+            var cBayUnderMouseOp = sodium.Cell.switchC(params.cBays.map(sodium.lambda1(function (bays) {
+                return SodiumUtil.cellLiftArray(bays.map(function (bay) {
+                    return bay
+                        .cRayOpCollisionTimeOp(cMouseRayOp)
+                        .map(function (tOp) { return tOp.map(function (t) { return Tuples_1.T2.of(bay, t); }); });
+                }))
+                    .map(function (x) { return ArrayUtil_1.arraySomes(x); })
+                    .map(function (bays2) {
+                    return ArrayUtil_1.arrayReduce(bays2, function (a, b) { return a._2 < b._2 ? a : b; })
+                        .map(function (a) { return a._1; });
+                });
+            }, [cMouseRayOp])));
+            var cPhantomWallUnderMouseOp = sodium.Cell.switchC(cBayUnderMouseOp.lift(params.cPhantomWalls, sodium.lambda2(function (bayUnderMouseOp, phantomWalls) {
+                return bayUnderMouseOp.isSome ?
+                    new sodium.Cell(Option_1.Option.none()) :
+                    SodiumUtil.cellLiftArray(phantomWalls
+                        .get()
+                        .map(function (phantomWall) {
+                        return phantomWall
+                            ._2
+                            .cRayOpCollisionTimeOpFn(cMouseRayOp)
+                            .map(function (tOp) { return tOp.map(function (t) { return Tuples_1.T2.of(phantomWall, t); }); });
+                    }))
+                        .map(function (x) { return ArrayUtil_1.arraySomes(x); })
+                        .map(function (phantomWalls2) {
+                        return ArrayUtil_1.arrayReduce(phantomWalls2, function (a, b) { return a._2 < b._2 ? a : b; })
+                            .map(function (a) { return a._1; });
+                    });
+            }, [cMouseRayOp])));
+            var cOverlayModelOp = sodium.Cell.switchC(cPhantomWallUnderMouseOp.lift(params.cPhantomWalls, function (phantomWallUnderMouseOp, phantomWalls) {
+                return SodiumUtil.cellLiftArray([
+                    phantomWallUnderMouseOp
+                        .map(function (phantomWallUnderMouse) {
+                        return phantomWallUnderMouse._2.cModel
+                            .map(function (x) { return [x]; });
+                    })
+                        .orSome_(function () { return new sodium.Cell([]); }),
+                    SodiumUtil.cellLiftArray(phantomWalls
+                        .get()
+                        .map(function (phantomWall) {
+                        return phantomWall._2
+                            .cDashedLineModel;
+                    }))
+                ])
+                    .map(function (x) { return ArrayUtil_1.arrayJoin(x); })
+                    .map(function (models) {
+                    return models.length == 0 ?
+                        Option_1.Option.none() :
+                        Option_1.Option.some(MkModelEffect_1.MkModelEffect.compose(models));
+                });
+            }));
+            var cHighlightedStableNames = sodium.Cell.switchC(cBayUnderMouseOp.map(function (bayUnderMouseOp) {
+                return bayUnderMouseOp
+                    .map(function (bayUnderMouse) {
+                    return bayUnderMouse
+                        .cStableName
+                        .map(function (stableName) { return [stableName]; });
+                })
+                    .orSome_(function () { return new sodium.Cell([]); });
+            }));
+            var sBuildingEffect = SodiumUtil.streamFilterOption(params.sMouseLeftPressed
+                .snapshot1(cPhantomWallUnderMouseOp)
+                .map(function (phantomWallUnderMouseOp) {
+                return phantomWallUnderMouseOp.map(function (phantomWallUnderMouse) {
+                    return BuildingEffect_1.BuildingEffect.toggleInternalWallByBayMarkerIndex(phantomWallUnderMouse._1);
+                });
+            }));
+            var cRoofVisible = new sodium.Cell(false);
+            _this._cOverlayModelOp = cOverlayModelOp;
+            _this._cHighlightStableNames = cHighlightedStableNames;
+            _this._cRoofVisible = cRoofVisible;
+            _this._sBuildingEffect = sBuildingEffect;
+        });
+        return _this;
+    }
+    Object.defineProperty(ToggleWallsMode.prototype, "cOverlayModelOp", {
+        get: function () {
+            return this._cOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ToggleWallsMode.prototype, "cHighlightedStableNames", {
+        get: function () {
+            return this._cHighlightStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ToggleWallsMode.prototype, "cRoofVisible", {
+        get: function () {
+            return this._cRoofVisible;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ToggleWallsMode.prototype, "sBuildingEffect", {
+        get: function () {
+            return this._sBuildingEffect;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return ToggleWallsMode;
+}(Mode_1.Mode));
+exports.ToggleWallsMode = ToggleWallsMode;
+//# sourceMappingURL=ToggleWallsMode.js.map
+});
+___scope___.file("app/model/WallData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var WallData = /** @class */ (function () {
+    function WallData(params) {
+        this._params = params;
+    }
+    Object.defineProperty(WallData.prototype, "openings", {
+        get: function () {
+            return this._params.openings;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WallData.prototype, "openBayIndices", {
+        get: function () {
+            return this._params.openBayIndices;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WallData, "default_", {
+        get: function () {
+            return WallData._default;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    WallData.create = function (params) {
+        return new WallData(params);
+    };
+    WallData.prototype.from = function (params) {
+        return WallData.create(Object.assign({}, this._params, params));
+    };
+    WallData._default = WallData.create({ openings: [], openBayIndices: [] });
+    return WallData;
+}());
+exports.WallData = WallData;
+//# sourceMappingURL=WallData.js.map
+});
 ___scope___.file("app/model/Operation.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -3575,6 +5809,22 @@ var Operation = /** @class */ (function () {
                 else {
                     return default_;
                 }
+            },
+            toggleWalls: function () {
+                if (cases.toggleWalls) {
+                    return cases.toggleWalls();
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleBays: function () {
+                if (cases.toggleBays) {
+                    return cases.toggleBays();
+                }
+                else {
+                    return default_;
+                }
             }
         });
     };
@@ -3583,6 +5833,12 @@ var Operation = /** @class */ (function () {
     };
     Operation.insertOpening = function (openingType) {
         return new OperationInsertOpening(openingType);
+    };
+    Operation.toggleWalls = function () {
+        return new OperationToggleWalls();
+    };
+    Operation.toggleBays = function () {
+        return new OperationToggleBays();
     };
     return Operation;
 }());
@@ -3608,6 +5864,26 @@ var OperationInsertOpening = /** @class */ (function (_super) {
         return cases.insertOpening(this._openingType);
     };
     return OperationInsertOpening;
+}(Operation));
+var OperationToggleWalls = /** @class */ (function (_super) {
+    __extends(OperationToggleWalls, _super);
+    function OperationToggleWalls() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationToggleWalls.prototype.match = function (cases) {
+        return cases.toggleWalls();
+    };
+    return OperationToggleWalls;
+}(Operation));
+var OperationToggleBays = /** @class */ (function (_super) {
+    __extends(OperationToggleBays, _super);
+    function OperationToggleBays() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationToggleBays.prototype.match = function (cases) {
+        return cases.toggleBays();
+    };
+    return OperationToggleBays;
 }(Operation));
 //# sourceMappingURL=Operation.js.map
 });
@@ -53241,8 +55517,8 @@ var StreamWithSend = /** @class */ (function (_super) {
         // We throw this error if we send into FRP logic that has been constructed
         // but nothing is listening to it yet. We need to do it this way because
         // it's the only way to manage memory in a language with no finalizers.
-        if (this.vertex.refCount() == 0)
-            throw new Error("send() was invoked before listeners were registered");
+        //if (this.vertex.refCount() == 0)
+        //    throw new Error("send() was invoked before listeners were registered");
         if (this.firings.length == 0)
             Transaction.currentTransaction.last(function () {
                 _this.firings = [];
@@ -59336,6 +61612,549 @@ ___scope___.file("index.js", function(exports, require, module, __filename, __di
 
 });
 return ___scope___.entry = "index.js";
+});
+FuseBox.pkg("csg2d", {}, function(___scope___){
+___scope___.file("csg2d.js", function(exports, require, module, __filename, __dirname){
+
+// Constructive Solid Geometry (CSG) is a modeling technique that uses Boolean
+// operations like union and intersection to combine 3D solids. This library
+// implements CSG operations on 2D polygons elegantly and concisely using BSP trees,
+// and is meant to serve as an easily understandable implementation of the
+// algorithm.
+// 
+// Example usage:
+// 
+//   var subjectPolygon = CSG.fromPolygons([[10, 10], [100, 10], [50, 140]]);
+//   var clipPolygon = CSG.fromPolygons([[10, 100], [50, 10], [100, 100]]);
+//   var polygons = subjectPolygon.subtract(clipPolygon).toPolygons();
+// 
+// ## Implementation Details
+// 
+// All CSG operations are implemented in terms of two functions, `clipTo()` and
+// `invert()`, which remove parts of a BSP tree inside another BSP tree and swap
+// solid and empty space, respectively. To find the union of `a` and `b`, we
+// want to remove everything in `a` inside `b` and everything in `b` inside `a`,
+// then combine polygons from `a` and `b` into one solid:
+// 
+//   a.clipTo(b);
+//   b.clipTo(a);
+//   a.build(b.allPolygons());
+// 
+// The only tricky part is handling overlapping coplanar polygons in both trees.
+// The code above keeps both copies, but we need to keep them in one tree and
+// remove them in the other tree. To remove them from `b` we can clip the
+// inverse of `b` against `a`. The code for union now looks like this:
+// 
+//   a.clipTo(b);
+//   b.clipTo(a);
+//   b.invert();
+//   b.clipTo(a);
+//   b.invert();
+//   a.build(b.allPolygons());
+// 
+// Subtraction and intersection naturally follow from set operations. If
+// union is `A | B`, subtraction is `A - B = ~(~A | B)` and intersection is
+// `A & B = ~(~A | ~B)` where `~` is the complement operator.
+// 
+// ## License
+// 
+// Copyright (c) 2011 Evan Wallace (http://madebyevan.com/), under the MIT license.
+
+// # class CSG
+
+// Holds a binary space partition tree representing a 3D solid. Two solids can
+// be combined using the `union()`, `subtract()`, and `intersect()` methods.
+
+
+(function(m) {
+  // CommonJS
+  if (typeof module != "undefined") {
+    console.log("FOOO");
+    module.exports = m();
+  // Browser
+  } else {
+    window.CSG = m();
+  }
+})(function() {
+
+  var CSG = function() {
+    this.segments = [];
+  };
+
+  CSG.fromSegments = function(segments) {
+    var csg = new CSG();
+    csg.segments = segments;
+    return csg;
+  };
+
+  // Construct a CSG solid from a list of `CSG.Polygon` instances.
+  CSG.fromPolygons = function(polygons) {
+    var csg = new CSG();
+    csg.segments = [];
+    for (var i = 0; i < polygons.length; i++) {
+      for (var j = 0; j < polygons[i].length; j++) {
+        var k = (j + 1) % (polygons[i].length);
+        csg.segments.push(new CSG.Segment([new CSG.Vector(polygons[i][j]), new CSG.Vector(polygons[i][k])]));
+      }
+    }
+    return csg;
+  };
+
+  CSG.prototype = {
+    clone: function() {
+      var csg = new CSG();
+      csg.segments = this.segments.map(function(p) {
+        return p.clone();
+      });
+      return csg;
+    },
+
+    toSegments: function() {
+      return this.segments;
+    },
+
+    toPolygons: function() {
+      var segments = this.toSegments();
+
+      var polygons = [];
+
+      var list = segments.slice();
+
+      var findNext = function(extremum) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].vertices[0].squaredLengthTo(extremum) < 1) {
+            var result = list[i].clone();
+            list.splice(i, 1);
+            return result;
+          }
+        }
+        return false;
+      }
+      var currentIndex = 0;
+      while (list.length > 0) {
+        polygons[currentIndex] = polygons[currentIndex] || [];
+        if (polygons[currentIndex].length == 0) {
+          polygons[currentIndex].push(list[0].vertices[0]);
+          polygons[currentIndex].push(list[0].vertices[1]);
+          list.splice(0, 1);
+        }
+
+        var next = findNext(polygons[currentIndex][polygons[currentIndex].length - 1]);
+        if (next) {
+          polygons[currentIndex].push(next.vertices[1]);
+        } else {
+          currentIndex++;
+        }
+      }
+
+      return polygons;
+    },
+
+    // Return a new CSG solid representing space in either this solid or in the
+    // solid `csg`. Neither this solid nor the solid `csg` are modified.
+    // 
+    //   A.union(B)
+    // 
+    //   +-------+      +-------+
+    //   |     |      |     |
+    //   |   A   |      |     |
+    //   |  +--+----+   =   |     +----+
+    //   +----+--+  |     +----+     |
+    //      |   B   |      |     |
+    //      |     |      |     |
+    //      +-------+      +-------+
+    // 
+    union: function(csg) {
+      var a = new CSG.Node(this.clone().segments);
+      var b = new CSG.Node(csg.clone().segments);
+      a.invert();
+      b.clipTo(a);
+      b.invert();
+      a.clipTo(b);
+      b.clipTo(a);
+      a.build(b.allSegments());
+      a.invert();
+      return CSG.fromSegments(a.allSegments());
+    },
+
+
+    // Return a new CSG solid representing space in this solid but not in the
+    // solid `csg`. Neither this solid nor the solid `csg` are modified.
+    // 
+    //   A.subtract(B)
+    // 
+    //   +-------+      +-------+
+    //   |     |      |     |
+    //   |   A   |      |     |
+    //   |  +--+----+   =   |  +--+
+    //   +----+--+  |     +----+
+    //      |   B   |
+    //      |     |
+    //      +-------+
+    // 
+    subtract: function(csg) {
+      var b = new CSG.Node(this.clone().segments);
+      var a = new CSG.Node(csg.clone().segments);
+      a.invert();
+      a.clipTo(b);
+      b.clipTo(a);
+      b.invert();
+      b.clipTo(a);
+      b.invert();
+      a.build(b.allSegments());
+      a.invert();
+      return CSG.fromSegments(a.allSegments()).inverse();
+    },
+
+    // Return a new CSG solid representing space both this solid and in the
+    // solid `csg`. Neither this solid nor the solid `csg` are modified.
+    // 
+    //   A.intersect(B)
+    // 
+    //   +-------+
+    //   |     |
+    //   |   A   |
+    //   |  +--+----+   =   +--+
+    //   +----+--+  |     +--+
+    //      |   B   |
+    //      |     |
+    //      +-------+
+    // 
+    intersect: function(csg) {
+      var a = new CSG.Node(this.clone().segments);
+      var b = new CSG.Node(csg.clone().segments);
+      a.clipTo(b);
+      b.clipTo(a);
+      b.invert();
+      b.clipTo(a);
+      b.invert();
+      a.build(b.allSegments());
+      return CSG.fromSegments(a.allSegments());
+    },
+
+    // Return a new CSG solid with solid and empty space switched. This solid is
+    // not modified.
+    inverse: function() {
+      var csg = this.clone();
+      csg.segments.map(function(p) {
+        p.flip();
+      });
+      return csg;
+    }
+  };
+
+  // # class Vector
+
+  // Represents a 3D vector.
+  // 
+  // Example usage:
+  // 
+  //   new CSG.Vector(1, 2);
+  //   new CSG.Vector([1, 2]);
+  //   new CSG.Vector({ x: 1, y: 2 });
+
+  CSG.Vector = function(x, y) {
+    if (arguments.length == 2) {
+      this.x = x;
+      this.y = y;
+    } else if ('x' in x) {
+      this.x = x.x;
+      this.y = x.y;
+    } else {
+      this.x = x[0];
+      this.y = x[1];
+    }
+  };
+
+  CSG.Vector.prototype = {
+    clone: function() {
+      return new CSG.Vector(this.x, this.y);
+    },
+
+    negated: function() {
+      return new CSG.Vector(-this.x, -this.y);
+    },
+
+    plus: function(a) {
+      return new CSG.Vector(this.x + a.x, this.y + a.y);
+    },
+
+    minus: function(a) {
+      return new CSG.Vector(this.x - a.x, this.y - a.y);
+    },
+
+    times: function(a) {
+      return new CSG.Vector(this.x * a, this.y * a);
+    },
+
+    dividedBy: function(a) {
+      return new CSG.Vector(this.x / a, this.y / a);
+    },
+
+    dot: function(a) {
+      return this.x * a.x + this.y * a.y;
+    },
+
+    lerp: function(a, t) {
+      return this.plus(a.minus(this).times(t));
+    },
+
+    length: function() {
+      return Math.sqrt(this.dot(this));
+    },
+
+    unit: function() {
+      return this.dividedBy(this.length());
+    },
+
+    squaredLengthTo: function(b) {
+      return (this.x - b.x) * (this.x - b.x) + (this.y - b.y) * (this.y - b.y);
+    }
+  };
+
+  // # class line
+
+  CSG.Line = function(origin, direction) {
+    this.origin = origin;
+    this.direction = direction;
+    this.normal = (new CSG.Vector(this.direction.y, -this.direction.x));
+  };
+
+  CSG.Line.EPSILON = 1e-5;
+
+  CSG.Line.fromPoints = function(a, b) {
+    var dir = b.minus(a).unit();
+    return new CSG.Line(a, dir);
+  };
+
+  CSG.Line.prototype = {
+    clone: function() {
+      return new CSG.Line(this.origin.clone(), this.direction.clone());
+    },
+
+    flip: function() {
+      this.direction = this.direction.negated();
+      this.normal = this.normal.negated();
+    },
+
+    // Split `segment` by this line if needed, then put the segment or segment
+    // fragments in the appropriate lists. Colinear segments go into either
+    // `colinearRight` or `colinearLeft` depending on their orientation with
+    // respect to this line. segments in right or in left of this line go into
+    // either `right` or `left`.
+    splitSegment: function(segment, colinearRight, colinearLeft, right, left) {
+      var COLINEAR = 0;
+      var RIGHT = 1;
+      var LEFT = 2;
+      var SPANNING = 3;
+
+      // Classify each point as well as the entire polygon into one of the above
+      // four classes.
+      var segmentType = 0;
+      var types = [];
+      for (var i = 0; i < segment.vertices.length; i++) {
+        var t = this.normal.dot(segment.vertices[i].minus(this.origin));
+        var type = (t < -CSG.Line.EPSILON) ? RIGHT : (t > CSG.Line.EPSILON) ? LEFT : COLINEAR;
+        segmentType |= type;
+        types.push(type);
+      }
+
+      // Put the segment in the correct list, splitting it when necessary.
+      switch (segmentType) {
+        case COLINEAR:
+          if (t != 0) {
+            (t > 0 ? colinearRight : colinearLeft).push(segment);
+          } else {
+            if (segment.line.origin.x < this.origin.x) {
+              colinearLeft.push(segment)
+            } else {
+              colinearRight.push(segment)
+            }
+          }
+          break;
+        case RIGHT:
+          right.push(segment);
+          break;
+        case LEFT:
+          left.push(segment);
+          break;
+        case SPANNING: //TODO
+          var r = [],
+            l = [];
+          var ti = types[0],
+            tj = types[1];
+          var vi = segment.vertices[0],
+            vj = segment.vertices[1];
+          if (ti == RIGHT && tj == RIGHT) {
+            r.push(vi);
+            r.push(vj);
+          }
+          if (ti == LEFT && tj == LEFT) {
+            l.push(vi);
+            l.push(vj);
+          }
+          if (ti == RIGHT && tj == LEFT) {
+            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
+            var v = vi.lerp(vj, t);
+            r.push(vi);
+            r.push(v);
+            l.push(v.clone());
+            l.push(vj);
+          }
+          if (ti == LEFT && tj == RIGHT) {
+            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
+            var v = vi.lerp(vj, t);
+            l.push(vi);
+            l.push(v);
+            r.push(v.clone());
+            r.push(vj);
+          }
+          if (r.length >= 2) {
+            right.push(new CSG.Segment(r, segment.shared));
+          }
+
+          if (l.length >= 2) {
+            left.push(new CSG.Segment(l, segment.shared));
+          }
+          break;
+      }
+    }
+  };
+
+  // # class Segment
+
+  // Represents a convex segment. The vertices used to initialize a segment must
+  // be coplanar and form a convex loop. They do not have to be `CSG.Vertex`
+  // instances but they must behave similarly (duck typing can be used for
+  // customization).
+  // 
+  // Each convex segment has a `shared` property, which is shared between all
+  // segments that are clones of each other or were split from the same segment.
+  // This can be used to define per-segment properties (such as surface color).
+
+  CSG.Segment = function(vertices, shared) {
+    this.vertices = vertices;
+    this.shared = shared;
+    this.line = CSG.Line.fromPoints(vertices[0], vertices[1]);
+  };
+
+  CSG.Segment.prototype = {
+    clone: function() {
+      var vertices = this.vertices.map(function(v) {
+        return v.clone();
+      });
+      return new CSG.Segment(vertices, this.shared);
+    },
+
+    flip: function() {
+      this.vertices.reverse().map(function(v) {
+        v.negated();
+      });
+      this.line.flip();
+    }
+  };
+
+  // # class Node
+
+  // Holds a node in a BSP tree. A BSP tree is built from a collection of polygons
+  // by picking a polygon to split along. That polygon (and all other coplanar
+  // polygons) are added directly to that node and the other polygons are added to
+  // the right and/or left subtrees. This is not a leafy BSP tree since there is
+  // no distinction between internal and leaf nodes.
+
+  CSG.Node = function(segments) {
+    this.line = null;
+    this.right = null;
+    this.left = null;
+    this.segments = [];
+    if (segments) this.build(segments);
+  };
+
+  CSG.Node.prototype = {
+    clone: function() {
+      var node = new CSG.Node();
+      node.line = this.line && this.line.clone();
+      node.right = this.right && this.right.clone();
+      node.left = this.left && this.left.clone();
+      note.segments = this.segments.map(function(p) {
+        return p.clone();
+      });
+      return node;
+    },
+
+    // Convert solid space to empty space and empty space to solid space.
+    invert: function() {
+      for (var i = 0; i < this.segments.length; i++) {
+        this.segments[i].flip();
+      }
+      this.line.flip();
+      if (this.right) this.right.invert();
+      if (this.left) this.left.invert();
+      var temp = this.right;
+      this.right = this.left;
+      this.left = temp;
+    },
+
+    // Recursively remove all segments in `segments` that are inside this BSP
+    // tree.
+
+    clipSegments: function(segments) {
+      if (!this.line) return segments.slice();
+      var right = [],
+        left = [];
+      for (var i = 0; i < segments.length; i++) {
+        this.line.splitSegment(segments[i], right, left, right, left);
+      }
+      if (this.right) right = this.right.clipSegments(right);
+      if (this.left) left = this.left.clipSegments(left);
+      else left = [];
+      return right.concat(left);
+    },
+
+    // Remove all segments in this BSP tree that are inside the other BSP tree
+    // `bsp`.
+    clipTo: function(bsp) {
+      this.segments = bsp.clipSegments(this.segments);
+      if (this.right) this.right.clipTo(bsp);
+      if (this.left) this.left.clipTo(bsp);
+    },
+
+    // Return a list of all segments in this BSP tree.
+    allSegments: function() {
+      var segments = this.segments.slice();
+      if (this.right) segments = segments.concat(this.right.allSegments());
+      if (this.left) segments = segments.concat(this.left.allSegments());
+      return segments;
+    },
+
+    // Build a BSP tree out of `segments`. When called on an existing tree, the
+    // new segments are filtered down to the bottom of the tree and become new
+    // nodes there. Each set of segments is partitioned using the first polygon
+    // (no heuristic is used to pick a good split).
+    build: function(segments) {
+      if (!segments.length) return;
+      if (!this.line) this.line = segments[0].line.clone();
+      var right = [],
+        left = [];
+      for (var i = 0; i < segments.length; i++) {
+        this.line.splitSegment(segments[i], this.segments, this.segments, right, left);
+      }
+      if (right.length) {
+        if (!this.right) this.right = new CSG.Node();
+        this.right.build(right);
+      }
+      if (left.length) {
+        if (!this.left) this.left = new CSG.Node();
+        this.left.build(left);
+      }
+    }
+  };
+
+  return CSG;
+});
+
+});
+return ___scope___.entry = "csg2d.js";
 });
 FuseBox.pkg("jszip", {"core-js":"2.3.0"}, function(___scope___){
 ___scope___.file("lib/index.js", function(exports, require, module, __filename, __dirname){
@@ -73237,549 +76056,6 @@ module.exports = GZheader;
 
 });
 return ___scope___.entry = "index.js";
-});
-FuseBox.pkg("csg2d", {}, function(___scope___){
-___scope___.file("csg2d.js", function(exports, require, module, __filename, __dirname){
-
-// Constructive Solid Geometry (CSG) is a modeling technique that uses Boolean
-// operations like union and intersection to combine 3D solids. This library
-// implements CSG operations on 2D polygons elegantly and concisely using BSP trees,
-// and is meant to serve as an easily understandable implementation of the
-// algorithm.
-// 
-// Example usage:
-// 
-//   var subjectPolygon = CSG.fromPolygons([[10, 10], [100, 10], [50, 140]]);
-//   var clipPolygon = CSG.fromPolygons([[10, 100], [50, 10], [100, 100]]);
-//   var polygons = subjectPolygon.subtract(clipPolygon).toPolygons();
-// 
-// ## Implementation Details
-// 
-// All CSG operations are implemented in terms of two functions, `clipTo()` and
-// `invert()`, which remove parts of a BSP tree inside another BSP tree and swap
-// solid and empty space, respectively. To find the union of `a` and `b`, we
-// want to remove everything in `a` inside `b` and everything in `b` inside `a`,
-// then combine polygons from `a` and `b` into one solid:
-// 
-//   a.clipTo(b);
-//   b.clipTo(a);
-//   a.build(b.allPolygons());
-// 
-// The only tricky part is handling overlapping coplanar polygons in both trees.
-// The code above keeps both copies, but we need to keep them in one tree and
-// remove them in the other tree. To remove them from `b` we can clip the
-// inverse of `b` against `a`. The code for union now looks like this:
-// 
-//   a.clipTo(b);
-//   b.clipTo(a);
-//   b.invert();
-//   b.clipTo(a);
-//   b.invert();
-//   a.build(b.allPolygons());
-// 
-// Subtraction and intersection naturally follow from set operations. If
-// union is `A | B`, subtraction is `A - B = ~(~A | B)` and intersection is
-// `A & B = ~(~A | ~B)` where `~` is the complement operator.
-// 
-// ## License
-// 
-// Copyright (c) 2011 Evan Wallace (http://madebyevan.com/), under the MIT license.
-
-// # class CSG
-
-// Holds a binary space partition tree representing a 3D solid. Two solids can
-// be combined using the `union()`, `subtract()`, and `intersect()` methods.
-
-
-(function(m) {
-  // CommonJS
-  if (typeof module != "undefined") {
-    console.log("FOOO");
-    module.exports = m();
-  // Browser
-  } else {
-    window.CSG = m();
-  }
-})(function() {
-
-  var CSG = function() {
-    this.segments = [];
-  };
-
-  CSG.fromSegments = function(segments) {
-    var csg = new CSG();
-    csg.segments = segments;
-    return csg;
-  };
-
-  // Construct a CSG solid from a list of `CSG.Polygon` instances.
-  CSG.fromPolygons = function(polygons) {
-    var csg = new CSG();
-    csg.segments = [];
-    for (var i = 0; i < polygons.length; i++) {
-      for (var j = 0; j < polygons[i].length; j++) {
-        var k = (j + 1) % (polygons[i].length);
-        csg.segments.push(new CSG.Segment([new CSG.Vector(polygons[i][j]), new CSG.Vector(polygons[i][k])]));
-      }
-    }
-    return csg;
-  };
-
-  CSG.prototype = {
-    clone: function() {
-      var csg = new CSG();
-      csg.segments = this.segments.map(function(p) {
-        return p.clone();
-      });
-      return csg;
-    },
-
-    toSegments: function() {
-      return this.segments;
-    },
-
-    toPolygons: function() {
-      var segments = this.toSegments();
-
-      var polygons = [];
-
-      var list = segments.slice();
-
-      var findNext = function(extremum) {
-        for (var i = 0; i < list.length; i++) {
-          if (list[i].vertices[0].squaredLengthTo(extremum) < 1) {
-            var result = list[i].clone();
-            list.splice(i, 1);
-            return result;
-          }
-        }
-        return false;
-      }
-      var currentIndex = 0;
-      while (list.length > 0) {
-        polygons[currentIndex] = polygons[currentIndex] || [];
-        if (polygons[currentIndex].length == 0) {
-          polygons[currentIndex].push(list[0].vertices[0]);
-          polygons[currentIndex].push(list[0].vertices[1]);
-          list.splice(0, 1);
-        }
-
-        var next = findNext(polygons[currentIndex][polygons[currentIndex].length - 1]);
-        if (next) {
-          polygons[currentIndex].push(next.vertices[1]);
-        } else {
-          currentIndex++;
-        }
-      }
-
-      return polygons;
-    },
-
-    // Return a new CSG solid representing space in either this solid or in the
-    // solid `csg`. Neither this solid nor the solid `csg` are modified.
-    // 
-    //   A.union(B)
-    // 
-    //   +-------+      +-------+
-    //   |     |      |     |
-    //   |   A   |      |     |
-    //   |  +--+----+   =   |     +----+
-    //   +----+--+  |     +----+     |
-    //      |   B   |      |     |
-    //      |     |      |     |
-    //      +-------+      +-------+
-    // 
-    union: function(csg) {
-      var a = new CSG.Node(this.clone().segments);
-      var b = new CSG.Node(csg.clone().segments);
-      a.invert();
-      b.clipTo(a);
-      b.invert();
-      a.clipTo(b);
-      b.clipTo(a);
-      a.build(b.allSegments());
-      a.invert();
-      return CSG.fromSegments(a.allSegments());
-    },
-
-
-    // Return a new CSG solid representing space in this solid but not in the
-    // solid `csg`. Neither this solid nor the solid `csg` are modified.
-    // 
-    //   A.subtract(B)
-    // 
-    //   +-------+      +-------+
-    //   |     |      |     |
-    //   |   A   |      |     |
-    //   |  +--+----+   =   |  +--+
-    //   +----+--+  |     +----+
-    //      |   B   |
-    //      |     |
-    //      +-------+
-    // 
-    subtract: function(csg) {
-      var b = new CSG.Node(this.clone().segments);
-      var a = new CSG.Node(csg.clone().segments);
-      a.invert();
-      a.clipTo(b);
-      b.clipTo(a);
-      b.invert();
-      b.clipTo(a);
-      b.invert();
-      a.build(b.allSegments());
-      a.invert();
-      return CSG.fromSegments(a.allSegments()).inverse();
-    },
-
-    // Return a new CSG solid representing space both this solid and in the
-    // solid `csg`. Neither this solid nor the solid `csg` are modified.
-    // 
-    //   A.intersect(B)
-    // 
-    //   +-------+
-    //   |     |
-    //   |   A   |
-    //   |  +--+----+   =   +--+
-    //   +----+--+  |     +--+
-    //      |   B   |
-    //      |     |
-    //      +-------+
-    // 
-    intersect: function(csg) {
-      var a = new CSG.Node(this.clone().segments);
-      var b = new CSG.Node(csg.clone().segments);
-      a.clipTo(b);
-      b.clipTo(a);
-      b.invert();
-      b.clipTo(a);
-      b.invert();
-      a.build(b.allSegments());
-      return CSG.fromSegments(a.allSegments());
-    },
-
-    // Return a new CSG solid with solid and empty space switched. This solid is
-    // not modified.
-    inverse: function() {
-      var csg = this.clone();
-      csg.segments.map(function(p) {
-        p.flip();
-      });
-      return csg;
-    }
-  };
-
-  // # class Vector
-
-  // Represents a 3D vector.
-  // 
-  // Example usage:
-  // 
-  //   new CSG.Vector(1, 2);
-  //   new CSG.Vector([1, 2]);
-  //   new CSG.Vector({ x: 1, y: 2 });
-
-  CSG.Vector = function(x, y) {
-    if (arguments.length == 2) {
-      this.x = x;
-      this.y = y;
-    } else if ('x' in x) {
-      this.x = x.x;
-      this.y = x.y;
-    } else {
-      this.x = x[0];
-      this.y = x[1];
-    }
-  };
-
-  CSG.Vector.prototype = {
-    clone: function() {
-      return new CSG.Vector(this.x, this.y);
-    },
-
-    negated: function() {
-      return new CSG.Vector(-this.x, -this.y);
-    },
-
-    plus: function(a) {
-      return new CSG.Vector(this.x + a.x, this.y + a.y);
-    },
-
-    minus: function(a) {
-      return new CSG.Vector(this.x - a.x, this.y - a.y);
-    },
-
-    times: function(a) {
-      return new CSG.Vector(this.x * a, this.y * a);
-    },
-
-    dividedBy: function(a) {
-      return new CSG.Vector(this.x / a, this.y / a);
-    },
-
-    dot: function(a) {
-      return this.x * a.x + this.y * a.y;
-    },
-
-    lerp: function(a, t) {
-      return this.plus(a.minus(this).times(t));
-    },
-
-    length: function() {
-      return Math.sqrt(this.dot(this));
-    },
-
-    unit: function() {
-      return this.dividedBy(this.length());
-    },
-
-    squaredLengthTo: function(b) {
-      return (this.x - b.x) * (this.x - b.x) + (this.y - b.y) * (this.y - b.y);
-    }
-  };
-
-  // # class line
-
-  CSG.Line = function(origin, direction) {
-    this.origin = origin;
-    this.direction = direction;
-    this.normal = (new CSG.Vector(this.direction.y, -this.direction.x));
-  };
-
-  CSG.Line.EPSILON = 1e-5;
-
-  CSG.Line.fromPoints = function(a, b) {
-    var dir = b.minus(a).unit();
-    return new CSG.Line(a, dir);
-  };
-
-  CSG.Line.prototype = {
-    clone: function() {
-      return new CSG.Line(this.origin.clone(), this.direction.clone());
-    },
-
-    flip: function() {
-      this.direction = this.direction.negated();
-      this.normal = this.normal.negated();
-    },
-
-    // Split `segment` by this line if needed, then put the segment or segment
-    // fragments in the appropriate lists. Colinear segments go into either
-    // `colinearRight` or `colinearLeft` depending on their orientation with
-    // respect to this line. segments in right or in left of this line go into
-    // either `right` or `left`.
-    splitSegment: function(segment, colinearRight, colinearLeft, right, left) {
-      var COLINEAR = 0;
-      var RIGHT = 1;
-      var LEFT = 2;
-      var SPANNING = 3;
-
-      // Classify each point as well as the entire polygon into one of the above
-      // four classes.
-      var segmentType = 0;
-      var types = [];
-      for (var i = 0; i < segment.vertices.length; i++) {
-        var t = this.normal.dot(segment.vertices[i].minus(this.origin));
-        var type = (t < -CSG.Line.EPSILON) ? RIGHT : (t > CSG.Line.EPSILON) ? LEFT : COLINEAR;
-        segmentType |= type;
-        types.push(type);
-      }
-
-      // Put the segment in the correct list, splitting it when necessary.
-      switch (segmentType) {
-        case COLINEAR:
-          if (t != 0) {
-            (t > 0 ? colinearRight : colinearLeft).push(segment);
-          } else {
-            if (segment.line.origin.x < this.origin.x) {
-              colinearLeft.push(segment)
-            } else {
-              colinearRight.push(segment)
-            }
-          }
-          break;
-        case RIGHT:
-          right.push(segment);
-          break;
-        case LEFT:
-          left.push(segment);
-          break;
-        case SPANNING: //TODO
-          var r = [],
-            l = [];
-          var ti = types[0],
-            tj = types[1];
-          var vi = segment.vertices[0],
-            vj = segment.vertices[1];
-          if (ti == RIGHT && tj == RIGHT) {
-            r.push(vi);
-            r.push(vj);
-          }
-          if (ti == LEFT && tj == LEFT) {
-            l.push(vi);
-            l.push(vj);
-          }
-          if (ti == RIGHT && tj == LEFT) {
-            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
-            var v = vi.lerp(vj, t);
-            r.push(vi);
-            r.push(v);
-            l.push(v.clone());
-            l.push(vj);
-          }
-          if (ti == LEFT && tj == RIGHT) {
-            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
-            var v = vi.lerp(vj, t);
-            l.push(vi);
-            l.push(v);
-            r.push(v.clone());
-            r.push(vj);
-          }
-          if (r.length >= 2) {
-            right.push(new CSG.Segment(r, segment.shared));
-          }
-
-          if (l.length >= 2) {
-            left.push(new CSG.Segment(l, segment.shared));
-          }
-          break;
-      }
-    }
-  };
-
-  // # class Segment
-
-  // Represents a convex segment. The vertices used to initialize a segment must
-  // be coplanar and form a convex loop. They do not have to be `CSG.Vertex`
-  // instances but they must behave similarly (duck typing can be used for
-  // customization).
-  // 
-  // Each convex segment has a `shared` property, which is shared between all
-  // segments that are clones of each other or were split from the same segment.
-  // This can be used to define per-segment properties (such as surface color).
-
-  CSG.Segment = function(vertices, shared) {
-    this.vertices = vertices;
-    this.shared = shared;
-    this.line = CSG.Line.fromPoints(vertices[0], vertices[1]);
-  };
-
-  CSG.Segment.prototype = {
-    clone: function() {
-      var vertices = this.vertices.map(function(v) {
-        return v.clone();
-      });
-      return new CSG.Segment(vertices, this.shared);
-    },
-
-    flip: function() {
-      this.vertices.reverse().map(function(v) {
-        v.negated();
-      });
-      this.line.flip();
-    }
-  };
-
-  // # class Node
-
-  // Holds a node in a BSP tree. A BSP tree is built from a collection of polygons
-  // by picking a polygon to split along. That polygon (and all other coplanar
-  // polygons) are added directly to that node and the other polygons are added to
-  // the right and/or left subtrees. This is not a leafy BSP tree since there is
-  // no distinction between internal and leaf nodes.
-
-  CSG.Node = function(segments) {
-    this.line = null;
-    this.right = null;
-    this.left = null;
-    this.segments = [];
-    if (segments) this.build(segments);
-  };
-
-  CSG.Node.prototype = {
-    clone: function() {
-      var node = new CSG.Node();
-      node.line = this.line && this.line.clone();
-      node.right = this.right && this.right.clone();
-      node.left = this.left && this.left.clone();
-      note.segments = this.segments.map(function(p) {
-        return p.clone();
-      });
-      return node;
-    },
-
-    // Convert solid space to empty space and empty space to solid space.
-    invert: function() {
-      for (var i = 0; i < this.segments.length; i++) {
-        this.segments[i].flip();
-      }
-      this.line.flip();
-      if (this.right) this.right.invert();
-      if (this.left) this.left.invert();
-      var temp = this.right;
-      this.right = this.left;
-      this.left = temp;
-    },
-
-    // Recursively remove all segments in `segments` that are inside this BSP
-    // tree.
-
-    clipSegments: function(segments) {
-      if (!this.line) return segments.slice();
-      var right = [],
-        left = [];
-      for (var i = 0; i < segments.length; i++) {
-        this.line.splitSegment(segments[i], right, left, right, left);
-      }
-      if (this.right) right = this.right.clipSegments(right);
-      if (this.left) left = this.left.clipSegments(left);
-      else left = [];
-      return right.concat(left);
-    },
-
-    // Remove all segments in this BSP tree that are inside the other BSP tree
-    // `bsp`.
-    clipTo: function(bsp) {
-      this.segments = bsp.clipSegments(this.segments);
-      if (this.right) this.right.clipTo(bsp);
-      if (this.left) this.left.clipTo(bsp);
-    },
-
-    // Return a list of all segments in this BSP tree.
-    allSegments: function() {
-      var segments = this.segments.slice();
-      if (this.right) segments = segments.concat(this.right.allSegments());
-      if (this.left) segments = segments.concat(this.left.allSegments());
-      return segments;
-    },
-
-    // Build a BSP tree out of `segments`. When called on an existing tree, the
-    // new segments are filtered down to the bottom of the tree and become new
-    // nodes there. Each set of segments is partitioned using the first polygon
-    // (no heuristic is used to pick a good split).
-    build: function(segments) {
-      if (!segments.length) return;
-      if (!this.line) this.line = segments[0].line.clone();
-      var right = [],
-        left = [];
-      for (var i = 0; i < segments.length; i++) {
-        this.line.splitSegment(segments[i], this.segments, this.segments, right, left);
-      }
-      if (right.length) {
-        if (!this.right) this.right = new CSG.Node();
-        this.right.build(right);
-      }
-      if (left.length) {
-        if (!this.left) this.left = new CSG.Node();
-        this.left.build(left);
-      }
-    }
-  };
-
-  return CSG;
-});
-
-});
-return ___scope___.entry = "csg2d.js";
 });
 FuseBox.pkg("three-orbitcontrols-ts", {"three":"0.94.0"}, function(___scope___){
 ___scope___.file("dist/index.js", function(exports, require, module, __filename, __dirname){
