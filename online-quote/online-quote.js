@@ -7,6 +7,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var THREE = require("three");
 var three_orbitcontrols_ts_1 = require("three-orbitcontrols-ts");
 var sodium = require("sodiumjs");
+var Colour_1 = require("./model/Colour");
+var StandardColours_1 = require("./model/StandardColours");
 var ChangeBlocker_1 = require("./ChangeBlocker");
 var MouseButton_1 = require("./MouseButton");
 var OpeningFormProperties_1 = require("./OpeningFormProperties");
@@ -22,6 +24,13 @@ var TextureLoader_1 = require("./TextureLoader");
 var App = /** @class */ (function () {
     function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked, sToggleBaysButtonClicked, sToggleWallsButtonClicked) {
         var _this = this;
+        this._ssSetWallSheetingProfile = new sodium.StreamSink();
+        this._ssSetRoofSheetingProfile = new sodium.StreamSink();
+        this._ssSetWallSheetingColour = new sodium.StreamSink();
+        this._ssSetRoofSheetingColour = new sodium.StreamSink();
+        this._ssSetGutterColour = new sodium.StreamSink();
+        this._ssSetBargeColour = new sodium.StreamSink();
+        this._ssSetRidgeColour = new sodium.StreamSink();
         sodium.Transaction.run(function () {
             _this._cAddOpeningPropertiesVisible =
                 sAddOpeningButtonClicked
@@ -31,14 +40,29 @@ var App = /** @class */ (function () {
                     .orElse(sToggleWallsButtonClicked.mapTo(false))
                     .hold(false);
             var scene = new THREE.Scene();
-            var camera = new THREE.PerspectiveCamera(75, 800.0 / 600.0, 500.0, 100000.0);
             var canvas = document.getElementById("canvas");
+            var camera = new THREE.PerspectiveCamera(75, 800.0 / 600.0, 500.0, 100000.0);
             var renderer = new THREE.WebGLRenderer({ canvas: canvas });
+            function fixCanvasAndCamera() {
+                var canvasParent = canvas.parentElement;
+                canvas.width = canvasParent.clientWidth;
+                canvas.height = canvasParent.clientHeight;
+                var aspect = canvasParent.clientWidth / canvasParent.clientHeight;
+                camera.aspect = aspect;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.width, canvas.height);
+                renderer.render(scene, camera);
+            }
+            fixCanvasAndCamera();
+            window.addEventListener("resize", function (ev) {
+                fixCanvasAndCamera();
+            });
             window['scene'] = scene;
             camera.up = new THREE.Vector3(0, 0, 1);
             var controls = new three_orbitcontrols_ts_1.OrbitControls(camera, canvas);
             controls.maxPolarAngle = 0.5 * Math.PI;
             controls.target = new THREE.Vector3(0.0, 0.0, 1200.0);
+            controls.enableKeys = false;
             // lights
             {
                 var light = new THREE.DirectionalLight(0xffffff);
@@ -349,6 +373,15 @@ var App = /** @class */ (function () {
                 sMousePressed: ssMousePressed,
                 cScreenPointToWorldRayOp: cScreenPosToWorldRayOp,
                 buildingParamsChanges: {
+                    claddingParamsChanges: {
+                        sSetWallSheetingProfile: _this._ssSetWallSheetingProfile,
+                        sSetRoofSheetingProfile: _this._ssSetRoofSheetingProfile,
+                        sSetWallSheetingColour: _this._ssSetWallSheetingColour,
+                        sSetRoofSheetingColour: _this._ssSetRoofSheetingColour,
+                        sSetGutterColour: _this._ssSetGutterColour,
+                        sSetBargeColour: _this._ssSetBargeColour,
+                        sSetRidgeColour: _this._ssSetRidgeColour
+                    },
                     sSetBuildingType: sodium.Operational.updates(cBuildingType),
                     sSetLength: sodium.Operational.updates(eliminateOp(cLengthOp)),
                     sSetSpan: sodium.Operational.updates(eliminateOp(cSpanOp)),
@@ -374,11 +407,54 @@ var App = /** @class */ (function () {
                     });
                 })();
             }
+            _this._appModel = appModel;
         });
     }
     Object.defineProperty(App.prototype, "cAddOpeningPropertiesVisible", {
         get: function () {
             return this._cAddOpeningPropertiesVisible;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    App.prototype.setWallSheetingProfile = function (wallSheetingProfile) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetWallSheetingProfile.send(wallSheetingProfile); });
+    };
+    App.prototype.setRoofSheetingProfile = function (roofSheetingProfile) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetRoofSheetingProfile.send(roofSheetingProfile); });
+    };
+    App.prototype.setWallSheetingColour = function (wallSheetingColour) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetWallSheetingColour.send(wallSheetingColour); });
+    };
+    App.prototype.setRoofSheetingColour = function (roofSheetingColour) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetRoofSheetingColour.send(roofSheetingColour); });
+    };
+    App.prototype.setGutterColour = function (gutterColour) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetGutterColour.send(gutterColour); });
+    };
+    App.prototype.setBargeColour = function (bargeColour) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetBargeColour.send(bargeColour); });
+    };
+    App.prototype.setRidgeColour = function (ridgeColour) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetRidgeColour.send(ridgeColour); });
+    };
+    Object.defineProperty(App.prototype, "buildingData", {
+        get: function () {
+            return this._appModel.cBuildingData.sample();
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(App.prototype, "claddingData", {
+        get: function () {
+            return this.buildingData.claddingData;
         },
         enumerable: true,
         configurable: true
@@ -419,13 +495,1114 @@ window.onload = function () {
             ssToggleWallsButtonClicked.listen(function () { });
             ssToggleWallsButtonClicked.send(sodium.Unit.UNIT);
         };
+        var makeUserProfileName = function (profileName) {
+            if (profileName.length == 0) {
+                return profileName;
+            }
+            var result = '';
+            result += profileName[0];
+            for (var i = 1; i < profileName.length; ++i) {
+                if (profileName[i] == profileName[i].toUpperCase()) {
+                    result += ' ';
+                }
+                result += profileName[i];
+            }
+            if (result == "C Clad") {
+                return "C-Clad";
+            }
+            return result;
+        };
+        var makeUserColourName = function (colourName) {
+            if (colourName.length == 0) {
+                return colourName;
+            }
+            var result = '';
+            result += colourName[0];
+            for (var i = 1; i < colourName.length; ++i) {
+                if (colourName[i] == colourName[i].toUpperCase()) {
+                    result += ' ';
+                }
+                result += colourName[i];
+            }
+            return result;
+        };
+        window['initAvailableSheetingProfiles'](Object
+            .keys(TextureLoader_1.CladdingTextureType)
+            .map(function (x) { return { value: TextureLoader_1.CladdingTextureType[x], name: makeUserProfileName(x) }; }));
+        window['initAvailableColours'](Object
+            .keys(TextureLoader_1.CladdingTextureColour)
+            .map(function (x) {
+            var value = TextureLoader_1.CladdingTextureColour[x];
+            var colour = StandardColours_1.claddingTextureColourToColour(value);
+            var black = Colour_1.Colour.fromRGB(0, 0, 0).cssRgb;
+            var white = Colour_1.Colour.fromRGB(255, 255, 255).cssRgb;
+            return {
+                value: value,
+                name: makeUserColourName(x),
+                colour: colour.cssRgb,
+                textColour: colour.brightness >= 0.5 ? black : white
+            };
+        }));
         var app = new App(ssPropertiesNameButtonClicked, ssAddOpeningButtonClicked, ssToggleBaysButtonClicked, ssToggleWallsButtonClicked);
+        window['app'] = app;
         app.cAddOpeningPropertiesVisible.listen(function (addOpeningPropertiesVisible) {
             window['setAddOpeningPropertiesVisible'](addOpeningPropertiesVisible);
         });
+        window['appLoaded']();
     });
 };
 //# sourceMappingURL=main.js.map
+});
+___scope___.file("app/model/Colour.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Colour = /** @class */ (function () {
+    function Colour(r, g, b, a) {
+        this._r = r;
+        this._g = g;
+        this._b = b;
+        this._a = a;
+    }
+    Object.defineProperty(Colour.prototype, "r", {
+        get: function () {
+            return this._r;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Colour.prototype, "g", {
+        get: function () {
+            return this._g;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Colour.prototype, "b", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Colour.prototype, "a", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Colour.prototype, "value", {
+        get: function () {
+            var r = Math.floor(this.r * 255.0);
+            var g = Math.floor(this.g * 255.0);
+            var b = Math.floor(this.b * 255.0);
+            return (r << 16) | (g << 8) | b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Colour.prototype, "cssRgb", {
+        get: function () {
+            var r = Math.floor(this.r * 255.0);
+            var g = Math.floor(this.g * 255.0);
+            var b = Math.floor(this.b * 255.0);
+            return "rgb(" + r + "," + g + "," + b + ")";
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Colour.prototype, "brightness", {
+        get: function () {
+            // sRGB luminance(Y) values
+            var rY = 0.212655;
+            var gY = 0.715158;
+            var bY = 0.072187;
+            // Inverse of sRGB "gamma" function. (approx 2.2)
+            var inv_gam_sRGB = function (ic) {
+                var c = ic / 255.0;
+                if (c <= 0.04045)
+                    return c / 12.92;
+                else
+                    return Math.pow(((c + 0.055) / (1.055)), 2.4);
+            };
+            // sRGB "gamma" function (approx 2.2)
+            var gam_sRGB = function (v) {
+                if (v <= 0.0031308)
+                    v *= 12.92;
+                else
+                    v = 1.055 * Math.pow(v, 1.0 / 2.4) - 0.055;
+                return Math.trunc(v * 255 + 0.5); // This is correct in C++. Other languages may not
+                // require +0.5
+            };
+            // GRAY VALUE ("brightness")
+            var gray = function (r, g, b) {
+                return gam_sRGB(rY * inv_gam_sRGB(r) +
+                    gY * inv_gam_sRGB(g) +
+                    bY * inv_gam_sRGB(b));
+            };
+            return gray(255.0 * this.r, 255.0 * this.g, 255.0 * this.b) / 255.0;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Colour.fromRGB = function (r, g, b) {
+        return new Colour(r, g, b, 1.0);
+    };
+    Colour.fromRGBA = function (r, g, b, a) {
+        return new Colour(r, g, b, a);
+    };
+    return Colour;
+}());
+exports.Colour = Colour;
+//# sourceMappingURL=Colour.js.map
+});
+___scope___.file("app/model/StandardColours.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var TextureLoader_1 = require("../TextureLoader");
+var Colour_1 = require("./Colour");
+function claddingTextureColourToColour(claddingTextureColour) {
+    var dbColourName = toDBColourName(claddingTextureColour);
+    var colour = colourMap[dbColourName] || colourMap["Colorbond"];
+    return Colour_1.Colour.fromRGB(colour.COLOUR_RED_INDEX / 255.0, colour.COLOUR_GREEN_INDEX / 255.0, colour.COLOUR_BLUE_INDEX / 255.0);
+}
+exports.claddingTextureColourToColour = claddingTextureColourToColour;
+function toDBColourName(claddingTextureColour) {
+    switch (claddingTextureColour) {
+        case TextureLoader_1.CladdingTextureColour.Aries:
+            return "Aries";
+        case TextureLoader_1.CladdingTextureColour.Astro:
+            return "Astro";
+        case TextureLoader_1.CladdingTextureColour.Basalt:
+            return "Basalt";
+        case TextureLoader_1.CladdingTextureColour.Celestian:
+            return "Celestian";
+        case TextureLoader_1.CladdingTextureColour.ClassicCream:
+            return "Classic Cream";
+        case TextureLoader_1.CladdingTextureColour.Colorbond:
+            return "Colorbond";
+        case TextureLoader_1.CladdingTextureColour.Cosmic:
+            return "Cosmic";
+        case TextureLoader_1.CladdingTextureColour.CottageGreen:
+            return "Cottage Green";
+        case TextureLoader_1.CladdingTextureColour.Cove:
+            return "Cove";
+        case TextureLoader_1.CladdingTextureColour.DeepOcean:
+            return "Deep Ocean";
+        case TextureLoader_1.CladdingTextureColour.Dune:
+            return "Dune";
+        case TextureLoader_1.CladdingTextureColour.EveningHaze:
+            return "Evening Haze";
+        case TextureLoader_1.CladdingTextureColour.Galactic:
+            return "Galactic";
+        case TextureLoader_1.CladdingTextureColour.Gully:
+            return "Gully";
+        case TextureLoader_1.CladdingTextureColour.Ironstrone:
+            return "Ironstone";
+        case TextureLoader_1.CladdingTextureColour.Jasper:
+            return "Jasper";
+        case TextureLoader_1.CladdingTextureColour.Mangrove:
+            return "Mangrove";
+        case TextureLoader_1.CladdingTextureColour.ManorRed:
+            return "Manor Red";
+        case TextureLoader_1.CladdingTextureColour.Monument:
+            return "Monument";
+        case TextureLoader_1.CladdingTextureColour.NightSky:
+            return "Night Sky";
+        case TextureLoader_1.CladdingTextureColour.PaleEucalypt:
+            return "Pale Eucalypt";
+        case TextureLoader_1.CladdingTextureColour.Paperbark:
+            return "Paperbark";
+        case TextureLoader_1.CladdingTextureColour.Rhea:
+            return "Rhea";
+        case TextureLoader_1.CladdingTextureColour.ShaleGrey:
+            return "Shale Grey";
+        case TextureLoader_1.CladdingTextureColour.Surfmist:
+            return "Surfmist";
+        case TextureLoader_1.CladdingTextureColour.Terrain:
+            return "Terrain";
+        case TextureLoader_1.CladdingTextureColour.Wallaby:
+            return "Wallaby";
+        case TextureLoader_1.CladdingTextureColour.WhiteHaven:
+            return "White Haven";
+        case TextureLoader_1.CladdingTextureColour.Windspray:
+            return "Windspray";
+        case TextureLoader_1.CladdingTextureColour.WoodlandGrey:
+            return "Woodland Grey";
+        case TextureLoader_1.CladdingTextureColour.Zinc:
+            return "Zinc";
+        default:
+            return "Colorbond";
+    }
+}
+var colours = [
+    {
+        "COLOUR_DESCRIPTION": "Zinc",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 229,
+        "COLOUR_GREEN_INDEX": 229,
+        "COLOUR_BLUE_INDEX": 229
+    },
+    {
+        "COLOUR_DESCRIPTION": "Colorbond",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 1,
+        "COLOUR_RED_INDEX": 100,
+        "COLOUR_GREEN_INDEX": 100,
+        "COLOUR_BLUE_INDEX": 100
+    },
+    {
+        "COLOUR_DESCRIPTION": "Ebony",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 5,
+        "COLOUR_GREEN_INDEX": 5,
+        "COLOUR_BLUE_INDEX": 15
+    },
+    {
+        "COLOUR_DESCRIPTION": "Blue",
+        "IS_TRANSLUCENT": 1,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 0,
+        "COLOUR_BLUE_INDEX": 0
+    },
+    {
+        "COLOUR_DESCRIPTION": "Bronze",
+        "IS_TRANSLUCENT": 1,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 0,
+        "COLOUR_BLUE_INDEX": 0
+    },
+    {
+        "COLOUR_DESCRIPTION": "Clear",
+        "IS_TRANSLUCENT": 1,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 0,
+        "COLOUR_BLUE_INDEX": 0
+    },
+    {
+        "COLOUR_DESCRIPTION": "Grey",
+        "IS_TRANSLUCENT": 1,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 0,
+        "COLOUR_BLUE_INDEX": 0
+    },
+    {
+        "COLOUR_DESCRIPTION": "Opal",
+        "IS_TRANSLUCENT": 1,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 0,
+        "COLOUR_BLUE_INDEX": 0
+    },
+    {
+        "COLOUR_DESCRIPTION": "Anodic Bronze Satin",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 41,
+        "COLOUR_GREEN_INDEX": 31,
+        "COLOUR_BLUE_INDEX": 18
+    },
+    {
+        "COLOUR_DESCRIPTION": "Cottage Green Low Sheen",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 52,
+        "COLOUR_BLUE_INDEX": 38
+    },
+    {
+        "COLOUR_DESCRIPTION": "Custom Black Low Sheen",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 5,
+        "COLOUR_GREEN_INDEX": 5,
+        "COLOUR_BLUE_INDEX": 15
+    },
+    {
+        "COLOUR_DESCRIPTION": "Deep Ocean Low Sheen",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 47,
+        "COLOUR_BLUE_INDEX": 56
+    },
+    {
+        "COLOUR_DESCRIPTION": "Manor Red Low Sheen",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 78,
+        "COLOUR_GREEN_INDEX": 16,
+        "COLOUR_BLUE_INDEX": 7
+    },
+    {
+        "COLOUR_DESCRIPTION": "Pearl White Gloss",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 250,
+        "COLOUR_GREEN_INDEX": 248,
+        "COLOUR_BLUE_INDEX": 245
+    },
+    {
+        "COLOUR_DESCRIPTION": "Primrose Gloss",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 248,
+        "COLOUR_GREEN_INDEX": 214,
+        "COLOUR_BLUE_INDEX": 163
+    },
+    {
+        "COLOUR_DESCRIPTION": "Sandbank Low Sheen",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 170,
+        "COLOUR_GREEN_INDEX": 140,
+        "COLOUR_BLUE_INDEX": 98
+    },
+    {
+        "COLOUR_DESCRIPTION": "Stone Beige Satin",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 197,
+        "COLOUR_GREEN_INDEX": 168,
+        "COLOUR_BLUE_INDEX": 130
+    },
+    {
+        "COLOUR_DESCRIPTION": "Ultra Sliver Gloss",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 99,
+        "COLOUR_GREEN_INDEX": 119,
+        "COLOUR_BLUE_INDEX": 122
+    },
+    {
+        "COLOUR_DESCRIPTION": "White Birch Gloss",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 252,
+        "COLOUR_GREEN_INDEX": 241,
+        "COLOUR_BLUE_INDEX": 204
+    },
+    {
+        "COLOUR_DESCRIPTION": "Woodland Grey Low Sheen",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 0,
+        "IS_WHIRLYBIRD_COLOUR": 0,
+        "IS_GUTTER_COLOUR": 0,
+        "IS_ROLLERDOOR_COLOUR": 0,
+        "IS_PADOOR_COLOUR": 0,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 51,
+        "COLOUR_GREEN_INDEX": 63,
+        "COLOUR_BLUE_INDEX": 62
+    },
+    {
+        "COLOUR_DESCRIPTION": "Basalt",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 109,
+        "COLOUR_GREEN_INDEX": 108,
+        "COLOUR_BLUE_INDEX": 110
+    },
+    {
+        "COLOUR_DESCRIPTION": "Classic Cream",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 233,
+        "COLOUR_GREEN_INDEX": 220,
+        "COLOUR_BLUE_INDEX": 184
+    },
+    {
+        "COLOUR_DESCRIPTION": "Cottage Green",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 48,
+        "COLOUR_GREEN_INDEX": 76,
+        "COLOUR_BLUE_INDEX": 60
+    },
+    {
+        "COLOUR_DESCRIPTION": "Cove",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 165,
+        "COLOUR_GREEN_INDEX": 159,
+        "COLOUR_BLUE_INDEX": 138
+    },
+    {
+        "COLOUR_DESCRIPTION": "Deep Ocean",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 54,
+        "COLOUR_GREEN_INDEX": 65,
+        "COLOUR_BLUE_INDEX": 82
+    },
+    {
+        "COLOUR_DESCRIPTION": "Dune",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 177,
+        "COLOUR_GREEN_INDEX": 173,
+        "COLOUR_BLUE_INDEX": 163
+    },
+    {
+        "COLOUR_DESCRIPTION": "Evening Haze",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 197,
+        "COLOUR_GREEN_INDEX": 194,
+        "COLOUR_BLUE_INDEX": 170
+    },
+    {
+        "COLOUR_DESCRIPTION": "Gully",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 133,
+        "COLOUR_GREEN_INDEX": 126,
+        "COLOUR_BLUE_INDEX": 115
+    },
+    {
+        "COLOUR_DESCRIPTION": "Ironstone",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 62,
+        "COLOUR_GREEN_INDEX": 67,
+        "COLOUR_BLUE_INDEX": 76
+    },
+    {
+        "COLOUR_DESCRIPTION": "Jasper",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 108,
+        "COLOUR_GREEN_INDEX": 97,
+        "COLOUR_BLUE_INDEX": 83
+    },
+    {
+        "COLOUR_DESCRIPTION": "Mangrove",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 115,
+        "COLOUR_GREEN_INDEX": 117,
+        "COLOUR_BLUE_INDEX": 98
+    },
+    {
+        "COLOUR_DESCRIPTION": "Manor Red",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 94,
+        "COLOUR_GREEN_INDEX": 29,
+        "COLOUR_BLUE_INDEX": 14
+    },
+    {
+        "COLOUR_DESCRIPTION": "Monument",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 50,
+        "COLOUR_GREEN_INDEX": 50,
+        "COLOUR_BLUE_INDEX": 51
+    },
+    {
+        "COLOUR_DESCRIPTION": "Night Sky",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 0,
+        "COLOUR_GREEN_INDEX": 0,
+        "COLOUR_BLUE_INDEX": 0
+    },
+    {
+        "COLOUR_DESCRIPTION": "Pale Eucalypt",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 124,
+        "COLOUR_GREEN_INDEX": 132,
+        "COLOUR_BLUE_INDEX": 106
+    },
+    {
+        "COLOUR_DESCRIPTION": "Paperbark",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 202,
+        "COLOUR_GREEN_INDEX": 191,
+        "COLOUR_BLUE_INDEX": 164
+    },
+    {
+        "COLOUR_DESCRIPTION": "Shale Grey",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 189,
+        "COLOUR_GREEN_INDEX": 191,
+        "COLOUR_BLUE_INDEX": 186
+    },
+    {
+        "COLOUR_DESCRIPTION": "Surfmist",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 228,
+        "COLOUR_GREEN_INDEX": 226,
+        "COLOUR_BLUE_INDEX": 213
+    },
+    {
+        "COLOUR_DESCRIPTION": "Terrain",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 1,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 103,
+        "COLOUR_GREEN_INDEX": 67,
+        "COLOUR_BLUE_INDEX": 46
+    },
+    {
+        "COLOUR_DESCRIPTION": "Wallaby",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 127,
+        "COLOUR_GREEN_INDEX": 124,
+        "COLOUR_BLUE_INDEX": 120
+    },
+    {
+        "COLOUR_DESCRIPTION": "Windspray",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 136,
+        "COLOUR_GREEN_INDEX": 139,
+        "COLOUR_BLUE_INDEX": 138
+    },
+    {
+        "COLOUR_DESCRIPTION": "Woodland Grey",
+        "IS_TRANSLUCENT": 0,
+        "IS_SHEETING_COLOUR": 1,
+        "IS_WHIRLYBIRD_COLOUR": 1,
+        "IS_GUTTER_COLOUR": 1,
+        "IS_ROLLERDOOR_COLOUR": 1,
+        "IS_PADOOR_COLOUR": 1,
+        "IS_WINDOW_COLOUR": 0,
+        "IS_PREMIUM_COLOUR": 0,
+        "COLOUR_RED_INDEX": 75,
+        "COLOUR_GREEN_INDEX": 76,
+        "COLOUR_BLUE_INDEX": 70
+    }
+];
+var colourMap = [];
+for (var i = 0; i < colours.length; ++i) {
+    var colour = colours[i];
+    colourMap[colour.COLOUR_DESCRIPTION] = colour;
+}
+//# sourceMappingURL=StandardColours.js.map
+});
+___scope___.file("app/TextureLoader.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var THREE = require("three");
+var JSZip = require("jszip");
+var Tuples_1 = require("./Tuples");
+var CladdingTextureType;
+(function (CladdingTextureType) {
+    CladdingTextureType["CClad"] = "c_clad";
+    CladdingTextureType["Corrugate"] = "corrugated";
+    CladdingTextureType["KPanel"] = "k_panel";
+    CladdingTextureType["Monoclad"] = "monoclad"; //,
+    //MonocladWallCladding = "monoclad_wall_cladding"
+})(CladdingTextureType = exports.CladdingTextureType || (exports.CladdingTextureType = {}));
+var CladdingTextureColour;
+(function (CladdingTextureColour) {
+    CladdingTextureColour["Aries"] = "aries";
+    CladdingTextureColour["Astro"] = "astro";
+    CladdingTextureColour["Basalt"] = "basalt";
+    CladdingTextureColour["Celestian"] = "celestian";
+    CladdingTextureColour["ClassicCream"] = "classic_cream";
+    CladdingTextureColour["Colorbond"] = "colorbond";
+    CladdingTextureColour["Cosmic"] = "cosmic";
+    CladdingTextureColour["CottageGreen"] = "cottage_green";
+    CladdingTextureColour["Cove"] = "cove";
+    CladdingTextureColour["DeepOcean"] = "deep_ocean";
+    CladdingTextureColour["Dune"] = "dune";
+    CladdingTextureColour["EveningHaze"] = "evening_haze";
+    CladdingTextureColour["Galactic"] = "galactic";
+    CladdingTextureColour["Gully"] = "gully";
+    CladdingTextureColour["Ironstrone"] = "ironstone";
+    CladdingTextureColour["Jasper"] = "jasper";
+    CladdingTextureColour["Mangrove"] = "mangrove";
+    CladdingTextureColour["ManorRed"] = "manor_red";
+    CladdingTextureColour["Monument"] = "monument";
+    CladdingTextureColour["NightSky"] = "night_sky";
+    CladdingTextureColour["PaleEucalypt"] = "pale_eucalypt";
+    CladdingTextureColour["Paperbark"] = "paperbark";
+    CladdingTextureColour["Rhea"] = "rhea";
+    CladdingTextureColour["ShaleGrey"] = "shale_grey";
+    CladdingTextureColour["Surfmist"] = "surfmist";
+    CladdingTextureColour["Terrain"] = "terrain";
+    CladdingTextureColour["Wallaby"] = "wallaby";
+    CladdingTextureColour["WhiteHaven"] = "whitehaven";
+    CladdingTextureColour["Windspray"] = "windspray";
+    CladdingTextureColour["WoodlandGrey"] = "woodland_grey";
+    CladdingTextureColour["Zinc"] = "zinc";
+})(CladdingTextureColour = exports.CladdingTextureColour || (exports.CladdingTextureColour = {}));
+function mkCladdingTexturePath(claddingTextureType, claddingTextureColour) {
+    var folder = "textures/skm/" + claddingTextureType;
+    var file_mid_name;
+    switch (claddingTextureType) {
+        case CladdingTextureType.CClad:
+            file_mid_name = "c-clad";
+            break;
+        case CladdingTextureType.KPanel:
+            file_mid_name = "k-panel";
+            break;
+        default:
+            file_mid_name = claddingTextureType;
+            break;
+    }
+    var file_name = "stramit_" + file_mid_name + "_" + claddingTextureColour + ".skm";
+    return folder + "/" + file_name;
+}
+exports.mkCladdingTexturePath = mkCladdingTexturePath;
+var claddingTextureCache = new Map();
+function loadCladdingTexture(textureLoader, claddingTextureType, claddingTextureColour) {
+    var texturePath = mkCladdingTexturePath(claddingTextureType, claddingTextureColour);
+    var existing = claddingTextureCache.get(texturePath);
+    if (existing) {
+        return existing;
+    }
+    var pTexture;
+    pTexture =
+        loadSketchupTexture(texturePath)
+            .then(function (sketchupTexture) {
+            return new Promise(function (resolve, reject) {
+                textureLoader.load(sketchupTexture.image.src, function onLoad(texture) {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.repeat.set(1.0 / 25.4 / sketchupTexture.xScale, 1.0 / 25.4 / sketchupTexture.yScale);
+                    resolve(Tuples_1.T2.of(sketchupTexture, texture));
+                }, function onProgress(event) { }, function opError(event) {
+                    reject(event);
+                });
+            });
+        });
+    claddingTextureCache.set(texturePath, pTexture);
+    return pTexture;
+}
+exports.loadCladdingTexture = loadCladdingTexture;
+var SketchupTexture = /** @class */ (function () {
+    function SketchupTexture(xScale, yScale, image) {
+        this._xScale = xScale;
+        this._yScale = yScale;
+        this._image = image;
+    }
+    Object.defineProperty(SketchupTexture.prototype, "xScale", {
+        get: function () {
+            return this._xScale;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SketchupTexture.prototype, "yScale", {
+        get: function () {
+            return this._yScale;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SketchupTexture.prototype, "image", {
+        get: function () {
+            return this._image;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return SketchupTexture;
+}());
+exports.SketchupTexture = SketchupTexture;
+function loadGrass() {
+    var zip = new JSZip();
+    return fetch("textures/grass.zip")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(JSZip.loadAsync)
+        .then(function (zip) { return zip.file("grass-512.jpg").async("base64"); })
+        .then(function (imageData) {
+        var image = new Image();
+        image.src = "data:image/jpg;base64," + imageData;
+        return image;
+    });
+}
+exports.loadGrass = loadGrass;
+function loadGrass2() {
+    return fetch("textures/grass.jpg")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(function (blob) {
+        var objectURL = URL.createObjectURL(blob);
+        var image = new Image();
+        image.src = objectURL;
+        return image;
+    });
+}
+exports.loadGrass2 = loadGrass2;
+function loadSky() {
+    var zip = new JSZip();
+    return fetch("textures/sky.zip")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(JSZip.loadAsync)
+        .then(function (zip) { return zip.file("sky-1024x256.jpg").async("base64"); })
+        .then(function (imageData) {
+        var image = new Image();
+        image.src = "data:image/jpg;base64," + imageData;
+        return image;
+    });
+}
+exports.loadSky = loadSky;
+function loadSky2() {
+    return fetch("textures/sky-dome-texture.jpg")
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(function (blob) {
+        var objectURL = URL.createObjectURL(blob);
+        var image = new Image();
+        image.src = objectURL;
+        return image;
+    });
+}
+exports.loadSky2 = loadSky2;
+// example path "textures/skm/c_clad/stramit_c-clad_aries.skm"
+function loadSketchupTexture(path) {
+    var zip = new JSZip();
+    return fetch(path)
+        .then(function (response) {
+        if (response.status === 200 || response.status === 0) {
+            return Promise.resolve(response.blob());
+        }
+        else {
+            return Promise.reject(new Error(response.statusText));
+        }
+    })
+        .then(JSZip.loadAsync)
+        .then(function (zip) {
+        return zip
+            .file("document.xml")
+            .async("text")
+            .then(function success(text) {
+            var parser = new DOMParser();
+            var properties = parser.parseFromString(text, "text/xml");
+            var tmp = properties.children[0].children[0].children[0];
+            var tmp2 = tmp.children[0].children[0];
+            var xScale = Number.parseFloat(tmp.getAttribute("xScale"));
+            var yScale = Number.parseFloat(tmp.getAttribute("yScale"));
+            var path = tmp2.getAttribute("path");
+            return zip
+                .file("ref/" + path)
+                .async("base64")
+                .then(function success(imageData) {
+                var imageData2 = "data:image/bmp;base64," + imageData;
+                var image = new Image();
+                image.src = imageData2;
+                return new SketchupTexture(xScale, yScale, image);
+            });
+        });
+    });
+}
+exports.loadSketchupTexture = loadSketchupTexture;
+//# sourceMappingURL=TextureLoader.js.map
+});
+___scope___.file("app/Tuples.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var T2 = /** @class */ (function () {
+    function T2(a, b) {
+        this._a = a;
+        this._b = b;
+    }
+    T2.of = function (a, b) {
+        return new T2(a, b);
+    };
+    Object.defineProperty(T2.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T2.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return T2;
+}());
+exports.T2 = T2;
+//# sourceMappingURL=Tuples.js.map
 });
 ___scope___.file("app/ChangeBlocker.js", function(exports, require, module, __filename, __dirname){
 
@@ -694,7 +1871,7 @@ function cellLift3(ca, cb, cc, fn, deps) {
 }
 exports.cellLift3 = cellLift3;
 function cellLiftArray(ca) {
-    return arrayOfCellToCellOfArray(ca, 0, ca.length);
+    return arrayOfCellToCellOfArray(ca, 0, ca.length).map(sodium.lambda1(function (x) { return x; }, ca));
 }
 exports.cellLiftArray = cellLiftArray;
 function streamFilterOption(sa) {
@@ -1040,12 +2217,14 @@ var MouseButton_1 = require("../MouseButton");
 var OpeningType_1 = require("./OpeningType");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
+var TextureLoader_1 = require("../TextureLoader");
 var IdleMode_1 = require("../modes/IdleMode");
 var InsertOpeningMode_1 = require("../modes/InsertOpeningMode");
 var ToggleBaysMode_1 = require("../modes/ToggleBaysMode");
 var ToggleWallsMode_1 = require("../modes/ToggleWallsMode");
 var OpeningFormProperties_1 = require("../OpeningFormProperties");
 var WallData_1 = require("./WallData");
+var CladdingData_1 = require("./CladdingData");
 var AppModel = /** @class */ (function () {
     function AppModel(params) {
         var _this = this;
@@ -1053,6 +2232,15 @@ var AppModel = /** @class */ (function () {
             var sMouseLeftPressed = params.sMousePressed.filter(function (mouseButton) { return mouseButton == MouseButton_1.MouseButton.Left; }).mapTo(sodium.Unit.UNIT);
             var slBuildingData = new sodium.StreamLoop();
             var cBuildingData = slBuildingData.hold(BuildingData_1.BuildingData.create({
+                claddingData: CladdingData_1.CladdingData.create({
+                    wallSheetingProfile: TextureLoader_1.CladdingTextureType.Monoclad,
+                    roofSheetingProfile: TextureLoader_1.CladdingTextureType.Corrugate,
+                    wallSheetingColour: TextureLoader_1.CladdingTextureColour.ClassicCream,
+                    roofSheetingColour: TextureLoader_1.CladdingTextureColour.ManorRed,
+                    gutterColour: TextureLoader_1.CladdingTextureColour.ManorRed,
+                    bargeColour: TextureLoader_1.CladdingTextureColour.ManorRed,
+                    ridgeColour: TextureLoader_1.CladdingTextureColour.ManorRed
+                }),
                 buildingType: BuildingType_1.BuildingType.GableRoofGarage,
                 length: 12000.0,
                 span: 6000.0,
@@ -1162,6 +2350,62 @@ var AppModel = /** @class */ (function () {
                 .snapshot(cBuildingData, function (buildingType, buildingData) {
                 return buildingData.from({ buildingType: buildingType });
             })
+                .orElse(params.buildingParamsChanges.claddingParamsChanges.sSetWallSheetingProfile
+                .snapshot(cBuildingData, function (wallSheetingProfile, buildingData) {
+                return buildingData.from({
+                    claddingData: buildingData.claddingData.from({
+                        wallSheetingProfile: wallSheetingProfile
+                    })
+                });
+            }))
+                .orElse(params.buildingParamsChanges.claddingParamsChanges.sSetRoofSheetingProfile
+                .snapshot(cBuildingData, function (roofSheetingProfile, buildingData) {
+                return buildingData.from({
+                    claddingData: buildingData.claddingData.from({
+                        roofSheetingProfile: roofSheetingProfile
+                    })
+                });
+            }))
+                .orElse(params.buildingParamsChanges.claddingParamsChanges.sSetWallSheetingColour
+                .snapshot(cBuildingData, function (wallSheetingColour, buildingData) {
+                return buildingData.from({
+                    claddingData: buildingData.claddingData.from({
+                        wallSheetingColour: wallSheetingColour
+                    })
+                });
+            }))
+                .orElse(params.buildingParamsChanges.claddingParamsChanges.sSetRoofSheetingColour
+                .snapshot(cBuildingData, function (roofSheetingColour, buildingData) {
+                return buildingData.from({
+                    claddingData: buildingData.claddingData.from({
+                        roofSheetingColour: roofSheetingColour
+                    })
+                });
+            }))
+                .orElse(params.buildingParamsChanges.claddingParamsChanges.sSetGutterColour
+                .snapshot(cBuildingData, function (gutterColour, buildingData) {
+                return buildingData.from({
+                    claddingData: buildingData.claddingData.from({
+                        gutterColour: gutterColour
+                    })
+                });
+            }))
+                .orElse(params.buildingParamsChanges.claddingParamsChanges.sSetBargeColour
+                .snapshot(cBuildingData, function (bargeColour, buildingData) {
+                return buildingData.from({
+                    claddingData: buildingData.claddingData.from({
+                        bargeColour: bargeColour
+                    })
+                });
+            }))
+                .orElse(params.buildingParamsChanges.claddingParamsChanges.sSetRidgeColour
+                .snapshot(cBuildingData, function (ridgeColour, buildingData) {
+                return buildingData.from({
+                    claddingData: buildingData.claddingData.from({
+                        ridgeColour: ridgeColour
+                    })
+                });
+            }))
                 .orElse(params.buildingParamsChanges.sSetLength
                 .snapshot(cBuildingData, function (length, buildingData) {
                 return buildingData.from({ length: length });
@@ -1188,13 +2432,12 @@ var AppModel = /** @class */ (function () {
             _this._cHighlightedStableNames = clHighlightedStableNames;
             _this._sRepaint =
                 sodium.Operational
-                    .updates(clHighlightedStableNames)
-                    .mapTo(sodium.Unit.UNIT)
-                    .orElse(slBuildingEffect)
-                    .mapTo(sodium.Unit.UNIT)
+                    .updates(clHighlightedStableNames).mapTo(sodium.Unit.UNIT)
+                    .orElse(slBuildingEffect.mapTo(sodium.Unit.UNIT))
                     .orElse(sodium.Operational
                     .updates(cOverlayModelOp)
-                    .mapTo(sodium.Unit.UNIT));
+                    .mapTo(sodium.Unit.UNIT))
+                    .orElse(slBuildingData.mapTo(sodium.Unit.UNIT));
             _this._sSetFormProperties = sSetFormProperties;
         });
     }
@@ -1337,10 +2580,11 @@ var ArrayUtil_1 = require("../ArrayUtil");
 var BattenProperties_1 = require("./BattenProperties");
 var BuildingType_1 = require("./BuildingType");
 var CeeProperties_1 = require("./CeeProperties");
+var GutterBargeRidge_1 = require("./GutterBargeRidge");
 var GablePurlins_1 = require("./GablePurlins");
 var Lazy_1 = require("../Lazy");
 var Option_1 = require("../Option");
-var TextureLoader_1 = require("../TextureLoader");
+var SodiumUtil = require("../SodiumUtil");
 var Tuples_1 = require("../Tuples");
 var Portals_1 = require("./Portals");
 var Roof_1 = require("./Roof");
@@ -1356,16 +2600,21 @@ var Building = /** @class */ (function () {
     function Building(params) {
         var _this = this;
         sodium.Transaction.run(function () {
-            var cBuildingType = params.cBuildingData.map(function (buildingData) { return buildingData.buildingType; });
-            var cLength = params.cBuildingData.map(function (buildingData) { return buildingData.length; });
-            var cSpan = params.cBuildingData.map(function (buildingData) { return buildingData.span; });
-            var cHeight = params.cBuildingData.map(function (buildingData) { return buildingData.height; });
-            var cPitch = params.cBuildingData.map(function (buildingData) { return buildingData.pitch; });
-            var cSide1WallData = params.cBuildingData.map(function (buildingData) { return buildingData.side1WallData; });
-            var cSide2WallData = params.cBuildingData.map(function (buildingData) { return buildingData.side2WallData; });
-            var cEnd1WallData = params.cBuildingData.map(function (buildingData) { return buildingData.end1WallData; });
-            var cEnd2WallData = params.cBuildingData.map(function (buildingData) { return buildingData.end2WallData; });
-            var cInteralWallDatas = params.cBuildingData.map(function (buildingData) { return buildingData.internalWallDatas; });
+            var cCladdingData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData; }));
+            var cBuildingType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.buildingType; }));
+            var cLength = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.length; }));
+            var cSpan = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.span; }));
+            var cHeight = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.height; }));
+            var cPitch = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.pitch; }));
+            var cSide1WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side1WallData; }));
+            var cSide2WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side2WallData; }));
+            var cEnd1WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.end1WallData; }));
+            var cEnd2WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.end2WallData; }));
+            var cInteralWallDatas = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.internalWallDatas; }));
+            var cWallCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingProfile; }));
+            var cWallCladdingTextureColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingColour; }));
+            var cRoofCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.roofSheetingProfile; }));
+            var cRoofCladdingTextureColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.roofSheetingColour; }));
             var cMaxBaySize = new sodium.Cell(3500.0);
             var cSlabThickness = new sodium.Cell(100.0);
             var cFFL = cSlabThickness;
@@ -1396,38 +2645,31 @@ var Building = /** @class */ (function () {
                 return bayMarkers;
             });
             var cEnd2BayMarkers = cEnd1BayMarkers;
-            var cWallCladdingTextureType = new sodium.Cell(TextureLoader_1.CladdingTextureType.Monoclad);
-            var cWallCladdingTextureColour = new sodium.Cell(TextureLoader_1.CladdingTextureColour.ClassicCream);
-            var cRoofCladdingTextureType = new sodium.Cell(TextureLoader_1.CladdingTextureType.Corrugate);
-            var cRoofCladdingTextureColour = new sodium.Cell(TextureLoader_1.CladdingTextureColour.ManorRed);
             var cBattenProperties = cMaxBaySize.map(function (maxBaySize) {
                 return BattenProperties_1.BattenProperties.create({
                     width: 0.04 * maxBaySize,
                     height: 0.02 * maxBaySize
                 });
             });
-            var cSide1Wall = cBuildingType.lift(cFFL, function (buildingType, ffl) {
-                return new Wall_1.Wall({
-                    cWallDataOp: cSide1WallData.map(function (x) { return Option_1.Option.some(x); }),
-                    cStableName: new sodium.Cell("side1Wall"),
-                    cAxes: cSpan
-                        .map(function (span) {
-                        return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ));
-                    }),
-                    cOutline: cLength.lift(cHeight, function (length, height) {
-                        return [
-                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
-                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
-                            Vector2D_1.Vector2D.create(+0.5 * length, height),
-                            Vector2D_1.Vector2D.create(-0.5 * length, height)
-                        ];
-                    }),
-                    cCladdingTextureType: cWallCladdingTextureType,
-                    cCladdingTextureColour: cWallCladdingTextureColour,
-                    cBayMarkers: cSide1BayMarkers,
-                    cBattenProperties: cBattenProperties,
-                    cHighlightedStableNames: params.cHighlightedStableNames
-                });
+            var side1Wall = new Wall_1.Wall({
+                cWallDataOp: cSide1WallData.map(function (x) { return Option_1.Option.some(x); }),
+                cStableName: new sodium.Cell("side1Wall"),
+                cAxes: cSpan.lift(cFFL, function (span, ffl) {
+                    return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ));
+                }),
+                cOutline: cLength.lift(cHeight, function (length, height) {
+                    return [
+                        Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                        Vector2D_1.Vector2D.create(+0.5 * length, height),
+                        Vector2D_1.Vector2D.create(-0.5 * length, height)
+                    ];
+                }),
+                cCladdingTextureType: cWallCladdingTextureType,
+                cCladdingTextureColour: cWallCladdingTextureColour,
+                cBayMarkers: cSide1BayMarkers,
+                cBattenProperties: cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames
             });
             var cSide2Wall = cBuildingType.map(function (buildingType) {
                 switch (buildingType) {
@@ -1527,7 +2769,7 @@ var Building = /** @class */ (function () {
                         });
                 }
             });
-            var cWalls = cSide1Wall.lift4(cSide2Wall, cEnd1Wall, cEnd2Wall, function (side1Wall, side2Wall, end1Wall, end2Wall) {
+            var cWalls = cSide2Wall.lift3(cEnd1Wall, cEnd2Wall, function (side2Wall, end1Wall, end2Wall) {
                 return [side1Wall, side2Wall, end1Wall, end2Wall];
             });
             var cRoofs = cBuildingType.map(function (buildingType) {
@@ -1668,6 +2910,15 @@ var Building = /** @class */ (function () {
                 cPitch: cPitch,
                 cBattenProperties: cBattenProperties
             });
+            var gutterBargeRidge = new GutterBargeRidge_1.GutterBargeRidge({
+                cAxes: cFFL.map(function (ffl) { return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, ffl), Quaternion_1.Quaternion.identity); }),
+                cCladdingData: cCladdingData,
+                cBuildingType: cBuildingType,
+                cLength: cLength,
+                cSpan: cSpan,
+                cHeight: cHeight,
+                cPitch: cPitch
+            });
             _this._cWalls = cWalls;
             _this._cRoofs = cRoofs;
             _this._cInternalWalls = cInternalWalls;
@@ -1676,7 +2927,12 @@ var Building = /** @class */ (function () {
                     walls.map(function (wall) { return wall.cModel; }),
                     roofs.map(function (roof) { return roof.cModel; }),
                     internalWalls.map(function (internalWall) { return internalWall._2.cModel; }),
-                    [slab.cModel, portals.cModel, purlins.cModel]
+                    [
+                        slab.cModel,
+                        portals.cModel,
+                        purlins.cModel,
+                        gutterBargeRidge.cModel
+                    ]
                 ]);
             }));
             _this._cPhantomInternalWalls = cPhantomInternalWalls;
@@ -2134,209 +3390,269 @@ var CeeProperties = /** @class */ (function () {
 exports.CeeProperties = CeeProperties;
 //# sourceMappingURL=CeeProperties.js.map
 });
-___scope___.file("app/model/GablePurlins.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var BattenPlane_1 = require("./BattenPlane");
-var MkModelEffect_1 = require("../MkModelEffect");
-var Axes3D_1 = require("../math/Axes3D");
-var CAG_1 = require("../math/CAG");
-var Polygon2D_1 = require("../math/Polygon2D");
-var Quaternion_1 = require("../math/Quaternion");
-var Vector2D_1 = require("../math/Vector2D");
-var Vector3D_1 = require("../math/Vector3D");
-var Util_1 = require("../math/Util");
-var GablePurlins = /** @class */ (function () {
-    function GablePurlins(params) {
-        var cRoofPlaneHeight = params.cSpan.lift(params.cPitch, function (span, pitch) {
-            return 0.5 * span / Math.cos(Util_1.toRadians(pitch));
-        });
-        var cBattenHeights = params.cBattenProperties.lift(cRoofPlaneHeight, function (battenProperties, roofPlaneHeight) {
-            var result = [];
-            var maxGap = 1200.0;
-            var start = 0.5 * battenProperties.width;
-            var end = roofPlaneHeight - 0.5 * battenProperties.width - 100.0;
-            var cover = end - start;
-            var numGaps = Math.ceil(cover / maxGap);
-            var gapSize = cover / numGaps;
-            var qtyRuns = numGaps + 1;
-            for (var i = 0; i < qtyRuns; ++i) {
-                result.push(start + i * gapSize);
-            }
-            return result;
-        });
-        var side1BattenPlane = new BattenPlane_1.BattenPlane({
-            cAxes: params.cAxes.lift4(params.cSpan, params.cHeight, params.cPitch, function (axes, span, height, pitch) {
-                var ca = Math.cos(Util_1.toRadians(pitch));
-                var sa = Math.sin(Util_1.toRadians(pitch));
-                return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa))));
-            }),
-            cOutlineCAG: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
-                return CAG_1.CAG.fromPolygons([
-                    Polygon2D_1.Polygon2D.create({
-                        outline: [
-                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
-                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
-                            Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
-                            Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
-                        ],
-                        holes: []
-                    })
-                ]);
-            }),
-            cBattenHeights: cBattenHeights,
-            cBattenProperties: params.cBattenProperties
-        });
-        var side2BattenPlane = new BattenPlane_1.BattenPlane({
-            cAxes: params.cAxes.lift4(params.cSpan, params.cHeight, params.cPitch, function (axes, span, height, pitch) {
-                var ca = Math.cos(Util_1.toRadians(pitch));
-                var sa = Math.sin(Util_1.toRadians(pitch));
-                return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa))));
-            }),
-            cOutlineCAG: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
-                return CAG_1.CAG.fromPolygons([
-                    Polygon2D_1.Polygon2D.create({
-                        outline: [
-                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
-                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
-                            Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
-                            Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
-                        ],
-                        holes: []
-                    })
-                ]);
-            }),
-            cBattenHeights: cBattenHeights,
-            cBattenProperties: params.cBattenProperties
-        });
-        var cModel = MkModelEffect_1.composeListOfCModels([
-            side1BattenPlane.cModel,
-            side2BattenPlane.cModel
-        ]);
-        this._cModel = cModel;
-    }
-    Object.defineProperty(GablePurlins.prototype, "cModel", {
-        get: function () {
-            return this._cModel;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return GablePurlins;
-}());
-exports.GablePurlins = GablePurlins;
-//# sourceMappingURL=GablePurlins.js.map
-});
-___scope___.file("app/model/BattenPlane.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/GutterBargeRidge.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var THREE = require("three");
+var StandardColours_1 = require("./StandardColours");
 var MkModelEffect_1 = require("../MkModelEffect");
-var CAG_1 = require("../math/CAG");
-var Line2D_1 = require("../math/Line2D");
-var Polygon2D_1 = require("../math/Polygon2D");
-var Quaternion_1 = require("../math/Quaternion");
+var SodiumUtil = require("../SodiumUtil");
+var ThreeJSUtil = require("../ThreeJSUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var BuildingType_1 = require("./BuildingType");
+var Util_1 = require("../math/Util");
 var Vector2D_1 = require("../math/Vector2D");
 var Vector3D_1 = require("../math/Vector3D");
-var BattenPlane = /** @class */ (function () {
-    function BattenPlane(params) {
+var Quaternion_1 = require("../math/Quaternion");
+var GutterBargeRidge = /** @class */ (function () {
+    function GutterBargeRidge(params) {
         var _this = this;
         sodium.Transaction.run(function () {
-            var cBattenLines = params.cOutlineCAG
-                .lift(params.cBattenHeights, function (outlineCAG, battenHeights) { return function () {
-                var outlinePolygons = outlineCAG.toPolygons();
-                var minX = Number.POSITIVE_INFINITY;
-                var maxX = Number.NEGATIVE_INFINITY;
-                for (var i = 0; i < outlinePolygons.length; ++i) {
-                    var outlinePolygon = outlinePolygons[i].outline;
-                    for (var j = 0; j < outlinePolygon.length; ++j) {
-                        var pt = outlinePolygon[j];
-                        minX = Math.min(minX, pt.x);
-                        maxX = Math.max(maxX, pt.x);
-                    }
-                }
-                var result = [];
-                for (var i = 0; i < battenHeights.length; ++i) {
-                    var atY = battenHeights[i];
-                    var battenCAG = CAG_1.CAG.fromPolygons([
-                        Polygon2D_1.Polygon2D.create({
-                            outline: [
-                                Vector2D_1.Vector2D.create(minX - 100.0, atY - 1.0),
-                                Vector2D_1.Vector2D.create(maxX + 100.0, atY - 1.0),
-                                Vector2D_1.Vector2D.create(maxX + 100.0, atY + 1.0),
-                                Vector2D_1.Vector2D.create(maxX - 100.0, atY + 1.0)
-                            ],
-                            holes: []
-                        })
-                    ]);
-                    var battensInOutlineCAG = outlineCAG.intersect(battenCAG);
-                    var battensInOutlinePolygons = battensInOutlineCAG.toPolygons();
-                    for (var j = 0; j < battensInOutlinePolygons.length; ++j) {
-                        var battenPolygon = battensInOutlinePolygons[j];
-                        var battenMinX = Number.POSITIVE_INFINITY;
-                        var battenMaxX = Number.NEGATIVE_INFINITY;
-                        var battenOutline = battenPolygon.outline;
-                        for (var k = 0; k < battenOutline.length; ++k) {
-                            var pt = battenOutline[k];
-                            battenMinX = Math.min(battenMinX, pt.x);
-                            battenMaxX = Math.max(battenMaxX, pt.x);
-                        }
-                        if (Number.isFinite(battenMinX) && Number.isFinite(battenMaxX)) {
-                            result.push(Line2D_1.Line2D.create(Vector2D_1.Vector2D.create(battenMinX, atY), Vector2D_1.Vector2D.create(battenMaxX, atY)));
-                        }
-                    }
-                }
-                return result;
-            }; })
-                .map(function (x) { return x(); });
-            var cModel = params.cBattenProperties.lift(cBattenLines, function (battenProperties, battenLines) {
+            var cGutterColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cCladdingData.map(function (claddingData) { return claddingData.gutterColour; }));
+            var cBargeColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cCladdingData.map(function (claddingData) { return claddingData.bargeColour; }));
+            var cRidgeColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cCladdingData.map(function (claddingData) { return claddingData.ridgeColour; }));
+            var cGutterModel = params.cLength.map(function (length) {
                 return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
-                    var battenGeometries = battenLines.map(function (battenLine) {
-                        var o = battenLine.v1.add(battenLine.v2).scale(0.5).toVector3D();
-                        var u = battenLine.v2.sub(battenLine.v1).toVector3D().normalize();
-                        var w = Vector3D_1.Vector3D.create(0.0, 0.0, 1.0);
-                        var q = Quaternion_1.Quaternion.fromWU(w, u);
-                        var o2 = o.sub(w.scale(0.5 * battenProperties.height));
-                        var geometry = new THREE.BoxGeometry(battenLine.length(), battenProperties.width, battenProperties.height);
-                        var matrix1 = new THREE.Matrix4().makeRotationFromQuaternion(MkModelEffect_1.quaternionToTHREE(q));
-                        var matrix2 = new THREE.Matrix4().makeTranslation(o2.x, o2.y, o2.z);
-                        var matrix = matrix1.multiply(matrix2);
-                        geometry.applyMatrix(matrix);
-                        return geometry;
-                    });
-                    var geometry = new THREE.Geometry();
-                    for (var i = 0; i < battenGeometries.length; ++i) {
-                        var battenGeometry = battenGeometries[i];
-                        geometry.merge(battenGeometry);
+                    var gutterShape = new THREE.Shape();
+                    for (var i = 0; i < gutterProfile.length; ++i) {
+                        var pt = gutterProfile[i];
+                        if (i == 0) {
+                            gutterShape.moveTo(pt.x, pt.y);
+                        }
+                        else {
+                            gutterShape.lineTo(pt.x, pt.y);
+                        }
                     }
-                    var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
-                    var mesh = new THREE.Mesh(geometry, material);
+                    gutterShape.closePath();
+                    var gutterGeo = new THREE.ExtrudeGeometry(gutterShape, {
+                        bevelEnabled: false,
+                        depth: length
+                    });
+                    gutterGeo.translate(0.0, 0.0, -0.5 * length);
+                    gutterGeo.rotateZ(0.5 * Math.PI);
+                    gutterGeo.rotateY(0.5 * Math.PI);
+                    var stopEnd1Geo = new THREE.BoxGeometry(5.0, gutterWidth, gutterHeight);
+                    var stopEnd2Geo = new THREE.BoxGeometry(5.0, gutterWidth, gutterHeight);
+                    stopEnd1Geo.translate(-0.5 * length + 0.5 * 5.0, 0.0, 0.0);
+                    stopEnd2Geo.translate(+0.5 * length - 0.5 * 5.0, 0.0, 0.0);
+                    gutterGeo.merge(stopEnd1Geo);
+                    gutterGeo.merge(stopEnd2Geo);
+                    gutterGeo.computeVertexNormals();
+                    gutterGeo.computeFaceNormals();
+                    var gutterGeo2 = new THREE.BufferGeometry().fromGeometry(gutterGeo);
+                    var gutterMat = new THREE.MeshStandardMaterial({ color: 0xAAAAAA });
+                    var side1GutterMesh = new THREE.Mesh(gutterGeo2, gutterMat);
+                    var side2GutterMesh = new THREE.Mesh(gutterGeo2, gutterMat);
+                    var group = new THREE.Group();
+                    group.add(side1GutterMesh);
+                    group.add(side2GutterMesh);
+                    var cSide2GutterVisible = params.cBuildingType
+                        .map(function (buildingType) {
+                        return buildingType != BuildingType_1.BuildingType.SkillionRoofGarage;
+                    });
+                    var cSide1GutterAxes = params.cAxes
+                        .lift3(params.cSpan, params.cHeight, function (axes, span, height) {
+                        return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span - 0.5 * gutterWidth - 0.5 * 30.0, height - 0.5 * gutterHeight), Quaternion_1.Quaternion.identity));
+                    });
+                    var cSide2GutterAxes = params.cAxes
+                        .lift3(params.cSpan, params.cHeight, function (axes, span, height) {
+                        return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span + 0.5 * gutterWidth + 0.5 * 30.0, height - 0.5 * gutterHeight), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ, Vector3D_1.Vector3D.negUnitX)));
+                    });
                     return Promise.resolve(MkModelEffect_1.Model.create(function () {
                         var cleanups = [];
-                        cleanups.push(params.cAxes.listen(function (axes) {
-                            MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
+                        cleanups.push(cSide2GutterVisible.listen(function (side2GutterVisible) { return side2GutterMesh.visible = side2GutterVisible; }));
+                        cleanups.push(cSide1GutterAxes.listen(function (side1GutterAxes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(side1GutterMesh, side1GutterAxes);
+                        }));
+                        cleanups.push(cSide2GutterAxes.listen(function (side2GutterAxes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(side2GutterMesh, side2GutterAxes);
+                        }));
+                        cleanups.push(cGutterColour.listen(function (gutterColour) {
+                            var material = new THREE.MeshStandardMaterial({ color: StandardColours_1.claddingTextureColourToColour(gutterColour).value });
+                            side1GutterMesh.material = material;
+                            side2GutterMesh.material = material;
                         }));
                         return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
-                    }, mesh));
+                    }, group));
                 });
             });
+            var cBargeModel = params.cBuildingType.lift3(params.cSpan, params.cPitch, function (buildingType, span, pitch) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var bargeExtrudePath;
+                    switch (buildingType) {
+                        default:
+                        case BuildingType_1.BuildingType.GableRoofGarage:
+                            bargeExtrudePath = [
+                                new THREE.Vector2(-0.5 * span - 1.0, 1.0 * Math.tan(Util_1.toRadians(pitch))),
+                                new THREE.Vector2(-0.5 * span, 0.0),
+                                new THREE.Vector2(0.0, 0.5 * span * Math.tan(Util_1.toRadians(pitch))),
+                                new THREE.Vector2(+0.5 * span, 0.0),
+                                new THREE.Vector2(+0.5 * span + 1.0, 1.0 * Math.tan(Util_1.toRadians(pitch)))
+                            ];
+                            break;
+                        case BuildingType_1.BuildingType.SkillionRoofGarage:
+                            bargeExtrudePath = [
+                                new THREE.Vector2(-0.5 * span - 1.0, 0.0),
+                                new THREE.Vector2(-0.5 * span, 0.0),
+                                new THREE.Vector2(+0.5 * span, span * Math.tan(Util_1.toRadians(pitch))),
+                                new THREE.Vector2(+0.5 * span + 1.0, span * Math.tan(Util_1.toRadians(pitch)))
+                            ];
+                            break;
+                    }
+                    var axesRotZNeg90 = Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.zero, Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ, Vector3D_1.Vector3D.negUnitY));
+                    var bargeProfile2 = bargeProfile.map(function (pt) {
+                        return axesRotZNeg90
+                            .pointFromThisSpace(pt.toVector3D())
+                            .xyToVector2D();
+                    });
+                    var bargeShape = new THREE.Shape();
+                    for (var i = 0; i < bargeProfile2.length; ++i) {
+                        var pt = bargeProfile2[i];
+                        if (i == 0) {
+                            bargeShape.moveTo(pt.x, pt.y);
+                        }
+                        else {
+                            bargeShape.lineTo(pt.x, pt.y);
+                        }
+                    }
+                    bargeShape.closePath();
+                    var bufferedGeometry = ThreeJSUtil.profiledContourGeometry(bargeShape, bargeExtrudePath, false);
+                    var geometry = new THREE.Geometry().fromBufferGeometry(bufferedGeometry);
+                    geometry.rotateX(0.5 * Math.PI);
+                    geometry.rotateZ(0.5 * Math.PI);
+                    geometry.computeFlatVertexNormals();
+                    geometry.computeFaceNormals();
+                    geometry.translate(-0.5 * bargeWidth + bargeThickness + 0.5 * 30.0, 0.0, (-0.5 * bargeHeight + 0.5 * 30.0 + bargeThickness) / Math.cos(Util_1.toRadians(pitch)));
+                    var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+                    var bufferedGeometry2 = new THREE.BufferGeometry().fromGeometry(geometry);
+                    var end1BargeMesh = new THREE.Mesh(bufferedGeometry2, material);
+                    var end2BargeMesh = new THREE.Mesh(bufferedGeometry2, material);
+                    var group = new THREE.Group();
+                    group.add(end1BargeMesh);
+                    group.add(end2BargeMesh);
+                    var cBargeEnd1Axes = params.cAxes.lift3(params.cLength, params.cHeight, function (axes, length, height) {
+                        return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, height), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ, Vector3D_1.Vector3D.negUnitX)));
+                    });
+                    var cBargeEnd2Axes = params.cAxes.lift3(params.cLength, params.cHeight, function (axes, length, height) {
+                        return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, height), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ, Vector3D_1.Vector3D.unitX)));
+                    });
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                        var cleanups = [];
+                        cleanups.push(cBargeEnd1Axes.listen(function (bargeEnd1Axes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(end1BargeMesh, bargeEnd1Axes);
+                        }));
+                        cleanups.push(cBargeEnd2Axes.listen(function (bargeEnd2Axes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(end2BargeMesh, bargeEnd2Axes);
+                        }));
+                        cleanups.push(cBargeColour.listen(function (bargeColour) {
+                            var material = new THREE.MeshStandardMaterial({ color: StandardColours_1.claddingTextureColourToColour(bargeColour).value });
+                            end1BargeMesh.material = material;
+                            end2BargeMesh.material = material;
+                        }));
+                        return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                    }, group));
+                });
+            });
+            var cRidgeModel = sodium.Cell.switchC(params.cBuildingType.map(function (buildingType) {
+                if (buildingType != BuildingType_1.BuildingType.GableRoofGarage) {
+                    return new sodium.Cell(MkModelEffect_1.MkModelEffect.empty);
+                }
+                return params.cLength.lift(params.cPitch, function (length, pitch) {
+                    var profile = ridgeProfile(pitch);
+                    return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                        var shape = new THREE.Shape();
+                        for (var i = 0; i < profile.length; ++i) {
+                            var pt = profile[i];
+                            if (i == 0) {
+                                shape.moveTo(pt.x, pt.y);
+                            }
+                            else {
+                                shape.lineTo(pt.x, pt.y);
+                            }
+                        }
+                        shape.closePath();
+                        var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                            depth: length
+                        });
+                        geometry.translate(0.0, 0.0, -0.5 * length);
+                        geometry.rotateZ(0.5 * Math.PI);
+                        geometry.rotateY(0.5 * Math.PI);
+                        var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+                        var mesh = new THREE.Mesh(geometry, material);
+                        var cRidgeAxes = params.cAxes.lift4(params.cSpan, params.cHeight, params.cPitch, function (axes, span, height, pitch) {
+                            return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, height + 0.5 * span * Math.tan(Util_1.toRadians(pitch)) + (ridgeThickness + 0.5 * 30.0) / Math.cos(Util_1.toRadians(pitch))), Quaternion_1.Quaternion.identity));
+                        });
+                        return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                            var cleanups = [];
+                            cleanups.push(cRidgeAxes.listen(function (ridgeAxes) {
+                                MkModelEffect_1.THREEObject3DSetAxes(mesh, ridgeAxes);
+                            }));
+                            cleanups.push(cRidgeColour.listen(function (ridgeColour) {
+                                var material = new THREE.MeshStandardMaterial({ color: StandardColours_1.claddingTextureColourToColour(ridgeColour).value });
+                                mesh.material = material;
+                            }));
+                            return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                        }, mesh));
+                    });
+                });
+            }));
+            var cModel = MkModelEffect_1.composeListOfCModels([cGutterModel, cBargeModel, cRidgeModel]);
             _this._cModel = cModel;
         });
     }
-    Object.defineProperty(BattenPlane.prototype, "cModel", {
+    Object.defineProperty(GutterBargeRidge.prototype, "cModel", {
         get: function () {
             return this._cModel;
         },
         enumerable: true,
         configurable: true
     });
-    return BattenPlane;
+    return GutterBargeRidge;
 }());
-exports.BattenPlane = BattenPlane;
-//# sourceMappingURL=BattenPlane.js.map
+exports.GutterBargeRidge = GutterBargeRidge;
+var gutterWidth = 150;
+var gutterHeight = 150;
+var gutterThickness = 2.0;
+var gutterProfile = [
+    Vector2D_1.Vector2D.create(-0.5 * gutterWidth, -0.5 * gutterHeight),
+    Vector2D_1.Vector2D.create(+0.5 * gutterWidth, -0.5 * gutterHeight),
+    Vector2D_1.Vector2D.create(+0.5 * gutterWidth, +0.5 * gutterHeight),
+    Vector2D_1.Vector2D.create(+0.5 * gutterWidth - gutterThickness, +0.5 * gutterHeight),
+    Vector2D_1.Vector2D.create(+0.5 * gutterWidth - gutterThickness, -0.5 * gutterHeight + gutterThickness),
+    Vector2D_1.Vector2D.create(-0.5 * gutterWidth + gutterThickness, -0.5 * gutterHeight + gutterThickness),
+    Vector2D_1.Vector2D.create(-0.5 * gutterWidth + gutterThickness, +0.5 * gutterHeight),
+    Vector2D_1.Vector2D.create(-0.5 * gutterWidth, +0.5 * gutterHeight)
+];
+var bargeWidth = 150;
+var bargeHeight = 150;
+var bargeThickness = 2.0;
+var bargeProfile = [
+    Vector2D_1.Vector2D.create(+0.5 * bargeWidth, +0.5 * bargeHeight),
+    Vector2D_1.Vector2D.create(-0.5 * bargeWidth, +0.5 * bargeHeight),
+    Vector2D_1.Vector2D.create(-0.5 * bargeWidth, -0.5 * bargeHeight),
+    Vector2D_1.Vector2D.create(-0.5 * bargeWidth + bargeThickness, -0.5 * bargeHeight),
+    Vector2D_1.Vector2D.create(-0.5 * bargeWidth + bargeThickness, +0.5 * bargeHeight - bargeThickness),
+    Vector2D_1.Vector2D.create(+0.5 * bargeWidth, +0.5 * bargeHeight - bargeThickness)
+];
+var ridgeTotalWidth = 300.0;
+var ridgeThickness = 2.0;
+function ridgeProfile(pitch) {
+    var ca = Math.cos(Util_1.toRadians(pitch));
+    var sa = Math.sin(Util_1.toRadians(pitch));
+    var pt1 = Vector2D_1.Vector2D.create(-ca, -sa).scale(0.5 * ridgeTotalWidth);
+    var pt2 = Vector2D_1.Vector2D.create(+ca, -sa).scale(0.5 * ridgeTotalWidth);
+    return [
+        pt1,
+        Vector2D_1.Vector2D.zero,
+        pt2,
+        pt2.sub(Vector2D_1.Vector2D.create(0.0, ridgeThickness)),
+        Vector2D_1.Vector2D.create(0.0, -ridgeThickness),
+        pt1.sub(Vector2D_1.Vector2D.create(0.0, ridgeThickness))
+    ];
+}
+//# sourceMappingURL=GutterBargeRidge.js.map
 });
 ___scope___.file("app/MkModelEffect.js", function(exports, require, module, __filename, __dirname){
 
@@ -2443,7 +3759,7 @@ function composeCListOfCModels(cListOfCModels) {
 }
 exports.composeCListOfCModels = composeCListOfCModels;
 function composeListOfCModels(listOfCModels) {
-    return arrayOfCellToCellOfArray(listOfCModels, 0, listOfCModels.length)
+    return SodiumUtil.cellLiftArray(listOfCModels)
         .map(function (mkModelEffects) {
         return MkModelEffect.compose(mkModelEffects);
     });
@@ -2460,18 +3776,6 @@ function composeModels(models) {
             cleanups = [];
         };
     }, group);
-}
-function arrayOfCellToCellOfArray(list, fromIdx, toIdx) {
-    if (toIdx - fromIdx == 0) {
-        return new sodium.Cell([]);
-    }
-    else if (toIdx - fromIdx == 1) {
-        return list[fromIdx].map(function (a) { return [a]; });
-    }
-    else {
-        var pivot = fromIdx + Math.floor((toIdx - fromIdx) / 2);
-        return SodiumUtil.cellLift2(arrayOfCellToCellOfArray(list, fromIdx, pivot), arrayOfCellToCellOfArray(list, pivot, toIdx), function (list1, list2) { return list1.concat(list2); });
-    }
 }
 //# sourceMappingURL=MkModelEffect.js.map
 });
@@ -2521,213 +3825,258 @@ function _listOfPromiseToPromiseOfList(promises, fromIdx, toIdx) {
 }
 //# sourceMappingURL=PromiseUtil.js.map
 });
-___scope___.file("app/math/CAG.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/ThreeJSUtil.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var CSG2D = require("csg2d");
-var Polygon2D_1 = require("./Polygon2D");
-var Vector2D_1 = require("./Vector2D");
-var Option_1 = require("../Option");
-// Constructive Area Geometry
-var CAG = /** @class */ (function () {
-    function CAG(csg) {
-        this._csg = csg;
+var THREE = require("three");
+function profiledContourGeometry(profileShape, contour, contourClosed) {
+    contourClosed = contourClosed !== undefined ? contourClosed : true;
+    var profileGeometry = new THREE.ShapeBufferGeometry(profileShape);
+    profileGeometry.rotateX(Math.PI * .5);
+    var profile = profileGeometry.attributes.position;
+    var profilePoints = new Float32Array(profile.count * contour.length * 3);
+    for (var i = 0; i < contour.length; i++) {
+        var v1 = new THREE.Vector2().subVectors(contour[i - 1 < 0 ? contour.length - 1 : i - 1], contour[i]);
+        var v2 = new THREE.Vector2().subVectors(contour[i + 1 == contour.length ? 0 : i + 1], contour[i]);
+        var angle = v2.angle() - v1.angle();
+        var halfAngle = angle * .5;
+        var hA = halfAngle;
+        var tA = v2.angle() + Math.PI * .5;
+        if (!contourClosed) {
+            if (i == 0 || i == contour.length - 1) {
+                hA = Math.PI * .5;
+            }
+            if (i == contour.length - 1) {
+                tA = v1.angle() - Math.PI * .5;
+            }
+        }
+        var shift = Math.tan(hA - Math.PI * .5);
+        console.log(shift);
+        var shiftMatrix = new THREE.Matrix4().set(1, 0, 0, 0, -shift, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        var tempAngle = tA;
+        var rotationMatrix = new THREE.Matrix4().set(Math.cos(tempAngle), -Math.sin(tempAngle), 0, 0, Math.sin(tempAngle), Math.cos(tempAngle), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        var translationMatrix = new THREE.Matrix4().set(1, 0, 0, contour[i].x, 0, 1, 0, contour[i].y, 0, 0, 1, 0, 0, 0, 0, 1);
+        var cloneProfile = profile.clone();
+        shiftMatrix.applyToBufferAttribute(cloneProfile);
+        rotationMatrix.applyToBufferAttribute(cloneProfile);
+        translationMatrix.applyToBufferAttribute(cloneProfile);
+        profilePoints.set(cloneProfile.array, cloneProfile.count * i * 3);
     }
-    CAG.prototype.subtract = function (cag) {
-        return new CAG(this._csg.subtract(cag._csg));
-    };
-    CAG.prototype.union = function (cag) {
-        return new CAG(this._csg.union(cag._csg));
-    };
-    CAG.prototype.intersect = function (cag) {
-        return new CAG(this._csg.intersect(cag._csg));
-    };
-    CAG.fromPolygons = function (polygons) {
-        var polygons2 = [];
-        for (var i = 0; i < polygons.length; ++i) {
-            var polygon = polygons[i];
-            var polygon2 = [];
-            for (var j = 0; j < polygon.outline.length; ++j) {
-                var pt = polygon.outline[j];
-                polygon2.push([pt.x, pt.y]);
-            }
-            polygons2.push(polygon2);
-            for (var j = 0; j < polygon.holes.length; ++j) {
-                var hole = polygon.holes[j];
-                var hole2 = [];
-                for (var k = 0; k < hole.length; ++k) {
-                    var pt = hole[k];
-                    hole2.push([pt.x, pt.y]);
-                }
-                polygons2.push(hole2);
-            }
+    var fullProfileGeometry = new THREE.BufferGeometry();
+    fullProfileGeometry.addAttribute("position", new THREE.BufferAttribute(profilePoints, 3));
+    var index = [];
+    var lastCorner = contourClosed == false ? contour.length - 1 : contour.length;
+    for (var i = 0; i < lastCorner; i++) {
+        for (var j = 0; j < profile.count; j++) {
+            var currCorner = i;
+            var nextCorner = i + 1 == contour.length ? 0 : i + 1;
+            var currPoint = j;
+            var nextPoint = j + 1 == profile.count ? 0 : j + 1;
+            var a = nextPoint + profile.count * currCorner;
+            var b = currPoint + profile.count * currCorner;
+            var c = currPoint + profile.count * nextCorner;
+            var d = nextPoint + profile.count * nextCorner;
+            index.push(a, b, d);
+            index.push(b, c, d);
         }
-        return new CAG(CSG2D.fromPolygons(polygons2));
-    };
-    CAG.prototype.toPolygons = function () {
-        var polygons = this._csg.toPolygons();
-        var outlines = [];
-        var holes = [];
-        for (var i = 0; i < polygons.length; ++i) {
-            var polygon = polygons[i];
-            var polygon2 = [];
-            for (var j = 0; j < polygon.length; ++j) {
-                var pt = polygon[j];
-                polygon2.push(Vector2D_1.Vector2D.create(pt.x, pt.y));
-            }
-            var area = calcArea(polygon2);
-            if (area < 0.0) {
-                // its a hole
-                holes.push(polygon2);
-            }
-            else {
-                // its a outline
-                outlines.push(polygon2);
-            }
-        }
-        var holeBelongsToIdxOpArray = holes.map(function (hole) { return findOutlineThatHoleBelongsTo(outlines, hole); });
-        var polygons2 = [];
-        for (var i = 0; i < outlines.length; ++i) {
-            var outline = outlines[i];
-            var holes2 = [];
-            for (var j = 0; j < holeBelongsToIdxOpArray.length; ++j) {
-                var holeBelongsToIdxOp = holeBelongsToIdxOpArray[j];
-                if (holeBelongsToIdxOp.isSome) {
-                    var holeBelongsToIdx = holeBelongsToIdxOp.fromSome();
-                    if (holeBelongsToIdx == i) {
-                        holes2.push(holes[j]);
-                    }
-                }
-            }
-            polygons2.push(Polygon2D_1.Polygon2D.create({
-                outline: outline,
-                holes: holes2
-            }));
-        }
-        return polygons2;
-    };
-    return CAG;
-}());
-exports.CAG = CAG;
-function calcArea(outline) {
-    var total = 0.0;
-    for (var i = 0; i < outline.length; ++i) {
-        var pt1 = outline[i];
-        var pt2 = outline[(i == outline.length - 1) ? 0 : i + 1];
-        total += pt1.cross(pt2);
     }
-    return 0.5 * total;
+    console.log(index);
+    fullProfileGeometry.setIndex(index);
+    fullProfileGeometry.computeVertexNormals();
+    return fullProfileGeometry;
 }
-function findOutlineThatHoleBelongsTo(outlines, hole) {
-    var bestInsideCount = Number.NEGATIVE_INFINITY;
-    var bestOutlineIdx = -1;
-    for (var i = 0; i < outlines.length; ++i) {
-        var outline = outlines[i];
-        var insideCount = 0;
-        for (var j = 0; j < hole.length; ++j) {
-            var pt = hole[j];
-            if (isPointInsidePolygon(pt, outline)) {
-                ++insideCount;
-            }
-        }
-        if (insideCount > bestInsideCount) {
-            bestInsideCount = insideCount;
-            bestOutlineIdx = i;
-        }
-    }
-    if (bestOutlineIdx == -1) {
-        return Option_1.Option.none();
-    }
-    else {
-        return Option_1.Option.some(bestOutlineIdx);
-    }
-}
-function isPointInsidePolygon(point, vs) {
-    // ray-casting algorithm based on
-    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-    var x = point.x, y = point.y;
-    var inside = false;
-    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        var xi = vs[i].x, yi = vs[i].y;
-        var xj = vs[j].x, yj = vs[j].y;
-        var intersect = ((yi > y) != (yj > y))
-            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect)
-            inside = !inside;
-    }
-    return inside;
-}
-;
-//# sourceMappingURL=CAG.js.map
+exports.profiledContourGeometry = profiledContourGeometry;
+//# sourceMappingURL=ThreeJSUtil.js.map
 });
-___scope___.file("app/math/Polygon2D.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/math/Axes3D.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Polygon2D = /** @class */ (function () {
-    function Polygon2D(outline, holes) {
-        this._outline = outline;
-        this._holes = holes;
+var Vector3D_1 = require("./Vector3D");
+var Quaternion_1 = require("./Quaternion");
+var Axes3D = /** @class */ (function () {
+    function Axes3D(origin, orientation) {
+        this._origin = origin;
+        this._orientation = orientation;
     }
-    Object.defineProperty(Polygon2D.prototype, "outline", {
-        get: function () {
-            return this._outline;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Polygon2D.prototype, "holes", {
-        get: function () {
-            return this._holes;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Polygon2D.create = function (params) {
-        return new Polygon2D(params.outline, params.holes);
+    Axes3D.identity_$LI$ = function () { if (Axes3D.identity == null)
+        Axes3D.identity = Axes3D.Builder.fromOriginOrientation().setOrigin(Vector3D_1.Vector3D.zero_$LI$()).setOrientation(Quaternion_1.Quaternion.identity_$LI$()).build(); return Axes3D.identity; };
+    ;
+    Axes3D.create = function (origin, orientation) {
+        return new Axes3D(origin, orientation);
     };
-    return Polygon2D;
+    Object.defineProperty(Axes3D.prototype, "origin", {
+        get: function () {
+            return this._origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "orientation", {
+        get: function () {
+            return this._orientation;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "o", {
+        get: function () {
+            return this.origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "u", {
+        get: function () {
+            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitX_$LI$());
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "v", {
+        get: function () {
+            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitY_$LI$());
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes3D.prototype, "w", {
+        get: function () {
+            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitZ_$LI$());
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Axes3D.prototype.pointToThisSpace = function (p) {
+        return this.orientation.conjugate().rotate$Vector3D(p.sub(this.origin));
+    };
+    Axes3D.prototype.vectorToThisSpace = function (v) {
+        return this.orientation.conjugate().rotate$Vector3D(v);
+    };
+    Axes3D.prototype.toThisSpace = function (axes) {
+        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointToThisSpace(axes.origin)).setOrientation(this.orientation.conjugate().times(axes.orientation)).build();
+    };
+    Axes3D.prototype.pointFromThisSpace = function (p) {
+        return this.orientation.rotate$Vector3D(p).add(this.origin);
+    };
+    Axes3D.prototype.vectorFromThisSpace = function (v) {
+        return this.orientation.rotate$Vector3D(v);
+    };
+    Axes3D.prototype.fromThisSpace = function (axes) {
+        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointFromThisSpace(axes.origin)).setOrientation(this.orientation.times(axes.orientation)).build();
+    };
+    Axes3D.prototype.invert = function () {
+        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.orientation.conjugate().rotate$Vector3D(this.origin.scale(-1.0))).setOrientation(this.orientation.conjugate()).build();
+    };
+    Axes3D.prototype.times = function (axes) {
+        return this.fromThisSpace(axes);
+    };
+    /**
+     *
+     * @return {string}
+     */
+    Axes3D.prototype.toString = function () {
+        return "(origin:" + this.origin.toString() + ", orientation: " + this.orientation.toString() + ")";
+    };
+    return Axes3D;
 }());
-exports.Polygon2D = Polygon2D;
-//# sourceMappingURL=Polygon2D.js.map
-});
-___scope___.file("app/math/Line2D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Line2D = /** @class */ (function () {
-    function Line2D(v1, v2) {
-        this._v1 = v1;
-        this._v2 = v2;
-    }
-    Object.defineProperty(Line2D.prototype, "v1", {
-        get: function () {
-            return this._v1;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Line2D.prototype, "v2", {
-        get: function () {
-            return this._v2;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Line2D.create = function (v1, v2) {
-        return new Line2D(v1, v2);
-    };
-    Line2D.prototype.length = function () {
-        return this.v1.distance(this.v2);
-    };
-    Line2D.prototype.lengthSquared = function () {
-        return this.v1.distanceSquared(this.v2);
-    };
-    return Line2D;
-}());
-exports.Line2D = Line2D;
-//# sourceMappingURL=Line2D.js.map
+exports.Axes3D = Axes3D;
+Axes3D["__class"] = "Axes3D";
+(function (Axes3D) {
+    var FromOriginOrientationBuilder = /** @class */ (function () {
+        function FromOriginOrientationBuilder() {
+            this.originX = 0;
+            this.originY = 0;
+            this.originZ = 0;
+            this.orientation = null;
+        }
+        /**
+         *
+         * @param {Vector3D} origin
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOrigin = function (origin) {
+            this.originX = origin.getX();
+            this.originY = origin.getY();
+            this.originZ = origin.getZ();
+            return this;
+        };
+        /**
+         *
+         * @param {number} originX
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginX = function (originX) {
+            this.originX = originX;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originX
+         * @param {number} originY
+         * @param {number} originZ
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginXYZ = function (originX, originY, originZ) {
+            this.originX = originX;
+            this.originY = originY;
+            this.originZ = originZ;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originY
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginY = function (originY) {
+            this.originY = originY;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originZ
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginZ = function (originZ) {
+            this.originZ = originZ;
+            return this;
+        };
+        /**
+         *
+         * @param {Quaternion} orientation
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOrientation = function (orientation) {
+            this.orientation = orientation;
+            return this;
+        };
+        /**
+         *
+         * @return {Axes3D}
+         */
+        FromOriginOrientationBuilder.prototype.build = function () {
+            return new Axes3D(Vector3D_1.Vector3D.create(this.originX, this.originY, this.originZ), this.orientation);
+        };
+        return FromOriginOrientationBuilder;
+    }());
+    Axes3D.FromOriginOrientationBuilder = FromOriginOrientationBuilder;
+    FromOriginOrientationBuilder["__class"] = "Axes3D.FromOriginOrientationBuilder";
+    FromOriginOrientationBuilder["__interfaces"] = ["Axes3D.FromOriginOrientationSetOriginYStep", "Axes3D.FromOriginOrientationSetOrientationStep", "Axes3D.FromOriginOrientationSetOriginXStep", "Axes3D.BuildStep", "Axes3D.FromOriginOrientationSetOriginZStep"];
+    var Builder = /** @class */ (function () {
+        function Builder() {
+        }
+        Builder.fromOriginOrientation = function () {
+            return new Axes3D.FromOriginOrientationBuilder();
+        };
+        return Builder;
+    }());
+    Axes3D.Builder = Builder;
+    Builder["__class"] = "Axes3D.Builder";
+})(Axes3D = exports.Axes3D || (exports.Axes3D = {}));
+exports.Axes3D = Axes3D;
+Axes3D.identity_$LI$();
+//# sourceMappingURL=Axes3D.js.map
 });
 ___scope___.file("app/math/Quaternion.js", function(exports, require, module, __filename, __dirname){
 
@@ -3118,195 +4467,6 @@ exports.Quaternion = Quaternion;
 Quaternion.identity_$LI$();
 //# sourceMappingURL=Quaternion.js.map
 });
-___scope___.file("app/math/Axes3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Vector3D_1 = require("./Vector3D");
-var Quaternion_1 = require("./Quaternion");
-var Axes3D = /** @class */ (function () {
-    function Axes3D(origin, orientation) {
-        this._origin = origin;
-        this._orientation = orientation;
-    }
-    Axes3D.identity_$LI$ = function () { if (Axes3D.identity == null)
-        Axes3D.identity = Axes3D.Builder.fromOriginOrientation().setOrigin(Vector3D_1.Vector3D.zero_$LI$()).setOrientation(Quaternion_1.Quaternion.identity_$LI$()).build(); return Axes3D.identity; };
-    ;
-    Axes3D.create = function (origin, orientation) {
-        return new Axes3D(origin, orientation);
-    };
-    Object.defineProperty(Axes3D.prototype, "origin", {
-        get: function () {
-            return this._origin;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "orientation", {
-        get: function () {
-            return this._orientation;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "o", {
-        get: function () {
-            return this.origin;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "u", {
-        get: function () {
-            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitX_$LI$());
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "v", {
-        get: function () {
-            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitY_$LI$());
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Axes3D.prototype, "w", {
-        get: function () {
-            return this.orientation.rotate$Vector3D(Vector3D_1.Vector3D.unitZ_$LI$());
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Axes3D.prototype.pointToThisSpace = function (p) {
-        return this.orientation.conjugate().rotate$Vector3D(p.sub(this.origin));
-    };
-    Axes3D.prototype.vectorToThisSpace = function (v) {
-        return this.orientation.conjugate().rotate$Vector3D(v);
-    };
-    Axes3D.prototype.toThisSpace = function (axes) {
-        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointToThisSpace(axes.origin)).setOrientation(this.orientation.conjugate().times(axes.orientation)).build();
-    };
-    Axes3D.prototype.pointFromThisSpace = function (p) {
-        return this.orientation.rotate$Vector3D(p).add(this.origin);
-    };
-    Axes3D.prototype.vectorFromThisSpace = function (v) {
-        return this.orientation.rotate$Vector3D(v);
-    };
-    Axes3D.prototype.fromThisSpace = function (axes) {
-        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.pointFromThisSpace(axes.origin)).setOrientation(this.orientation.times(axes.orientation)).build();
-    };
-    Axes3D.prototype.invert = function () {
-        return Axes3D.Builder.fromOriginOrientation().setOrigin(this.orientation.conjugate().rotate$Vector3D(this.origin.scale(-1.0))).setOrientation(this.orientation.conjugate()).build();
-    };
-    Axes3D.prototype.times = function (axes) {
-        return this.fromThisSpace(axes);
-    };
-    /**
-     *
-     * @return {string}
-     */
-    Axes3D.prototype.toString = function () {
-        return "(origin:" + this.origin.toString() + ", orientation: " + this.orientation.toString() + ")";
-    };
-    return Axes3D;
-}());
-exports.Axes3D = Axes3D;
-Axes3D["__class"] = "Axes3D";
-(function (Axes3D) {
-    var FromOriginOrientationBuilder = /** @class */ (function () {
-        function FromOriginOrientationBuilder() {
-            this.originX = 0;
-            this.originY = 0;
-            this.originZ = 0;
-            this.orientation = null;
-        }
-        /**
-         *
-         * @param {Vector3D} origin
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOrigin = function (origin) {
-            this.originX = origin.getX();
-            this.originY = origin.getY();
-            this.originZ = origin.getZ();
-            return this;
-        };
-        /**
-         *
-         * @param {number} originX
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginX = function (originX) {
-            this.originX = originX;
-            return this;
-        };
-        /**
-         *
-         * @param {number} originX
-         * @param {number} originY
-         * @param {number} originZ
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginXYZ = function (originX, originY, originZ) {
-            this.originX = originX;
-            this.originY = originY;
-            this.originZ = originZ;
-            return this;
-        };
-        /**
-         *
-         * @param {number} originY
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginY = function (originY) {
-            this.originY = originY;
-            return this;
-        };
-        /**
-         *
-         * @param {number} originZ
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOriginZ = function (originZ) {
-            this.originZ = originZ;
-            return this;
-        };
-        /**
-         *
-         * @param {Quaternion} orientation
-         * @return {*}
-         */
-        FromOriginOrientationBuilder.prototype.setOrientation = function (orientation) {
-            this.orientation = orientation;
-            return this;
-        };
-        /**
-         *
-         * @return {Axes3D}
-         */
-        FromOriginOrientationBuilder.prototype.build = function () {
-            return new Axes3D(Vector3D_1.Vector3D.create(this.originX, this.originY, this.originZ), this.orientation);
-        };
-        return FromOriginOrientationBuilder;
-    }());
-    Axes3D.FromOriginOrientationBuilder = FromOriginOrientationBuilder;
-    FromOriginOrientationBuilder["__class"] = "Axes3D.FromOriginOrientationBuilder";
-    FromOriginOrientationBuilder["__interfaces"] = ["Axes3D.FromOriginOrientationSetOriginYStep", "Axes3D.FromOriginOrientationSetOrientationStep", "Axes3D.FromOriginOrientationSetOriginXStep", "Axes3D.BuildStep", "Axes3D.FromOriginOrientationSetOriginZStep"];
-    var Builder = /** @class */ (function () {
-        function Builder() {
-        }
-        Builder.fromOriginOrientation = function () {
-            return new Axes3D.FromOriginOrientationBuilder();
-        };
-        return Builder;
-    }());
-    Axes3D.Builder = Builder;
-    Builder["__class"] = "Axes3D.Builder";
-})(Axes3D = exports.Axes3D || (exports.Axes3D = {}));
-exports.Axes3D = Axes3D;
-Axes3D.identity_$LI$();
-//# sourceMappingURL=Axes3D.js.map
-});
 ___scope___.file("app/math/Util.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -3316,6 +4476,418 @@ function toRadians(degrees) {
 }
 exports.toRadians = toRadians;
 //# sourceMappingURL=Util.js.map
+});
+___scope___.file("app/model/GablePurlins.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var BattenPlane_1 = require("./BattenPlane");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Axes3D_1 = require("../math/Axes3D");
+var CAG_1 = require("../math/CAG");
+var Polygon2D_1 = require("../math/Polygon2D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var Util_1 = require("../math/Util");
+var GablePurlins = /** @class */ (function () {
+    function GablePurlins(params) {
+        var cRoofPlaneHeight = params.cSpan.lift(params.cPitch, function (span, pitch) {
+            return 0.5 * span / Math.cos(Util_1.toRadians(pitch));
+        });
+        var cBattenHeights = params.cBattenProperties.lift(cRoofPlaneHeight, function (battenProperties, roofPlaneHeight) {
+            var result = [];
+            var maxGap = 1200.0;
+            var start = 0.5 * battenProperties.width;
+            var end = roofPlaneHeight - 0.5 * battenProperties.width - 100.0;
+            var cover = end - start;
+            var numGaps = Math.ceil(cover / maxGap);
+            var gapSize = cover / numGaps;
+            var qtyRuns = numGaps + 1;
+            for (var i = 0; i < qtyRuns; ++i) {
+                result.push(start + i * gapSize);
+            }
+            return result;
+        });
+        var side1BattenPlane = new BattenPlane_1.BattenPlane({
+            cAxes: params.cAxes.lift4(params.cSpan, params.cHeight, params.cPitch, function (axes, span, height, pitch) {
+                var ca = Math.cos(Util_1.toRadians(pitch));
+                var sa = Math.sin(Util_1.toRadians(pitch));
+                return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa))));
+            }),
+            cOutlineCAG: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
+                return CAG_1.CAG.fromPolygons([
+                    Polygon2D_1.Polygon2D.create({
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                        ],
+                        holes: []
+                    })
+                ]);
+            }),
+            cBattenHeights: cBattenHeights,
+            cBattenProperties: params.cBattenProperties
+        });
+        var side2BattenPlane = new BattenPlane_1.BattenPlane({
+            cAxes: params.cAxes.lift4(params.cSpan, params.cHeight, params.cPitch, function (axes, span, height, pitch) {
+                var ca = Math.cos(Util_1.toRadians(pitch));
+                var sa = Math.sin(Util_1.toRadians(pitch));
+                return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa))));
+            }),
+            cOutlineCAG: params.cLength.lift(cRoofPlaneHeight, function (length, roofPlaneHeight) {
+                return CAG_1.CAG.fromPolygons([
+                    Polygon2D_1.Polygon2D.create({
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                        ],
+                        holes: []
+                    })
+                ]);
+            }),
+            cBattenHeights: cBattenHeights,
+            cBattenProperties: params.cBattenProperties
+        });
+        var cModel = MkModelEffect_1.composeListOfCModels([
+            side1BattenPlane.cModel,
+            side2BattenPlane.cModel
+        ]);
+        this._cModel = cModel;
+    }
+    Object.defineProperty(GablePurlins.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return GablePurlins;
+}());
+exports.GablePurlins = GablePurlins;
+//# sourceMappingURL=GablePurlins.js.map
+});
+___scope___.file("app/model/BattenPlane.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var MkModelEffect_1 = require("../MkModelEffect");
+var CAG_1 = require("../math/CAG");
+var Line2D_1 = require("../math/Line2D");
+var Polygon2D_1 = require("../math/Polygon2D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var BattenPlane = /** @class */ (function () {
+    function BattenPlane(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cBattenLines = params.cOutlineCAG
+                .lift(params.cBattenHeights, function (outlineCAG, battenHeights) { return function () {
+                var outlinePolygons = outlineCAG.toPolygons();
+                var minX = Number.POSITIVE_INFINITY;
+                var maxX = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outlinePolygons.length; ++i) {
+                    var outlinePolygon = outlinePolygons[i].outline;
+                    for (var j = 0; j < outlinePolygon.length; ++j) {
+                        var pt = outlinePolygon[j];
+                        minX = Math.min(minX, pt.x);
+                        maxX = Math.max(maxX, pt.x);
+                    }
+                }
+                var result = [];
+                for (var i = 0; i < battenHeights.length; ++i) {
+                    var atY = battenHeights[i];
+                    var battenCAG = CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: [
+                                Vector2D_1.Vector2D.create(minX - 100.0, atY - 1.0),
+                                Vector2D_1.Vector2D.create(maxX + 100.0, atY - 1.0),
+                                Vector2D_1.Vector2D.create(maxX + 100.0, atY + 1.0),
+                                Vector2D_1.Vector2D.create(maxX - 100.0, atY + 1.0)
+                            ],
+                            holes: []
+                        })
+                    ]);
+                    var battensInOutlineCAG = outlineCAG.intersect(battenCAG);
+                    var battensInOutlinePolygons = battensInOutlineCAG.toPolygons();
+                    for (var j = 0; j < battensInOutlinePolygons.length; ++j) {
+                        var battenPolygon = battensInOutlinePolygons[j];
+                        var battenMinX = Number.POSITIVE_INFINITY;
+                        var battenMaxX = Number.NEGATIVE_INFINITY;
+                        var battenOutline = battenPolygon.outline;
+                        for (var k = 0; k < battenOutline.length; ++k) {
+                            var pt = battenOutline[k];
+                            battenMinX = Math.min(battenMinX, pt.x);
+                            battenMaxX = Math.max(battenMaxX, pt.x);
+                        }
+                        if (Number.isFinite(battenMinX) && Number.isFinite(battenMaxX)) {
+                            result.push(Line2D_1.Line2D.create(Vector2D_1.Vector2D.create(battenMinX, atY), Vector2D_1.Vector2D.create(battenMaxX, atY)));
+                        }
+                    }
+                }
+                return result;
+            }; })
+                .map(function (x) { return x(); });
+            var cModel = params.cBattenProperties.lift(cBattenLines, function (battenProperties, battenLines) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var battenGeometries = battenLines.map(function (battenLine) {
+                        var o = battenLine.v1.add(battenLine.v2).scale(0.5).toVector3D();
+                        var u = battenLine.v2.sub(battenLine.v1).toVector3D().normalize();
+                        var w = Vector3D_1.Vector3D.create(0.0, 0.0, 1.0);
+                        var q = Quaternion_1.Quaternion.fromWU(w, u);
+                        var o2 = o.sub(w.scale(0.5 * battenProperties.height));
+                        var geometry = new THREE.BoxGeometry(battenLine.length(), battenProperties.width, battenProperties.height);
+                        var matrix1 = new THREE.Matrix4().makeRotationFromQuaternion(MkModelEffect_1.quaternionToTHREE(q));
+                        var matrix2 = new THREE.Matrix4().makeTranslation(o2.x, o2.y, o2.z);
+                        var matrix = matrix1.multiply(matrix2);
+                        geometry.applyMatrix(matrix);
+                        return geometry;
+                    });
+                    var geometry = new THREE.Geometry();
+                    for (var i = 0; i < battenGeometries.length; ++i) {
+                        var battenGeometry = battenGeometries[i];
+                        geometry.merge(battenGeometry);
+                    }
+                    var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+                    var mesh = new THREE.Mesh(geometry, material);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                        var cleanups = [];
+                        cleanups.push(params.cAxes.listen(function (axes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
+                        }));
+                        return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                    }, mesh));
+                });
+            });
+            _this._cModel = cModel;
+        });
+    }
+    Object.defineProperty(BattenPlane.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return BattenPlane;
+}());
+exports.BattenPlane = BattenPlane;
+//# sourceMappingURL=BattenPlane.js.map
+});
+___scope___.file("app/math/CAG.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var CSG2D = require("csg2d");
+var Polygon2D_1 = require("./Polygon2D");
+var Vector2D_1 = require("./Vector2D");
+var Option_1 = require("../Option");
+// Constructive Area Geometry
+var CAG = /** @class */ (function () {
+    function CAG(csg) {
+        this._csg = csg;
+    }
+    CAG.prototype.subtract = function (cag) {
+        return new CAG(this._csg.subtract(cag._csg));
+    };
+    CAG.prototype.union = function (cag) {
+        return new CAG(this._csg.union(cag._csg));
+    };
+    CAG.prototype.intersect = function (cag) {
+        return new CAG(this._csg.intersect(cag._csg));
+    };
+    CAG.fromPolygons = function (polygons) {
+        var polygons2 = [];
+        for (var i = 0; i < polygons.length; ++i) {
+            var polygon = polygons[i];
+            var polygon2 = [];
+            for (var j = 0; j < polygon.outline.length; ++j) {
+                var pt = polygon.outline[j];
+                polygon2.push([pt.x, pt.y]);
+            }
+            polygons2.push(polygon2);
+            for (var j = 0; j < polygon.holes.length; ++j) {
+                var hole = polygon.holes[j];
+                var hole2 = [];
+                for (var k = 0; k < hole.length; ++k) {
+                    var pt = hole[k];
+                    hole2.push([pt.x, pt.y]);
+                }
+                polygons2.push(hole2);
+            }
+        }
+        return new CAG(CSG2D.fromPolygons(polygons2));
+    };
+    CAG.prototype.toPolygons = function () {
+        var polygons = this._csg.toPolygons();
+        var outlines = [];
+        var holes = [];
+        for (var i = 0; i < polygons.length; ++i) {
+            var polygon = polygons[i];
+            var polygon2 = [];
+            for (var j = 0; j < polygon.length; ++j) {
+                var pt = polygon[j];
+                polygon2.push(Vector2D_1.Vector2D.create(pt.x, pt.y));
+            }
+            var area = calcArea(polygon2);
+            if (area < 0.0) {
+                // its a hole
+                holes.push(polygon2);
+            }
+            else {
+                // its a outline
+                outlines.push(polygon2);
+            }
+        }
+        var holeBelongsToIdxOpArray = holes.map(function (hole) { return findOutlineThatHoleBelongsTo(outlines, hole); });
+        var polygons2 = [];
+        for (var i = 0; i < outlines.length; ++i) {
+            var outline = outlines[i];
+            var holes2 = [];
+            for (var j = 0; j < holeBelongsToIdxOpArray.length; ++j) {
+                var holeBelongsToIdxOp = holeBelongsToIdxOpArray[j];
+                if (holeBelongsToIdxOp.isSome) {
+                    var holeBelongsToIdx = holeBelongsToIdxOp.fromSome();
+                    if (holeBelongsToIdx == i) {
+                        holes2.push(holes[j]);
+                    }
+                }
+            }
+            polygons2.push(Polygon2D_1.Polygon2D.create({
+                outline: outline,
+                holes: holes2
+            }));
+        }
+        return polygons2;
+    };
+    return CAG;
+}());
+exports.CAG = CAG;
+function calcArea(outline) {
+    var total = 0.0;
+    for (var i = 0; i < outline.length; ++i) {
+        var pt1 = outline[i];
+        var pt2 = outline[(i == outline.length - 1) ? 0 : i + 1];
+        total += pt1.cross(pt2);
+    }
+    return 0.5 * total;
+}
+function findOutlineThatHoleBelongsTo(outlines, hole) {
+    var bestInsideCount = Number.NEGATIVE_INFINITY;
+    var bestOutlineIdx = -1;
+    for (var i = 0; i < outlines.length; ++i) {
+        var outline = outlines[i];
+        var insideCount = 0;
+        for (var j = 0; j < hole.length; ++j) {
+            var pt = hole[j];
+            if (isPointInsidePolygon(pt, outline)) {
+                ++insideCount;
+            }
+        }
+        if (insideCount > bestInsideCount) {
+            bestInsideCount = insideCount;
+            bestOutlineIdx = i;
+        }
+    }
+    if (bestOutlineIdx == -1) {
+        return Option_1.Option.none();
+    }
+    else {
+        return Option_1.Option.some(bestOutlineIdx);
+    }
+}
+function isPointInsidePolygon(point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    var x = point.x, y = point.y;
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i].x, yi = vs[i].y;
+        var xj = vs[j].x, yj = vs[j].y;
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect)
+            inside = !inside;
+    }
+    return inside;
+}
+;
+//# sourceMappingURL=CAG.js.map
+});
+___scope___.file("app/math/Polygon2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Polygon2D = /** @class */ (function () {
+    function Polygon2D(outline, holes) {
+        this._outline = outline;
+        this._holes = holes;
+    }
+    Object.defineProperty(Polygon2D.prototype, "outline", {
+        get: function () {
+            return this._outline;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Polygon2D.prototype, "holes", {
+        get: function () {
+            return this._holes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Polygon2D.create = function (params) {
+        return new Polygon2D(params.outline, params.holes);
+    };
+    return Polygon2D;
+}());
+exports.Polygon2D = Polygon2D;
+//# sourceMappingURL=Polygon2D.js.map
+});
+___scope___.file("app/math/Line2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Line2D = /** @class */ (function () {
+    function Line2D(v1, v2) {
+        this._v1 = v1;
+        this._v2 = v2;
+    }
+    Object.defineProperty(Line2D.prototype, "v1", {
+        get: function () {
+            return this._v1;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Line2D.prototype, "v2", {
+        get: function () {
+            return this._v2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Line2D.create = function (v1, v2) {
+        return new Line2D(v1, v2);
+    };
+    Line2D.prototype.length = function () {
+        return this.v1.distance(this.v2);
+    };
+    Line2D.prototype.lengthSquared = function () {
+        return this.v1.distanceSquared(this.v2);
+    };
+    return Line2D;
+}());
+exports.Line2D = Line2D;
+//# sourceMappingURL=Line2D.js.map
 });
 ___scope___.file("app/Lazy.js", function(exports, require, module, __filename, __dirname){
 
@@ -3372,276 +4944,6 @@ var Lazy = /** @class */ (function () {
 }());
 exports.Lazy = Lazy;
 //# sourceMappingURL=Lazy.js.map
-});
-___scope___.file("app/TextureLoader.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var THREE = require("three");
-var JSZip = require("jszip");
-var Tuples_1 = require("./Tuples");
-var CladdingTextureType;
-(function (CladdingTextureType) {
-    CladdingTextureType["CClad"] = "c_clad";
-    CladdingTextureType["Corrugate"] = "corrugated";
-    CladdingTextureType["KPanel"] = "k_panel";
-    CladdingTextureType["Monoclad"] = "monoclad";
-    CladdingTextureType["MonocladWallCladding"] = "monoclad_wall_cladding";
-})(CladdingTextureType = exports.CladdingTextureType || (exports.CladdingTextureType = {}));
-var CladdingTextureColour;
-(function (CladdingTextureColour) {
-    CladdingTextureColour["Aries"] = "aries";
-    CladdingTextureColour["Astro"] = "astro";
-    CladdingTextureColour["Basalt"] = "basalt";
-    CladdingTextureColour["Celestian"] = "celestian";
-    CladdingTextureColour["ClassicCream"] = "classic_cream";
-    CladdingTextureColour["Colorbond"] = "colorbond";
-    CladdingTextureColour["Cosmic"] = "cosmic";
-    CladdingTextureColour["CottageGreen"] = "cottage_green";
-    CladdingTextureColour["Cove"] = "cove";
-    CladdingTextureColour["DeepOcean"] = "deep_ocean";
-    CladdingTextureColour["Dune"] = "dune";
-    CladdingTextureColour["EveningHaze"] = "evening_haze";
-    CladdingTextureColour["Galactic"] = "galactic";
-    CladdingTextureColour["Gully"] = "gully";
-    CladdingTextureColour["Ironstrone"] = "ironstone";
-    CladdingTextureColour["Jasper"] = "jasper";
-    CladdingTextureColour["Mangrove"] = "mangrove";
-    CladdingTextureColour["ManorRed"] = "manor_red";
-    CladdingTextureColour["Monument"] = "monument";
-    CladdingTextureColour["NightSky"] = "night_sky";
-    CladdingTextureColour["PaleEucalypt"] = "pale_eucalypt";
-    CladdingTextureColour["Paperbark"] = "paperbark";
-    CladdingTextureColour["Rhea"] = "rhea";
-    CladdingTextureColour["ShaleGrey"] = "shale_grey";
-    CladdingTextureColour["Surfmist"] = "surfmist";
-    CladdingTextureColour["Terrain"] = "terrain";
-    CladdingTextureColour["Wallaby"] = "wallaby";
-    CladdingTextureColour["WhiteHaven"] = "whitehaven";
-    CladdingTextureColour["Windspray"] = "windspray";
-    CladdingTextureColour["WoodlandGrey"] = "woodlandGrey";
-    CladdingTextureColour["Zinc"] = "zinc";
-})(CladdingTextureColour = exports.CladdingTextureColour || (exports.CladdingTextureColour = {}));
-function mkCladdingTexturePath(claddingTextureType, claddingTextureColour) {
-    var folder = "textures/skm/" + claddingTextureType;
-    var file_mid_name;
-    switch (claddingTextureType) {
-        case CladdingTextureType.CClad:
-            file_mid_name = "c-clad";
-            break;
-        case CladdingTextureType.KPanel:
-            file_mid_name = "k-panel";
-            break;
-        default:
-            file_mid_name = claddingTextureType;
-            break;
-    }
-    var file_name = "stramit_" + file_mid_name + "_" + claddingTextureColour + ".skm";
-    return folder + "/" + file_name;
-}
-exports.mkCladdingTexturePath = mkCladdingTexturePath;
-var claddingTextureCache = new Map();
-function loadCladdingTexture(textureLoader, claddingTextureType, claddingTextureColour) {
-    var texturePath = mkCladdingTexturePath(claddingTextureType, claddingTextureColour);
-    var existing = claddingTextureCache.get(texturePath);
-    if (existing) {
-        return existing;
-    }
-    var pTexture;
-    pTexture =
-        loadSketchupTexture(texturePath)
-            .then(function (sketchupTexture) {
-            return new Promise(function (resolve, reject) {
-                textureLoader.load(sketchupTexture.image.src, function onLoad(texture) {
-                    texture.wrapS = THREE.RepeatWrapping;
-                    texture.wrapT = THREE.RepeatWrapping;
-                    texture.repeat.set(1.0 / 25.4 / sketchupTexture.xScale, 1.0 / 25.4 / sketchupTexture.yScale);
-                    resolve(Tuples_1.T2.of(sketchupTexture, texture));
-                }, function onProgress(event) { }, function opError(event) {
-                    reject(event);
-                });
-            });
-        });
-    claddingTextureCache.set(texturePath, pTexture);
-    return pTexture;
-}
-exports.loadCladdingTexture = loadCladdingTexture;
-var SketchupTexture = /** @class */ (function () {
-    function SketchupTexture(xScale, yScale, image) {
-        this._xScale = xScale;
-        this._yScale = yScale;
-        this._image = image;
-    }
-    Object.defineProperty(SketchupTexture.prototype, "xScale", {
-        get: function () {
-            return this._xScale;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SketchupTexture.prototype, "yScale", {
-        get: function () {
-            return this._yScale;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SketchupTexture.prototype, "image", {
-        get: function () {
-            return this._image;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return SketchupTexture;
-}());
-exports.SketchupTexture = SketchupTexture;
-function loadGrass() {
-    var zip = new JSZip();
-    return fetch("textures/grass.zip")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(JSZip.loadAsync)
-        .then(function (zip) { return zip.file("grass-512.jpg").async("base64"); })
-        .then(function (imageData) {
-        var image = new Image();
-        image.src = "data:image/jpg;base64," + imageData;
-        return image;
-    });
-}
-exports.loadGrass = loadGrass;
-function loadGrass2() {
-    return fetch("textures/grass.jpg")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(function (blob) {
-        var objectURL = URL.createObjectURL(blob);
-        var image = new Image();
-        image.src = objectURL;
-        return image;
-    });
-}
-exports.loadGrass2 = loadGrass2;
-function loadSky() {
-    var zip = new JSZip();
-    return fetch("textures/sky.zip")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(JSZip.loadAsync)
-        .then(function (zip) { return zip.file("sky-1024x256.jpg").async("base64"); })
-        .then(function (imageData) {
-        var image = new Image();
-        image.src = "data:image/jpg;base64," + imageData;
-        return image;
-    });
-}
-exports.loadSky = loadSky;
-function loadSky2() {
-    return fetch("textures/sky-dome-texture.jpg")
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(function (blob) {
-        var objectURL = URL.createObjectURL(blob);
-        var image = new Image();
-        image.src = objectURL;
-        return image;
-    });
-}
-exports.loadSky2 = loadSky2;
-// example path "textures/skm/c_clad/stramit_c-clad_aries.skm"
-function loadSketchupTexture(path) {
-    var zip = new JSZip();
-    return fetch(path)
-        .then(function (response) {
-        if (response.status === 200 || response.status === 0) {
-            return Promise.resolve(response.blob());
-        }
-        else {
-            return Promise.reject(new Error(response.statusText));
-        }
-    })
-        .then(JSZip.loadAsync)
-        .then(function (zip) {
-        return zip
-            .file("document.xml")
-            .async("text")
-            .then(function success(text) {
-            var parser = new DOMParser();
-            var properties = parser.parseFromString(text, "text/xml");
-            var tmp = properties.children[0].children[0].children[0];
-            var tmp2 = tmp.children[0].children[0];
-            var xScale = Number.parseFloat(tmp.getAttribute("xScale"));
-            var yScale = Number.parseFloat(tmp.getAttribute("yScale"));
-            var path = tmp2.getAttribute("path");
-            return zip
-                .file("ref/" + path)
-                .async("base64")
-                .then(function success(imageData) {
-                var imageData2 = "data:image/bmp;base64," + imageData;
-                var image = new Image();
-                image.src = imageData2;
-                return new SketchupTexture(xScale, yScale, image);
-            });
-        });
-    });
-}
-exports.loadSketchupTexture = loadSketchupTexture;
-//# sourceMappingURL=TextureLoader.js.map
-});
-___scope___.file("app/Tuples.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var T2 = /** @class */ (function () {
-    function T2(a, b) {
-        this._a = a;
-        this._b = b;
-    }
-    T2.of = function (a, b) {
-        return new T2(a, b);
-    };
-    Object.defineProperty(T2.prototype, "_1", {
-        get: function () {
-            return this._a;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(T2.prototype, "_2", {
-        get: function () {
-            return this._b;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return T2;
-}());
-exports.T2 = T2;
-//# sourceMappingURL=Tuples.js.map
 });
 ___scope___.file("app/model/Portals.js", function(exports, require, module, __filename, __dirname){
 
@@ -3819,70 +5121,6 @@ var GablePortal = /** @class */ (function () {
 }());
 exports.GablePortal = GablePortal;
 //# sourceMappingURL=GablePortal.js.map
-});
-___scope___.file("app/ThreeJSUtil.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var THREE = require("three");
-function profiledContourGeometry(profileShape, contour, contourClosed) {
-    contourClosed = contourClosed !== undefined ? contourClosed : true;
-    var profileGeometry = new THREE.ShapeBufferGeometry(profileShape);
-    profileGeometry.rotateX(Math.PI * .5);
-    var profile = profileGeometry.attributes.position;
-    var profilePoints = new Float32Array(profile.count * contour.length * 3);
-    for (var i = 0; i < contour.length; i++) {
-        var v1 = new THREE.Vector2().subVectors(contour[i - 1 < 0 ? contour.length - 1 : i - 1], contour[i]);
-        var v2 = new THREE.Vector2().subVectors(contour[i + 1 == contour.length ? 0 : i + 1], contour[i]);
-        var angle = v2.angle() - v1.angle();
-        var halfAngle = angle * .5;
-        var hA = halfAngle;
-        var tA = v2.angle() + Math.PI * .5;
-        if (!contourClosed) {
-            if (i == 0 || i == contour.length - 1) {
-                hA = Math.PI * .5;
-            }
-            if (i == contour.length - 1) {
-                tA = v1.angle() - Math.PI * .5;
-            }
-        }
-        var shift = Math.tan(hA - Math.PI * .5);
-        console.log(shift);
-        var shiftMatrix = new THREE.Matrix4().set(1, 0, 0, 0, -shift, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-        var tempAngle = tA;
-        var rotationMatrix = new THREE.Matrix4().set(Math.cos(tempAngle), -Math.sin(tempAngle), 0, 0, Math.sin(tempAngle), Math.cos(tempAngle), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-        var translationMatrix = new THREE.Matrix4().set(1, 0, 0, contour[i].x, 0, 1, 0, contour[i].y, 0, 0, 1, 0, 0, 0, 0, 1);
-        var cloneProfile = profile.clone();
-        shiftMatrix.applyToBufferAttribute(cloneProfile);
-        rotationMatrix.applyToBufferAttribute(cloneProfile);
-        translationMatrix.applyToBufferAttribute(cloneProfile);
-        profilePoints.set(cloneProfile.array, cloneProfile.count * i * 3);
-    }
-    var fullProfileGeometry = new THREE.BufferGeometry();
-    fullProfileGeometry.addAttribute("position", new THREE.BufferAttribute(profilePoints, 3));
-    var index = [];
-    var lastCorner = contourClosed == false ? contour.length - 1 : contour.length;
-    for (var i = 0; i < lastCorner; i++) {
-        for (var j = 0; j < profile.count; j++) {
-            var currCorner = i;
-            var nextCorner = i + 1 == contour.length ? 0 : i + 1;
-            var currPoint = j;
-            var nextPoint = j + 1 == profile.count ? 0 : j + 1;
-            var a = nextPoint + profile.count * currCorner;
-            var b = currPoint + profile.count * currCorner;
-            var c = currPoint + profile.count * nextCorner;
-            var d = nextPoint + profile.count * nextCorner;
-            index.push(a, b, d);
-            index.push(b, c, d);
-        }
-    }
-    console.log(index);
-    fullProfileGeometry.setIndex(index);
-    fullProfileGeometry.computeVertexNormals();
-    return fullProfileGeometry;
-}
-exports.profiledContourGeometry = profiledContourGeometry;
-//# sourceMappingURL=ThreeJSUtil.js.map
 });
 ___scope___.file("app/model/SkillionPortal.js", function(exports, require, module, __filename, __dirname){
 
@@ -4631,16 +5869,80 @@ var Wall = /** @class */ (function () {
                 }
                 return bays;
             }, [params.cStableName, params.cCladdingTextureType, params.cCladdingTextureColour, cTextureSpace, params.cHighlightedStableNames, params.cHighlighted, params.cOpacity]);
-            var girts = new BattenPlane_1.BattenPlane({
-                cAxes: params.cAxes,
-                cOutlineCAG: params.cOutline.map(function (outline) {
-                    return CAG_1.CAG.fromPolygons([
+            var cSheetedAreaCAG = params.cOutline.lift3(params.cBayMarkers, params.cWallDataOp, function (outline, bayMarkers, wallDataOp) {
+                if (wallDataOp.isNone) {
+                    return CAG_1.CAG.fromPolygons([]);
+                }
+                var wallData = wallDataOp.fromSome();
+                var minY = Number.POSITIVE_INFINITY;
+                var maxY = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outline.length; ++i) {
+                    var pt = outline[i];
+                    minY = Math.min(minY, pt.y);
+                    maxY = Math.max(maxY, pt.y);
+                }
+                var intersectPolyMinY = minY - 100.0;
+                var intersectPolyMaxY = maxY + 100.0;
+                var outlineCAG = CAG_1.CAG.fromPolygons([
+                    Polygon2D_1.Polygon2D.create({
+                        outline: outline,
+                        holes: []
+                    })
+                ]);
+                var openBayCAGs = [];
+                for (var i = 0; i < bayMarkers.length - 1; ++i) {
+                    var marker1 = bayMarkers[i] - (i == 0 ? 100.0 : 1.0);
+                    var marker2 = bayMarkers[i + 1] + (i == bayMarkers.length - 2 ? 100.0 : 1.0);
+                    var isOpen = ArrayUtil_1.arrayIncludes(wallData.openBayIndices, i);
+                    if (!isOpen) {
+                        continue;
+                    }
+                    openBayCAGs.push(CAG_1.CAG.fromPolygons([
                         Polygon2D_1.Polygon2D.create({
-                            outline: outline,
+                            outline: [
+                                Vector2D_1.Vector2D.create(marker1, intersectPolyMinY),
+                                Vector2D_1.Vector2D.create(marker2, intersectPolyMinY),
+                                Vector2D_1.Vector2D.create(marker2, intersectPolyMaxY),
+                                Vector2D_1.Vector2D.create(marker1, intersectPolyMaxY)
+                            ],
                             holes: []
                         })
-                    ]);
-                }),
+                    ]));
+                }
+                var openingCAGs = [];
+                for (var i = 0; i < wallData.openings.length; ++i) {
+                    var opening = wallData.openings[i];
+                    var bayIndex = opening.bayIndex;
+                    if (bayIndex < 0 || bayIndex >= bayMarkers.length - 1) {
+                        continue;
+                    }
+                    var marker1 = bayMarkers[bayIndex];
+                    var marker2 = bayMarkers[bayIndex + 1];
+                    var centreX = 0.5 * (marker1 + marker2);
+                    openBayCAGs.push(CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: [
+                                Vector2D_1.Vector2D.create(centreX - 0.5 * opening.width, opening.headHeight - opening.height),
+                                Vector2D_1.Vector2D.create(centreX + 0.5 * opening.width, opening.headHeight - opening.height),
+                                Vector2D_1.Vector2D.create(centreX + 0.5 * opening.width, opening.headHeight),
+                                Vector2D_1.Vector2D.create(centreX - 0.5 * opening.width, opening.headHeight)
+                            ],
+                            holes: []
+                        })
+                    ]));
+                }
+                var result = outlineCAG;
+                for (var i = 0; i < openBayCAGs.length; ++i) {
+                    result = result.subtract(openBayCAGs[i]);
+                }
+                for (var i = 0; i < openingCAGs.length; ++i) {
+                    result = result.subtract(openingCAGs[i]);
+                }
+                return result;
+            });
+            var girts = new BattenPlane_1.BattenPlane({
+                cAxes: params.cAxes,
+                cOutlineCAG: cSheetedAreaCAG,
                 cBattenHeights: params.cOutline.lift(params.cBattenProperties, function (outline, battenProperties) {
                     if (outline.length == 0) {
                         return [];
@@ -4780,6 +6082,7 @@ ___scope___.file("app/model/Opening.js", function(exports, require, module, __fi
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var THREE = require("three");
+var SodiumUtil = require("../SodiumUtil");
 var Option_1 = require("../Option");
 var Axes3D_1 = require("../math/Axes3D");
 var MkModelEffect_1 = require("../MkModelEffect");
@@ -4799,39 +6102,35 @@ var Opening = /** @class */ (function () {
                 var centreX = 0.5 * (marker1 + marker2);
                 return Option_1.Option.some(axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(centreX, openingData.headHeight - 0.5 * openingData.height, 0.0), Quaternion_1.Quaternion.identity)));
             });
-            _this._cStableName = params.cStableName;
-            _this._cModel = new sodium.Cell(MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
-                var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
-                var group = new THREE.Group();
-                return Promise.resolve(MkModelEffect_1.Model.create(function () {
-                    var cleanups = [];
-                    cleanups.push(params.cOpeningData.listen(function (openingData) {
-                        while (group.children.length != 0) {
-                            group.remove(group.children[0]);
-                        }
+            var cOpeningAxesIsValid = cOpeningAxesOp.map(function (x) { return x.isSome; });
+            var cLastValidOpeningAxesOp = SodiumUtil.streamFilterOption(sodium.Operational.updates(cOpeningAxesOp)).map(function (x) { return Option_1.Option.some(x); }).hold(Option_1.Option.none());
+            var cModel = params.cOpeningData.lift(cOpeningAxesIsValid, sodium.lambda2(function (openingData, openingAxesIsValid) {
+                if (!openingAxesIsValid) {
+                    return MkModelEffect_1.MkModelEffect.empty;
+                }
+                else {
+                    return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
                         var geometry = new THREE.BoxGeometry(openingData.width, openingData.height, 100.0);
+                        var material = new THREE.MeshStandardMaterial({ color: 0x808080 });
                         var mesh = new THREE.Mesh(geometry, material);
-                        group.add(mesh);
-                    }));
-                    cleanups.push(cOpeningAxesOp.listen(function (openingAxesOp) {
-                        if (openingAxesOp.is_none) {
-                            group.visible = false;
-                            return;
-                        }
-                        group.visible = true;
-                        var openingAxes = openingAxesOp.fromSome();
-                        var origin = openingAxes.origin;
-                        var orientation = openingAxes.orientation;
-                        group.position.set(origin.x, origin.y, origin.z);
-                        group.quaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
-                        group.matrixWorldNeedsUpdate = true;
-                    }));
-                    return function () {
-                        cleanups.forEach(function (cleanup) { return cleanup; });
-                        cleanups = [];
-                    };
-                }, group));
-            })).map(sodium.lambda1(function (x) { return x; }, [params.cOpeningData, cOpeningAxesOp]));
+                        return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                            var cleanups = [];
+                            cleanups.push(cLastValidOpeningAxesOp.listen(function (lastValidOpeningAxesOp) {
+                                if (lastValidOpeningAxesOp.isNone) {
+                                    mesh.visible = false;
+                                    return;
+                                }
+                                var lastValidOpeningAxes = lastValidOpeningAxesOp.fromSome();
+                                mesh.visible = true;
+                                MkModelEffect_1.THREEObject3DSetAxes(mesh, lastValidOpeningAxes);
+                            }));
+                            return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                        }, mesh));
+                    });
+                }
+            }, [cOpeningAxesIsValid, cLastValidOpeningAxesOp]));
+            _this._cStableName = params.cStableName;
+            _this._cModel = cModel;
         });
     }
     Object.defineProperty(Opening.prototype, "cStableName", {
@@ -4861,6 +6160,13 @@ var BuildingData = /** @class */ (function () {
     function BuildingData(params) {
         this._params = params;
     }
+    Object.defineProperty(BuildingData.prototype, "claddingData", {
+        get: function () {
+            return this._params.claddingData;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(BuildingData.prototype, "buildingType", {
         get: function () {
             return this._params.buildingType;
@@ -5626,34 +6932,20 @@ var ToggleWallsMode = /** @class */ (function (_super) {
             var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
                 return mousePosOp.bind(screenPointToWorldRayOp);
             });
-            var cBayUnderMouseOp = sodium.Cell.switchC(params.cBays.map(sodium.lambda1(function (bays) {
-                return SodiumUtil.cellLiftArray(bays.map(function (bay) {
-                    return bay
-                        .cRayOpCollisionTimeOp(cMouseRayOp)
-                        .map(function (tOp) { return tOp.map(function (t) { return Tuples_1.T2.of(bay, t); }); });
+            var cPhantomWallUnderMouseOp = sodium.Cell.switchC(params.cPhantomWalls.map(sodium.lambda1(function (phantomWalls) {
+                return SodiumUtil.cellLiftArray(phantomWalls
+                    .get()
+                    .map(function (phantomWall) {
+                    return phantomWall
+                        ._2
+                        .cRayOpCollisionTimeOpFn(cMouseRayOp)
+                        .map(function (tOp) { return tOp.map(function (t) { return Tuples_1.T2.of(phantomWall, t); }); });
                 }))
                     .map(function (x) { return ArrayUtil_1.arraySomes(x); })
-                    .map(function (bays2) {
-                    return ArrayUtil_1.arrayReduce(bays2, function (a, b) { return a._2 < b._2 ? a : b; })
+                    .map(function (phantomWalls2) {
+                    return ArrayUtil_1.arrayReduce(phantomWalls2, function (a, b) { return a._2 < b._2 ? a : b; })
                         .map(function (a) { return a._1; });
                 });
-            }, [cMouseRayOp])));
-            var cPhantomWallUnderMouseOp = sodium.Cell.switchC(cBayUnderMouseOp.lift(params.cPhantomWalls, sodium.lambda2(function (bayUnderMouseOp, phantomWalls) {
-                return bayUnderMouseOp.isSome ?
-                    new sodium.Cell(Option_1.Option.none()) :
-                    SodiumUtil.cellLiftArray(phantomWalls
-                        .get()
-                        .map(function (phantomWall) {
-                        return phantomWall
-                            ._2
-                            .cRayOpCollisionTimeOpFn(cMouseRayOp)
-                            .map(function (tOp) { return tOp.map(function (t) { return Tuples_1.T2.of(phantomWall, t); }); });
-                    }))
-                        .map(function (x) { return ArrayUtil_1.arraySomes(x); })
-                        .map(function (phantomWalls2) {
-                        return ArrayUtil_1.arrayReduce(phantomWalls2, function (a, b) { return a._2 < b._2 ? a : b; })
-                            .map(function (a) { return a._1; });
-                    });
             }, [cMouseRayOp])));
             var cOverlayModelOp = sodium.Cell.switchC(cPhantomWallUnderMouseOp.lift(params.cPhantomWalls, function (phantomWallUnderMouseOp, phantomWalls) {
                 return SodiumUtil.cellLiftArray([
@@ -5677,15 +6969,6 @@ var ToggleWallsMode = /** @class */ (function (_super) {
                         Option_1.Option.some(MkModelEffect_1.MkModelEffect.compose(models));
                 });
             }));
-            var cHighlightedStableNames = sodium.Cell.switchC(cBayUnderMouseOp.map(function (bayUnderMouseOp) {
-                return bayUnderMouseOp
-                    .map(function (bayUnderMouse) {
-                    return bayUnderMouse
-                        .cStableName
-                        .map(function (stableName) { return [stableName]; });
-                })
-                    .orSome_(function () { return new sodium.Cell([]); });
-            }));
             var sBuildingEffect = SodiumUtil.streamFilterOption(params.sMouseLeftPressed
                 .snapshot1(cPhantomWallUnderMouseOp)
                 .map(function (phantomWallUnderMouseOp) {
@@ -5695,7 +6978,6 @@ var ToggleWallsMode = /** @class */ (function (_super) {
             }));
             var cRoofVisible = new sodium.Cell(false);
             _this._cOverlayModelOp = cOverlayModelOp;
-            _this._cHighlightStableNames = cHighlightedStableNames;
             _this._cRoofVisible = cRoofVisible;
             _this._sBuildingEffect = sBuildingEffect;
         });
@@ -5704,13 +6986,6 @@ var ToggleWallsMode = /** @class */ (function (_super) {
     Object.defineProperty(ToggleWallsMode.prototype, "cOverlayModelOp", {
         get: function () {
             return this._cOverlayModelOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(ToggleWallsMode.prototype, "cHighlightedStableNames", {
-        get: function () {
-            return this._cHighlightStableNames;
         },
         enumerable: true,
         configurable: true
@@ -5774,6 +7049,74 @@ var WallData = /** @class */ (function () {
 }());
 exports.WallData = WallData;
 //# sourceMappingURL=WallData.js.map
+});
+___scope___.file("app/model/CladdingData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var CladdingData = /** @class */ (function () {
+    function CladdingData(params) {
+        this._params = params;
+    }
+    Object.defineProperty(CladdingData.prototype, "wallSheetingProfile", {
+        get: function () {
+            return this._params.wallSheetingProfile;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CladdingData.prototype, "roofSheetingProfile", {
+        get: function () {
+            return this._params.roofSheetingProfile;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CladdingData.prototype, "wallSheetingColour", {
+        get: function () {
+            return this._params.wallSheetingColour;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CladdingData.prototype, "roofSheetingColour", {
+        get: function () {
+            return this._params.roofSheetingColour;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CladdingData.prototype, "gutterColour", {
+        get: function () {
+            return this._params.gutterColour;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CladdingData.prototype, "bargeColour", {
+        get: function () {
+            return this._params.bargeColour;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CladdingData.prototype, "ridgeColour", {
+        get: function () {
+            return this._params.ridgeColour;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    CladdingData.create = function (params) {
+        return new CladdingData(params);
+    };
+    CladdingData.prototype.from = function (params) {
+        return CladdingData.create(Object.assign({}, this._params, params));
+    };
+    return CladdingData;
+}());
+exports.CladdingData = CladdingData;
+//# sourceMappingURL=CladdingData.js.map
 });
 ___scope___.file("app/model/Operation.js", function(exports, require, module, __filename, __dirname){
 
@@ -61613,549 +62956,6 @@ ___scope___.file("index.js", function(exports, require, module, __filename, __di
 });
 return ___scope___.entry = "index.js";
 });
-FuseBox.pkg("csg2d", {}, function(___scope___){
-___scope___.file("csg2d.js", function(exports, require, module, __filename, __dirname){
-
-// Constructive Solid Geometry (CSG) is a modeling technique that uses Boolean
-// operations like union and intersection to combine 3D solids. This library
-// implements CSG operations on 2D polygons elegantly and concisely using BSP trees,
-// and is meant to serve as an easily understandable implementation of the
-// algorithm.
-// 
-// Example usage:
-// 
-//   var subjectPolygon = CSG.fromPolygons([[10, 10], [100, 10], [50, 140]]);
-//   var clipPolygon = CSG.fromPolygons([[10, 100], [50, 10], [100, 100]]);
-//   var polygons = subjectPolygon.subtract(clipPolygon).toPolygons();
-// 
-// ## Implementation Details
-// 
-// All CSG operations are implemented in terms of two functions, `clipTo()` and
-// `invert()`, which remove parts of a BSP tree inside another BSP tree and swap
-// solid and empty space, respectively. To find the union of `a` and `b`, we
-// want to remove everything in `a` inside `b` and everything in `b` inside `a`,
-// then combine polygons from `a` and `b` into one solid:
-// 
-//   a.clipTo(b);
-//   b.clipTo(a);
-//   a.build(b.allPolygons());
-// 
-// The only tricky part is handling overlapping coplanar polygons in both trees.
-// The code above keeps both copies, but we need to keep them in one tree and
-// remove them in the other tree. To remove them from `b` we can clip the
-// inverse of `b` against `a`. The code for union now looks like this:
-// 
-//   a.clipTo(b);
-//   b.clipTo(a);
-//   b.invert();
-//   b.clipTo(a);
-//   b.invert();
-//   a.build(b.allPolygons());
-// 
-// Subtraction and intersection naturally follow from set operations. If
-// union is `A | B`, subtraction is `A - B = ~(~A | B)` and intersection is
-// `A & B = ~(~A | ~B)` where `~` is the complement operator.
-// 
-// ## License
-// 
-// Copyright (c) 2011 Evan Wallace (http://madebyevan.com/), under the MIT license.
-
-// # class CSG
-
-// Holds a binary space partition tree representing a 3D solid. Two solids can
-// be combined using the `union()`, `subtract()`, and `intersect()` methods.
-
-
-(function(m) {
-  // CommonJS
-  if (typeof module != "undefined") {
-    console.log("FOOO");
-    module.exports = m();
-  // Browser
-  } else {
-    window.CSG = m();
-  }
-})(function() {
-
-  var CSG = function() {
-    this.segments = [];
-  };
-
-  CSG.fromSegments = function(segments) {
-    var csg = new CSG();
-    csg.segments = segments;
-    return csg;
-  };
-
-  // Construct a CSG solid from a list of `CSG.Polygon` instances.
-  CSG.fromPolygons = function(polygons) {
-    var csg = new CSG();
-    csg.segments = [];
-    for (var i = 0; i < polygons.length; i++) {
-      for (var j = 0; j < polygons[i].length; j++) {
-        var k = (j + 1) % (polygons[i].length);
-        csg.segments.push(new CSG.Segment([new CSG.Vector(polygons[i][j]), new CSG.Vector(polygons[i][k])]));
-      }
-    }
-    return csg;
-  };
-
-  CSG.prototype = {
-    clone: function() {
-      var csg = new CSG();
-      csg.segments = this.segments.map(function(p) {
-        return p.clone();
-      });
-      return csg;
-    },
-
-    toSegments: function() {
-      return this.segments;
-    },
-
-    toPolygons: function() {
-      var segments = this.toSegments();
-
-      var polygons = [];
-
-      var list = segments.slice();
-
-      var findNext = function(extremum) {
-        for (var i = 0; i < list.length; i++) {
-          if (list[i].vertices[0].squaredLengthTo(extremum) < 1) {
-            var result = list[i].clone();
-            list.splice(i, 1);
-            return result;
-          }
-        }
-        return false;
-      }
-      var currentIndex = 0;
-      while (list.length > 0) {
-        polygons[currentIndex] = polygons[currentIndex] || [];
-        if (polygons[currentIndex].length == 0) {
-          polygons[currentIndex].push(list[0].vertices[0]);
-          polygons[currentIndex].push(list[0].vertices[1]);
-          list.splice(0, 1);
-        }
-
-        var next = findNext(polygons[currentIndex][polygons[currentIndex].length - 1]);
-        if (next) {
-          polygons[currentIndex].push(next.vertices[1]);
-        } else {
-          currentIndex++;
-        }
-      }
-
-      return polygons;
-    },
-
-    // Return a new CSG solid representing space in either this solid or in the
-    // solid `csg`. Neither this solid nor the solid `csg` are modified.
-    // 
-    //   A.union(B)
-    // 
-    //   +-------+      +-------+
-    //   |     |      |     |
-    //   |   A   |      |     |
-    //   |  +--+----+   =   |     +----+
-    //   +----+--+  |     +----+     |
-    //      |   B   |      |     |
-    //      |     |      |     |
-    //      +-------+      +-------+
-    // 
-    union: function(csg) {
-      var a = new CSG.Node(this.clone().segments);
-      var b = new CSG.Node(csg.clone().segments);
-      a.invert();
-      b.clipTo(a);
-      b.invert();
-      a.clipTo(b);
-      b.clipTo(a);
-      a.build(b.allSegments());
-      a.invert();
-      return CSG.fromSegments(a.allSegments());
-    },
-
-
-    // Return a new CSG solid representing space in this solid but not in the
-    // solid `csg`. Neither this solid nor the solid `csg` are modified.
-    // 
-    //   A.subtract(B)
-    // 
-    //   +-------+      +-------+
-    //   |     |      |     |
-    //   |   A   |      |     |
-    //   |  +--+----+   =   |  +--+
-    //   +----+--+  |     +----+
-    //      |   B   |
-    //      |     |
-    //      +-------+
-    // 
-    subtract: function(csg) {
-      var b = new CSG.Node(this.clone().segments);
-      var a = new CSG.Node(csg.clone().segments);
-      a.invert();
-      a.clipTo(b);
-      b.clipTo(a);
-      b.invert();
-      b.clipTo(a);
-      b.invert();
-      a.build(b.allSegments());
-      a.invert();
-      return CSG.fromSegments(a.allSegments()).inverse();
-    },
-
-    // Return a new CSG solid representing space both this solid and in the
-    // solid `csg`. Neither this solid nor the solid `csg` are modified.
-    // 
-    //   A.intersect(B)
-    // 
-    //   +-------+
-    //   |     |
-    //   |   A   |
-    //   |  +--+----+   =   +--+
-    //   +----+--+  |     +--+
-    //      |   B   |
-    //      |     |
-    //      +-------+
-    // 
-    intersect: function(csg) {
-      var a = new CSG.Node(this.clone().segments);
-      var b = new CSG.Node(csg.clone().segments);
-      a.clipTo(b);
-      b.clipTo(a);
-      b.invert();
-      b.clipTo(a);
-      b.invert();
-      a.build(b.allSegments());
-      return CSG.fromSegments(a.allSegments());
-    },
-
-    // Return a new CSG solid with solid and empty space switched. This solid is
-    // not modified.
-    inverse: function() {
-      var csg = this.clone();
-      csg.segments.map(function(p) {
-        p.flip();
-      });
-      return csg;
-    }
-  };
-
-  // # class Vector
-
-  // Represents a 3D vector.
-  // 
-  // Example usage:
-  // 
-  //   new CSG.Vector(1, 2);
-  //   new CSG.Vector([1, 2]);
-  //   new CSG.Vector({ x: 1, y: 2 });
-
-  CSG.Vector = function(x, y) {
-    if (arguments.length == 2) {
-      this.x = x;
-      this.y = y;
-    } else if ('x' in x) {
-      this.x = x.x;
-      this.y = x.y;
-    } else {
-      this.x = x[0];
-      this.y = x[1];
-    }
-  };
-
-  CSG.Vector.prototype = {
-    clone: function() {
-      return new CSG.Vector(this.x, this.y);
-    },
-
-    negated: function() {
-      return new CSG.Vector(-this.x, -this.y);
-    },
-
-    plus: function(a) {
-      return new CSG.Vector(this.x + a.x, this.y + a.y);
-    },
-
-    minus: function(a) {
-      return new CSG.Vector(this.x - a.x, this.y - a.y);
-    },
-
-    times: function(a) {
-      return new CSG.Vector(this.x * a, this.y * a);
-    },
-
-    dividedBy: function(a) {
-      return new CSG.Vector(this.x / a, this.y / a);
-    },
-
-    dot: function(a) {
-      return this.x * a.x + this.y * a.y;
-    },
-
-    lerp: function(a, t) {
-      return this.plus(a.minus(this).times(t));
-    },
-
-    length: function() {
-      return Math.sqrt(this.dot(this));
-    },
-
-    unit: function() {
-      return this.dividedBy(this.length());
-    },
-
-    squaredLengthTo: function(b) {
-      return (this.x - b.x) * (this.x - b.x) + (this.y - b.y) * (this.y - b.y);
-    }
-  };
-
-  // # class line
-
-  CSG.Line = function(origin, direction) {
-    this.origin = origin;
-    this.direction = direction;
-    this.normal = (new CSG.Vector(this.direction.y, -this.direction.x));
-  };
-
-  CSG.Line.EPSILON = 1e-5;
-
-  CSG.Line.fromPoints = function(a, b) {
-    var dir = b.minus(a).unit();
-    return new CSG.Line(a, dir);
-  };
-
-  CSG.Line.prototype = {
-    clone: function() {
-      return new CSG.Line(this.origin.clone(), this.direction.clone());
-    },
-
-    flip: function() {
-      this.direction = this.direction.negated();
-      this.normal = this.normal.negated();
-    },
-
-    // Split `segment` by this line if needed, then put the segment or segment
-    // fragments in the appropriate lists. Colinear segments go into either
-    // `colinearRight` or `colinearLeft` depending on their orientation with
-    // respect to this line. segments in right or in left of this line go into
-    // either `right` or `left`.
-    splitSegment: function(segment, colinearRight, colinearLeft, right, left) {
-      var COLINEAR = 0;
-      var RIGHT = 1;
-      var LEFT = 2;
-      var SPANNING = 3;
-
-      // Classify each point as well as the entire polygon into one of the above
-      // four classes.
-      var segmentType = 0;
-      var types = [];
-      for (var i = 0; i < segment.vertices.length; i++) {
-        var t = this.normal.dot(segment.vertices[i].minus(this.origin));
-        var type = (t < -CSG.Line.EPSILON) ? RIGHT : (t > CSG.Line.EPSILON) ? LEFT : COLINEAR;
-        segmentType |= type;
-        types.push(type);
-      }
-
-      // Put the segment in the correct list, splitting it when necessary.
-      switch (segmentType) {
-        case COLINEAR:
-          if (t != 0) {
-            (t > 0 ? colinearRight : colinearLeft).push(segment);
-          } else {
-            if (segment.line.origin.x < this.origin.x) {
-              colinearLeft.push(segment)
-            } else {
-              colinearRight.push(segment)
-            }
-          }
-          break;
-        case RIGHT:
-          right.push(segment);
-          break;
-        case LEFT:
-          left.push(segment);
-          break;
-        case SPANNING: //TODO
-          var r = [],
-            l = [];
-          var ti = types[0],
-            tj = types[1];
-          var vi = segment.vertices[0],
-            vj = segment.vertices[1];
-          if (ti == RIGHT && tj == RIGHT) {
-            r.push(vi);
-            r.push(vj);
-          }
-          if (ti == LEFT && tj == LEFT) {
-            l.push(vi);
-            l.push(vj);
-          }
-          if (ti == RIGHT && tj == LEFT) {
-            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
-            var v = vi.lerp(vj, t);
-            r.push(vi);
-            r.push(v);
-            l.push(v.clone());
-            l.push(vj);
-          }
-          if (ti == LEFT && tj == RIGHT) {
-            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
-            var v = vi.lerp(vj, t);
-            l.push(vi);
-            l.push(v);
-            r.push(v.clone());
-            r.push(vj);
-          }
-          if (r.length >= 2) {
-            right.push(new CSG.Segment(r, segment.shared));
-          }
-
-          if (l.length >= 2) {
-            left.push(new CSG.Segment(l, segment.shared));
-          }
-          break;
-      }
-    }
-  };
-
-  // # class Segment
-
-  // Represents a convex segment. The vertices used to initialize a segment must
-  // be coplanar and form a convex loop. They do not have to be `CSG.Vertex`
-  // instances but they must behave similarly (duck typing can be used for
-  // customization).
-  // 
-  // Each convex segment has a `shared` property, which is shared between all
-  // segments that are clones of each other or were split from the same segment.
-  // This can be used to define per-segment properties (such as surface color).
-
-  CSG.Segment = function(vertices, shared) {
-    this.vertices = vertices;
-    this.shared = shared;
-    this.line = CSG.Line.fromPoints(vertices[0], vertices[1]);
-  };
-
-  CSG.Segment.prototype = {
-    clone: function() {
-      var vertices = this.vertices.map(function(v) {
-        return v.clone();
-      });
-      return new CSG.Segment(vertices, this.shared);
-    },
-
-    flip: function() {
-      this.vertices.reverse().map(function(v) {
-        v.negated();
-      });
-      this.line.flip();
-    }
-  };
-
-  // # class Node
-
-  // Holds a node in a BSP tree. A BSP tree is built from a collection of polygons
-  // by picking a polygon to split along. That polygon (and all other coplanar
-  // polygons) are added directly to that node and the other polygons are added to
-  // the right and/or left subtrees. This is not a leafy BSP tree since there is
-  // no distinction between internal and leaf nodes.
-
-  CSG.Node = function(segments) {
-    this.line = null;
-    this.right = null;
-    this.left = null;
-    this.segments = [];
-    if (segments) this.build(segments);
-  };
-
-  CSG.Node.prototype = {
-    clone: function() {
-      var node = new CSG.Node();
-      node.line = this.line && this.line.clone();
-      node.right = this.right && this.right.clone();
-      node.left = this.left && this.left.clone();
-      note.segments = this.segments.map(function(p) {
-        return p.clone();
-      });
-      return node;
-    },
-
-    // Convert solid space to empty space and empty space to solid space.
-    invert: function() {
-      for (var i = 0; i < this.segments.length; i++) {
-        this.segments[i].flip();
-      }
-      this.line.flip();
-      if (this.right) this.right.invert();
-      if (this.left) this.left.invert();
-      var temp = this.right;
-      this.right = this.left;
-      this.left = temp;
-    },
-
-    // Recursively remove all segments in `segments` that are inside this BSP
-    // tree.
-
-    clipSegments: function(segments) {
-      if (!this.line) return segments.slice();
-      var right = [],
-        left = [];
-      for (var i = 0; i < segments.length; i++) {
-        this.line.splitSegment(segments[i], right, left, right, left);
-      }
-      if (this.right) right = this.right.clipSegments(right);
-      if (this.left) left = this.left.clipSegments(left);
-      else left = [];
-      return right.concat(left);
-    },
-
-    // Remove all segments in this BSP tree that are inside the other BSP tree
-    // `bsp`.
-    clipTo: function(bsp) {
-      this.segments = bsp.clipSegments(this.segments);
-      if (this.right) this.right.clipTo(bsp);
-      if (this.left) this.left.clipTo(bsp);
-    },
-
-    // Return a list of all segments in this BSP tree.
-    allSegments: function() {
-      var segments = this.segments.slice();
-      if (this.right) segments = segments.concat(this.right.allSegments());
-      if (this.left) segments = segments.concat(this.left.allSegments());
-      return segments;
-    },
-
-    // Build a BSP tree out of `segments`. When called on an existing tree, the
-    // new segments are filtered down to the bottom of the tree and become new
-    // nodes there. Each set of segments is partitioned using the first polygon
-    // (no heuristic is used to pick a good split).
-    build: function(segments) {
-      if (!segments.length) return;
-      if (!this.line) this.line = segments[0].line.clone();
-      var right = [],
-        left = [];
-      for (var i = 0; i < segments.length; i++) {
-        this.line.splitSegment(segments[i], this.segments, this.segments, right, left);
-      }
-      if (right.length) {
-        if (!this.right) this.right = new CSG.Node();
-        this.right.build(right);
-      }
-      if (left.length) {
-        if (!this.left) this.left = new CSG.Node();
-        this.left.build(left);
-      }
-    }
-  };
-
-  return CSG;
-});
-
-});
-return ___scope___.entry = "csg2d.js";
-});
 FuseBox.pkg("jszip", {"core-js":"2.3.0"}, function(___scope___){
 ___scope___.file("lib/index.js", function(exports, require, module, __filename, __dirname){
 
@@ -76056,6 +76856,549 @@ module.exports = GZheader;
 
 });
 return ___scope___.entry = "index.js";
+});
+FuseBox.pkg("csg2d", {}, function(___scope___){
+___scope___.file("csg2d.js", function(exports, require, module, __filename, __dirname){
+
+// Constructive Solid Geometry (CSG) is a modeling technique that uses Boolean
+// operations like union and intersection to combine 3D solids. This library
+// implements CSG operations on 2D polygons elegantly and concisely using BSP trees,
+// and is meant to serve as an easily understandable implementation of the
+// algorithm.
+// 
+// Example usage:
+// 
+//   var subjectPolygon = CSG.fromPolygons([[10, 10], [100, 10], [50, 140]]);
+//   var clipPolygon = CSG.fromPolygons([[10, 100], [50, 10], [100, 100]]);
+//   var polygons = subjectPolygon.subtract(clipPolygon).toPolygons();
+// 
+// ## Implementation Details
+// 
+// All CSG operations are implemented in terms of two functions, `clipTo()` and
+// `invert()`, which remove parts of a BSP tree inside another BSP tree and swap
+// solid and empty space, respectively. To find the union of `a` and `b`, we
+// want to remove everything in `a` inside `b` and everything in `b` inside `a`,
+// then combine polygons from `a` and `b` into one solid:
+// 
+//   a.clipTo(b);
+//   b.clipTo(a);
+//   a.build(b.allPolygons());
+// 
+// The only tricky part is handling overlapping coplanar polygons in both trees.
+// The code above keeps both copies, but we need to keep them in one tree and
+// remove them in the other tree. To remove them from `b` we can clip the
+// inverse of `b` against `a`. The code for union now looks like this:
+// 
+//   a.clipTo(b);
+//   b.clipTo(a);
+//   b.invert();
+//   b.clipTo(a);
+//   b.invert();
+//   a.build(b.allPolygons());
+// 
+// Subtraction and intersection naturally follow from set operations. If
+// union is `A | B`, subtraction is `A - B = ~(~A | B)` and intersection is
+// `A & B = ~(~A | ~B)` where `~` is the complement operator.
+// 
+// ## License
+// 
+// Copyright (c) 2011 Evan Wallace (http://madebyevan.com/), under the MIT license.
+
+// # class CSG
+
+// Holds a binary space partition tree representing a 3D solid. Two solids can
+// be combined using the `union()`, `subtract()`, and `intersect()` methods.
+
+
+(function(m) {
+  // CommonJS
+  if (typeof module != "undefined") {
+    console.log("FOOO");
+    module.exports = m();
+  // Browser
+  } else {
+    window.CSG = m();
+  }
+})(function() {
+
+  var CSG = function() {
+    this.segments = [];
+  };
+
+  CSG.fromSegments = function(segments) {
+    var csg = new CSG();
+    csg.segments = segments;
+    return csg;
+  };
+
+  // Construct a CSG solid from a list of `CSG.Polygon` instances.
+  CSG.fromPolygons = function(polygons) {
+    var csg = new CSG();
+    csg.segments = [];
+    for (var i = 0; i < polygons.length; i++) {
+      for (var j = 0; j < polygons[i].length; j++) {
+        var k = (j + 1) % (polygons[i].length);
+        csg.segments.push(new CSG.Segment([new CSG.Vector(polygons[i][j]), new CSG.Vector(polygons[i][k])]));
+      }
+    }
+    return csg;
+  };
+
+  CSG.prototype = {
+    clone: function() {
+      var csg = new CSG();
+      csg.segments = this.segments.map(function(p) {
+        return p.clone();
+      });
+      return csg;
+    },
+
+    toSegments: function() {
+      return this.segments;
+    },
+
+    toPolygons: function() {
+      var segments = this.toSegments();
+
+      var polygons = [];
+
+      var list = segments.slice();
+
+      var findNext = function(extremum) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].vertices[0].squaredLengthTo(extremum) < 1) {
+            var result = list[i].clone();
+            list.splice(i, 1);
+            return result;
+          }
+        }
+        return false;
+      }
+      var currentIndex = 0;
+      while (list.length > 0) {
+        polygons[currentIndex] = polygons[currentIndex] || [];
+        if (polygons[currentIndex].length == 0) {
+          polygons[currentIndex].push(list[0].vertices[0]);
+          polygons[currentIndex].push(list[0].vertices[1]);
+          list.splice(0, 1);
+        }
+
+        var next = findNext(polygons[currentIndex][polygons[currentIndex].length - 1]);
+        if (next) {
+          polygons[currentIndex].push(next.vertices[1]);
+        } else {
+          currentIndex++;
+        }
+      }
+
+      return polygons;
+    },
+
+    // Return a new CSG solid representing space in either this solid or in the
+    // solid `csg`. Neither this solid nor the solid `csg` are modified.
+    // 
+    //   A.union(B)
+    // 
+    //   +-------+      +-------+
+    //   |     |      |     |
+    //   |   A   |      |     |
+    //   |  +--+----+   =   |     +----+
+    //   +----+--+  |     +----+     |
+    //      |   B   |      |     |
+    //      |     |      |     |
+    //      +-------+      +-------+
+    // 
+    union: function(csg) {
+      var a = new CSG.Node(this.clone().segments);
+      var b = new CSG.Node(csg.clone().segments);
+      a.invert();
+      b.clipTo(a);
+      b.invert();
+      a.clipTo(b);
+      b.clipTo(a);
+      a.build(b.allSegments());
+      a.invert();
+      return CSG.fromSegments(a.allSegments());
+    },
+
+
+    // Return a new CSG solid representing space in this solid but not in the
+    // solid `csg`. Neither this solid nor the solid `csg` are modified.
+    // 
+    //   A.subtract(B)
+    // 
+    //   +-------+      +-------+
+    //   |     |      |     |
+    //   |   A   |      |     |
+    //   |  +--+----+   =   |  +--+
+    //   +----+--+  |     +----+
+    //      |   B   |
+    //      |     |
+    //      +-------+
+    // 
+    subtract: function(csg) {
+      var b = new CSG.Node(this.clone().segments);
+      var a = new CSG.Node(csg.clone().segments);
+      a.invert();
+      a.clipTo(b);
+      b.clipTo(a);
+      b.invert();
+      b.clipTo(a);
+      b.invert();
+      a.build(b.allSegments());
+      a.invert();
+      return CSG.fromSegments(a.allSegments()).inverse();
+    },
+
+    // Return a new CSG solid representing space both this solid and in the
+    // solid `csg`. Neither this solid nor the solid `csg` are modified.
+    // 
+    //   A.intersect(B)
+    // 
+    //   +-------+
+    //   |     |
+    //   |   A   |
+    //   |  +--+----+   =   +--+
+    //   +----+--+  |     +--+
+    //      |   B   |
+    //      |     |
+    //      +-------+
+    // 
+    intersect: function(csg) {
+      var a = new CSG.Node(this.clone().segments);
+      var b = new CSG.Node(csg.clone().segments);
+      a.clipTo(b);
+      b.clipTo(a);
+      b.invert();
+      b.clipTo(a);
+      b.invert();
+      a.build(b.allSegments());
+      return CSG.fromSegments(a.allSegments());
+    },
+
+    // Return a new CSG solid with solid and empty space switched. This solid is
+    // not modified.
+    inverse: function() {
+      var csg = this.clone();
+      csg.segments.map(function(p) {
+        p.flip();
+      });
+      return csg;
+    }
+  };
+
+  // # class Vector
+
+  // Represents a 3D vector.
+  // 
+  // Example usage:
+  // 
+  //   new CSG.Vector(1, 2);
+  //   new CSG.Vector([1, 2]);
+  //   new CSG.Vector({ x: 1, y: 2 });
+
+  CSG.Vector = function(x, y) {
+    if (arguments.length == 2) {
+      this.x = x;
+      this.y = y;
+    } else if ('x' in x) {
+      this.x = x.x;
+      this.y = x.y;
+    } else {
+      this.x = x[0];
+      this.y = x[1];
+    }
+  };
+
+  CSG.Vector.prototype = {
+    clone: function() {
+      return new CSG.Vector(this.x, this.y);
+    },
+
+    negated: function() {
+      return new CSG.Vector(-this.x, -this.y);
+    },
+
+    plus: function(a) {
+      return new CSG.Vector(this.x + a.x, this.y + a.y);
+    },
+
+    minus: function(a) {
+      return new CSG.Vector(this.x - a.x, this.y - a.y);
+    },
+
+    times: function(a) {
+      return new CSG.Vector(this.x * a, this.y * a);
+    },
+
+    dividedBy: function(a) {
+      return new CSG.Vector(this.x / a, this.y / a);
+    },
+
+    dot: function(a) {
+      return this.x * a.x + this.y * a.y;
+    },
+
+    lerp: function(a, t) {
+      return this.plus(a.minus(this).times(t));
+    },
+
+    length: function() {
+      return Math.sqrt(this.dot(this));
+    },
+
+    unit: function() {
+      return this.dividedBy(this.length());
+    },
+
+    squaredLengthTo: function(b) {
+      return (this.x - b.x) * (this.x - b.x) + (this.y - b.y) * (this.y - b.y);
+    }
+  };
+
+  // # class line
+
+  CSG.Line = function(origin, direction) {
+    this.origin = origin;
+    this.direction = direction;
+    this.normal = (new CSG.Vector(this.direction.y, -this.direction.x));
+  };
+
+  CSG.Line.EPSILON = 1e-5;
+
+  CSG.Line.fromPoints = function(a, b) {
+    var dir = b.minus(a).unit();
+    return new CSG.Line(a, dir);
+  };
+
+  CSG.Line.prototype = {
+    clone: function() {
+      return new CSG.Line(this.origin.clone(), this.direction.clone());
+    },
+
+    flip: function() {
+      this.direction = this.direction.negated();
+      this.normal = this.normal.negated();
+    },
+
+    // Split `segment` by this line if needed, then put the segment or segment
+    // fragments in the appropriate lists. Colinear segments go into either
+    // `colinearRight` or `colinearLeft` depending on their orientation with
+    // respect to this line. segments in right or in left of this line go into
+    // either `right` or `left`.
+    splitSegment: function(segment, colinearRight, colinearLeft, right, left) {
+      var COLINEAR = 0;
+      var RIGHT = 1;
+      var LEFT = 2;
+      var SPANNING = 3;
+
+      // Classify each point as well as the entire polygon into one of the above
+      // four classes.
+      var segmentType = 0;
+      var types = [];
+      for (var i = 0; i < segment.vertices.length; i++) {
+        var t = this.normal.dot(segment.vertices[i].minus(this.origin));
+        var type = (t < -CSG.Line.EPSILON) ? RIGHT : (t > CSG.Line.EPSILON) ? LEFT : COLINEAR;
+        segmentType |= type;
+        types.push(type);
+      }
+
+      // Put the segment in the correct list, splitting it when necessary.
+      switch (segmentType) {
+        case COLINEAR:
+          if (t != 0) {
+            (t > 0 ? colinearRight : colinearLeft).push(segment);
+          } else {
+            if (segment.line.origin.x < this.origin.x) {
+              colinearLeft.push(segment)
+            } else {
+              colinearRight.push(segment)
+            }
+          }
+          break;
+        case RIGHT:
+          right.push(segment);
+          break;
+        case LEFT:
+          left.push(segment);
+          break;
+        case SPANNING: //TODO
+          var r = [],
+            l = [];
+          var ti = types[0],
+            tj = types[1];
+          var vi = segment.vertices[0],
+            vj = segment.vertices[1];
+          if (ti == RIGHT && tj == RIGHT) {
+            r.push(vi);
+            r.push(vj);
+          }
+          if (ti == LEFT && tj == LEFT) {
+            l.push(vi);
+            l.push(vj);
+          }
+          if (ti == RIGHT && tj == LEFT) {
+            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
+            var v = vi.lerp(vj, t);
+            r.push(vi);
+            r.push(v);
+            l.push(v.clone());
+            l.push(vj);
+          }
+          if (ti == LEFT && tj == RIGHT) {
+            var t = (this.normal.dot(this.origin.minus(vi))) / this.normal.dot(vj.minus(vi));
+            var v = vi.lerp(vj, t);
+            l.push(vi);
+            l.push(v);
+            r.push(v.clone());
+            r.push(vj);
+          }
+          if (r.length >= 2) {
+            right.push(new CSG.Segment(r, segment.shared));
+          }
+
+          if (l.length >= 2) {
+            left.push(new CSG.Segment(l, segment.shared));
+          }
+          break;
+      }
+    }
+  };
+
+  // # class Segment
+
+  // Represents a convex segment. The vertices used to initialize a segment must
+  // be coplanar and form a convex loop. They do not have to be `CSG.Vertex`
+  // instances but they must behave similarly (duck typing can be used for
+  // customization).
+  // 
+  // Each convex segment has a `shared` property, which is shared between all
+  // segments that are clones of each other or were split from the same segment.
+  // This can be used to define per-segment properties (such as surface color).
+
+  CSG.Segment = function(vertices, shared) {
+    this.vertices = vertices;
+    this.shared = shared;
+    this.line = CSG.Line.fromPoints(vertices[0], vertices[1]);
+  };
+
+  CSG.Segment.prototype = {
+    clone: function() {
+      var vertices = this.vertices.map(function(v) {
+        return v.clone();
+      });
+      return new CSG.Segment(vertices, this.shared);
+    },
+
+    flip: function() {
+      this.vertices.reverse().map(function(v) {
+        v.negated();
+      });
+      this.line.flip();
+    }
+  };
+
+  // # class Node
+
+  // Holds a node in a BSP tree. A BSP tree is built from a collection of polygons
+  // by picking a polygon to split along. That polygon (and all other coplanar
+  // polygons) are added directly to that node and the other polygons are added to
+  // the right and/or left subtrees. This is not a leafy BSP tree since there is
+  // no distinction between internal and leaf nodes.
+
+  CSG.Node = function(segments) {
+    this.line = null;
+    this.right = null;
+    this.left = null;
+    this.segments = [];
+    if (segments) this.build(segments);
+  };
+
+  CSG.Node.prototype = {
+    clone: function() {
+      var node = new CSG.Node();
+      node.line = this.line && this.line.clone();
+      node.right = this.right && this.right.clone();
+      node.left = this.left && this.left.clone();
+      note.segments = this.segments.map(function(p) {
+        return p.clone();
+      });
+      return node;
+    },
+
+    // Convert solid space to empty space and empty space to solid space.
+    invert: function() {
+      for (var i = 0; i < this.segments.length; i++) {
+        this.segments[i].flip();
+      }
+      this.line.flip();
+      if (this.right) this.right.invert();
+      if (this.left) this.left.invert();
+      var temp = this.right;
+      this.right = this.left;
+      this.left = temp;
+    },
+
+    // Recursively remove all segments in `segments` that are inside this BSP
+    // tree.
+
+    clipSegments: function(segments) {
+      if (!this.line) return segments.slice();
+      var right = [],
+        left = [];
+      for (var i = 0; i < segments.length; i++) {
+        this.line.splitSegment(segments[i], right, left, right, left);
+      }
+      if (this.right) right = this.right.clipSegments(right);
+      if (this.left) left = this.left.clipSegments(left);
+      else left = [];
+      return right.concat(left);
+    },
+
+    // Remove all segments in this BSP tree that are inside the other BSP tree
+    // `bsp`.
+    clipTo: function(bsp) {
+      this.segments = bsp.clipSegments(this.segments);
+      if (this.right) this.right.clipTo(bsp);
+      if (this.left) this.left.clipTo(bsp);
+    },
+
+    // Return a list of all segments in this BSP tree.
+    allSegments: function() {
+      var segments = this.segments.slice();
+      if (this.right) segments = segments.concat(this.right.allSegments());
+      if (this.left) segments = segments.concat(this.left.allSegments());
+      return segments;
+    },
+
+    // Build a BSP tree out of `segments`. When called on an existing tree, the
+    // new segments are filtered down to the bottom of the tree and become new
+    // nodes there. Each set of segments is partitioned using the first polygon
+    // (no heuristic is used to pick a good split).
+    build: function(segments) {
+      if (!segments.length) return;
+      if (!this.line) this.line = segments[0].line.clone();
+      var right = [],
+        left = [];
+      for (var i = 0; i < segments.length; i++) {
+        this.line.splitSegment(segments[i], this.segments, this.segments, right, left);
+      }
+      if (right.length) {
+        if (!this.right) this.right = new CSG.Node();
+        this.right.build(right);
+      }
+      if (left.length) {
+        if (!this.left) this.left = new CSG.Node();
+        this.left.build(left);
+      }
+    }
+  };
+
+  return CSG;
+});
+
+});
+return ___scope___.entry = "csg2d.js";
 });
 FuseBox.pkg("three-orbitcontrols-ts", {"three":"0.94.0"}, function(___scope___){
 ___scope___.file("dist/index.js", function(exports, require, module, __filename, __dirname){

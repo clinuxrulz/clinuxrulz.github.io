@@ -4,6 +4,8 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/1.0.11/custom-elements-es5-adapter.js"></script>
         <script src="js/webcomponents-lite.js"></script>
         <style>
+            html, body { height: 100%; width: 100%; margin: 0; }
+
             .flex-container {
                 display: flex;
             }
@@ -34,9 +36,102 @@
                 var addOpeningProperties = document.getElementById("addOpeningProperties");
                 addOpeningProperties.style.display = visible ? "block" : "none";
             }
+            function initAvailableSheetingProfiles(profiles) {
+                var i, j;
+                var x = document.getElementsByClassName("sheetingProfiles");
+                for (i = 0; i < x.length; ++i) {
+                    var cboSheetingProfiles = x[i];
+                    cboSheetingProfiles.innerHTML = "";
+                    for (j = 0; j < profiles.length; ++j) {
+                        var option = document.createElement("option");
+                        option.setAttribute("value", profiles[j].value);
+                        option.innerText = profiles[j].name;
+                        cboSheetingProfiles.appendChild(option);
+                    }
+                }
+            }
+            function initAvailableColours(colours) {
+                var i;
+                var x = document.getElementsByClassName("colours");
+                for (i = 0; i < x.length; ++i) {
+                    (function() {
+                        var j;
+                        var cboColours = x[i];
+                        cboColours.innerHTML = "";
+                        for (j = 0; j < colours.length; ++j) {
+                            var option = document.createElement("option");
+                            option.setAttribute("value", colours[j].value);
+                            option.style = "color:" + colours[j].textColour + ";background:" + colours[j].colour;
+                            option.innerText = colours[j].name;
+                            cboColours.appendChild(option);
+                        }
+                        cboColours.addEventListener("input", function() {
+                            var j;
+                            for (j = 0; j < colours.length; ++j) {
+                                if (cboColours.value == colours[j].value) {
+                                    cboColours.style = "color:" + colours[j].textColour + ";background:" + colours[j].colour;
+                                }
+                            }
+                        });
+                    })();
+                }
+            }
+            function updateCboColour(cboColour) {
+                var i;
+                var child;
+                for (i = 0; i < cboColour.children.length; ++i) {
+                    child = cboColour.children[i];
+                    if (child.value == cboColour.value) {
+                        cboColour.style = "color:" + child.style.color + ";background:" + child.style.background;
+                        break;
+                    }
+                }
+            }
+            function appLoaded() {
+                var cboWallSheetingProfile = document.getElementById("cboWallSheetingProfile");
+                var cboRoofSheetingProfile = document.getElementById("cboRoofSheetingProfile");
+                var cboWallSheetingColour = document.getElementById("cboWallSheetingColour");
+                var cboRoofSheetingColour = document.getElementById("cboRoofSheetingColour");
+                var cboGutterColour = document.getElementById("cboGutterColour");
+                var cboBargeColour = document.getElementById("cboBargeColour");
+                var cboRidgeColour = document.getElementById("cboRidgeColour");
+                cboWallSheetingProfile.addEventListener("input", function() {
+                    app.setWallSheetingProfile(cboWallSheetingProfile.value);
+                });
+                cboRoofSheetingProfile.addEventListener("input", function() {
+                    app.setRoofSheetingProfile(cboRoofSheetingProfile.value);
+                });
+                cboWallSheetingColour.addEventListener("input", function() {
+                    app.setWallSheetingColour(cboWallSheetingColour.value);
+                });
+                cboRoofSheetingColour.addEventListener("input", function() {
+                    app.setRoofSheetingColour(cboRoofSheetingColour.value);
+                });
+                cboGutterColour.addEventListener("input", function() {
+                    app.setGutterColour(cboGutterColour.value);
+                });
+                cboBargeColour.addEventListener("input", function() {
+                    app.setBargeColour(cboBargeColour.value);
+                });
+                cboRidgeColour.addEventListener("input", function() {
+                    app.setRidgeColour(cboRidgeColour.value);
+                });
+                cboWallSheetingProfile.value = app.claddingData.wallSheetingProfile;
+                cboRoofSheetingProfile.value = app.claddingData.roofSheetingProfile;
+                cboWallSheetingColour.value = app.claddingData.wallSheetingColour;
+                cboRoofSheetingColour.value = app.claddingData.roofSheetingColour;
+                cboGutterColour.value = app.claddingData.gutterColour;
+                cboBargeColour.value = app.claddingData.bargeColour;
+                cboRidgeColour.value = app.claddingData.ridgeColour;
+                updateCboColour(cboWallSheetingColour);
+                updateCboColour(cboRoofSheetingColour);
+                updateCboColour(cboGutterColour);
+                updateCboColour(cboBargeColour);
+                updateCboColour(cboRidgeColour);
+            }
         </script>
 
-        <div class="flex-container" width="100%">
+        <div class="flex-container" style="width:100%;height:100%;">
             <div class="flex-container flex-vertical">
                 <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Shed Type</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('addProperties')">Add</button>
@@ -45,7 +140,7 @@
                 <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Walls</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('windowsDoorsSkylightsProperties')">Windows, Doors & Skylights</button>
                 -->
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Colours & Claddings</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')">Colours & Claddings</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Options</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Save & Share</button>
@@ -84,6 +179,15 @@
                 </div>
                 <div id="windowsDoorsSkylightsProperties" class="properties" style="display:none">
                     Tab a wall or a roof segment to zoom in and configure doors, windows, skylights.
+                </div>
+                <div id="coloursProperties" class="properties" style="display:none">
+                    Wall Sheeting Type: <select id="cboWallSheetingProfile" class="sheetingProfiles"></select><br/>
+                    Roof Sheeting Type: <select id="cboRoofSheetingProfile" class="sheetingProfiles"></select><br/>
+                    Wall Sheeting Colour: <select id="cboWallSheetingColour" class="colours"></select><br/>
+                    Roof Sheeting Colour: <select id="cboRoofSheetingColour" class="colours"></select><br/>
+                    Gutter Colour: <select id="cboGutterColour" class="colours"></select><br/>
+                    Barge Colour: <select id="cboBargeColour" class="colours"></select><br/>
+                    Ridge Colour: <select id="cboRidgeColour" class="colours"></select><br/>
                 </div>
                 <div id="todoProperties" class="properties" style="display:none">
                     TODO
