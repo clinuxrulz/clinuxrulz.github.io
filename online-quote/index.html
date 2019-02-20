@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/1.0.11/custom-elements-es5-adapter.js"></script>
-        <script src="js/webcomponents-lite.js"></script>
         <style>
             html, body { height: 100%; width: 100%; margin: 0; }
 
@@ -14,6 +12,9 @@
                 flex-direction: column;
             }
         </style>
+        <link rel="stylesheet" href="js/jquery-ui.min.css">
+        <script src="js/jquery.min.js"></script>
+        <script src="js/jquery-ui.min.js"></script>
     </head>
     <body>
         <script  type="text/javascript" src="online-quote.js"></script>
@@ -128,6 +129,66 @@
                 updateCboColour(cboGutterColour);
                 updateCboColour(cboBargeColour);
                 updateCboColour(cboRidgeColour);
+                initUI();
+            }
+            function initUI() {
+                $(function() {
+                    var txtSpan = document.getElementById("txtSpan");
+                    var txtLength = document.getElementById("txtLength");
+                    var txtHeight = document.getElementById("txtHeight");
+                    var txtPitch = document.getElementById("txtPitch");
+                    $("#spanSlider").slider({
+                        "min": 6000,
+                        "max": 24000,
+                        "step": 500,
+                        "slide": function(event, ui) {
+                            txtSpan.value = ui.value;
+                            app.setSpan(ui.value);
+                        }
+                    });
+                    txtSpan.addEventListener("input", function(ev) {
+                        $("#spanSlider").slider("value", txtSpan.value);
+                    });
+                    $("#lengthSlider").slider({
+                        "min": 6000,
+                        "max": 50000,
+                        "step": 500,
+                        "value": 12000,
+                        "slide": function(event, ui) {
+                            txtLength.value = ui.value;
+                            app.setLength(ui.value);
+                        }
+                    });
+                    txtLength.addEventListener("input", function(ev) {
+                        $("#lengthSlider").slider("value", txtLength.value);
+                    });
+                    $("#heightSlider").slider({
+                        "min": 2400,
+                        "max": 6000,
+                        "step": 100,
+                        "value": 2400,
+                        "slide": function(event, ui) {
+                            txtHeight.value = ui.value;
+                            app.setHeight(ui.value);
+                        }
+                    });
+                    txtHeight.addEventListener("input", function(ev) {
+                        $("#heightSlider").slider("value", txtHeight.value);
+                    });
+                    $("#pitchSlider").slider({
+                        "min": 10,
+                        "max": 45,
+                        "step": 5,
+                        "value": 15,
+                        "slide": function(event, ui) {
+                            txtPitch.value = ui.value;
+                            app.setPitch(ui.value);
+                        }
+                    });
+                    txtPitch.addEventListener("input", function(ev) {
+                        $("#pitchSlider").slider("value", txtPitch.value);
+                    });
+                });
             }
         </script>
 
@@ -158,10 +219,10 @@
                             <option value="skillionBarn">Skillion Barn</option>
                             <option value="quakerBarn">Quaker Barn</option>
                         </select><br/>
-                    Span: <input id="txtSpan" type="text" value="6000"/><br/>
-                    Length: <input id="txtLength" type="text" value="12000"/><br/>
-                    Height: <input id="txtHeight" type="text" value="2400"/><br/>
-                    Pitch: <input id="txtPitch" type="text" value="15"/><br/>
+                    Span: <div id="spanSlider"></div> <input id="txtSpan" type="text" value="6000"/><br/>
+                    Length: <div id="lengthSlider"></div> <input id="txtLength" type="text" value="12000"/><br/>
+                    Height: <div id="heightSlider"></div> <input id="txtHeight" type="text" value="2400"/><br/>
+                    Pitch: <div id="pitchSlider"></div> <input id="txtPitch" type="text" value="15"/><br/>
                 </div>
                 <div id="addProperties" class="properties" style="display:none">
                     <div class="flex-container flex-vertical">

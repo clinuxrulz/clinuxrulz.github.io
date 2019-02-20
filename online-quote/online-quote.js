@@ -24,6 +24,10 @@ var TextureLoader_1 = require("./TextureLoader");
 var App = /** @class */ (function () {
     function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked, sToggleBaysButtonClicked, sToggleWallsButtonClicked) {
         var _this = this;
+        this._ssSetSpan = new sodium.StreamSink();
+        this._ssSetLength = new sodium.StreamSink();
+        this._ssSetHeight = new sodium.StreamSink();
+        this._ssSetPitch = new sodium.StreamSink();
         this._ssSetWallSheetingProfile = new sodium.StreamSink();
         this._ssSetRoofSheetingProfile = new sodium.StreamSink();
         this._ssSetWallSheetingColour = new sodium.StreamSink();
@@ -383,10 +387,10 @@ var App = /** @class */ (function () {
                         sSetRidgeColour: _this._ssSetRidgeColour
                     },
                     sSetBuildingType: sodium.Operational.updates(cBuildingType),
-                    sSetLength: sodium.Operational.updates(eliminateOp(cLengthOp)),
-                    sSetSpan: sodium.Operational.updates(eliminateOp(cSpanOp)),
-                    sSetHeight: sodium.Operational.updates(eliminateOp(cHeightOp)),
-                    sSetPitch: sodium.Operational.updates(eliminateOp(cPitchOp))
+                    sSetLength: sodium.Operational.updates(eliminateOp(cLengthOp)).orElse(_this._ssSetLength),
+                    sSetSpan: sodium.Operational.updates(eliminateOp(cSpanOp)).orElse(_this._ssSetSpan),
+                    sSetHeight: sodium.Operational.updates(eliminateOp(cHeightOp)).orElse(_this._ssSetHeight),
+                    sSetPitch: sodium.Operational.updates(eliminateOp(cPitchOp)).orElse(_this._ssSetPitch)
                 },
                 cOpeningFormPropertiesOp: cOpeningFormPropertiesOp,
                 sPerformOperation: sPerformOperation
@@ -417,6 +421,22 @@ var App = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    App.prototype.setSpan = function (span) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetSpan.send(span); });
+    };
+    App.prototype.setLength = function (length) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetLength.send(length); });
+    };
+    App.prototype.setHeight = function (height) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetHeight.send(height); });
+    };
+    App.prototype.setPitch = function (pitch) {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssSetPitch.send(pitch); });
+    };
     App.prototype.setWallSheetingProfile = function (wallSheetingProfile) {
         var _this = this;
         window.setTimeout(function () { return _this._ssSetWallSheetingProfile.send(wallSheetingProfile); });
@@ -2225,6 +2245,7 @@ var ToggleWallsMode_1 = require("../modes/ToggleWallsMode");
 var OpeningFormProperties_1 = require("../OpeningFormProperties");
 var WallData_1 = require("./WallData");
 var CladdingData_1 = require("./CladdingData");
+var RoofData_1 = require("./RoofData");
 var AppModel = /** @class */ (function () {
     function AppModel(params) {
         var _this = this;
@@ -2250,7 +2271,9 @@ var AppModel = /** @class */ (function () {
                 side2WallData: WallData_1.WallData.default_,
                 end1WallData: WallData_1.WallData.default_,
                 end2WallData: WallData_1.WallData.default_,
-                internalWallDatas: []
+                internalWallDatas: [],
+                side1RoofData: RoofData_1.RoofData.default_,
+                side2RoofData: RoofData_1.RoofData.default_
             }));
             cBuildingData.listen(function (buildingData) { return console.log(buildingData); });
             var clHighlightedStableNames = new sodium.CellLoop();
@@ -6237,6 +6260,20 @@ var BuildingData = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(BuildingData.prototype, "side1RoofData", {
+        get: function () {
+            return this._params.side1RoofData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "side2RoofData", {
+        get: function () {
+            return this._params.side2RoofData;
+        },
+        enumerable: true,
+        configurable: true
+    });
     BuildingData.create = function (params) {
         return new BuildingData(params);
     };
@@ -7117,6 +7154,40 @@ var CladdingData = /** @class */ (function () {
 }());
 exports.CladdingData = CladdingData;
 //# sourceMappingURL=CladdingData.js.map
+});
+___scope___.file("app/model/RoofData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var RoofData = /** @class */ (function () {
+    function RoofData(params) {
+        this._params = params;
+    }
+    Object.defineProperty(RoofData.prototype, "skylightAreas", {
+        get: function () {
+            return this._params.skylightAreas;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(RoofData, "default_", {
+        get: function () {
+            return RoofData._default;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    RoofData.create = function (params) {
+        return new RoofData(params);
+    };
+    RoofData.prototype.from = function (params) {
+        return RoofData.create(Object.assign({}, this._params, params));
+    };
+    RoofData._default = RoofData.create({ skylightAreas: [] });
+    return RoofData;
+}());
+exports.RoofData = RoofData;
+//# sourceMappingURL=RoofData.js.map
 });
 ___scope___.file("app/model/Operation.js", function(exports, require, module, __filename, __dirname){
 
