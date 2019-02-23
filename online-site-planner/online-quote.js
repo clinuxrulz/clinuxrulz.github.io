@@ -12,6 +12,7 @@ var Vector2D_1 = require("./math/Vector2D");
 var AppModel_1 = require("./model/AppModel");
 var Vector3D_1 = require("./math/Vector3D");
 var RenderScene_1 = require("./model/RenderScene");
+var FloatingLengthAngleHelper_1 = require("./ui/FloatingLengthAngleHelper");
 var App = /** @class */ (function () {
     function App() {
         var _this = this;
@@ -151,6 +152,7 @@ var App = /** @class */ (function () {
                 cProjectWorldPointToScreenOp: cProjectWorldPointToScreenOp,
                 sDrawLine: ssDrawLine
             });
+            FloatingLengthAngleHelper_1.FloatingLengthAngleHelper.connect(canvas.parentElement, appModel.cFloatingLengthAngles);
             appModel.cSceneCtxOp.lift3(appModel.cWorldSpaceOverlay, appModel.cScreenSpaceOverlay, function (sceneCtxOp2, worldSpaceOverlay2, screenSpaceOverlay2) { return function () {
                 sceneCtxOp = sceneCtxOp2;
                 worldSpaceOverlay = worldSpaceOverlay2;
@@ -648,6 +650,7 @@ var AppModel = /** @class */ (function () {
             var sFinished = sodium.Cell.switchS(cMode.map(function (mode) { return mode.sFinished; }));
             var cWorldSpaceOverlay = sodium.Cell.switchC(cMode.map(function (mode) { return mode.cWorldSpaceOverlay; }));
             var cScreenSpaceOverlay = sodium.Cell.switchC(cMode.map(function (mode) { return mode.cScreenSpaceOverlay; }));
+            var cFloatingLengthAngles = sodium.Cell.switchC(cMode.map(function (mode) { return mode.cFloatingLengthAngles; }));
             sUpdate.listen(function (update) {
                 update(sceneCtx);
                 window.setTimeout(function () {
@@ -674,6 +677,7 @@ var AppModel = /** @class */ (function () {
             _this._cSceneCtxOp = csSceneCtxOp;
             _this._cWorldSpaceOverlay = cWorldSpaceOverlay;
             _this._cScreenSpaceOverlay = cScreenSpaceOverlay;
+            _this._cFloatingLengthAngles = cFloatingLengthAngles;
         });
     }
     Object.defineProperty(AppModel.prototype, "cSceneCtxOp", {
@@ -693,6 +697,13 @@ var AppModel = /** @class */ (function () {
     Object.defineProperty(AppModel.prototype, "cScreenSpaceOverlay", {
         get: function () {
             return this._cScreenSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AppModel.prototype, "cFloatingLengthAngles", {
+        get: function () {
+            return this._cFloatingLengthAngles;
         },
         enumerable: true,
         configurable: true
@@ -761,6 +772,7 @@ var DrawLineMode = /** @class */ (function (_super) {
             _this._sFinished = sFinished;
             _this._cWorldSpaceOverlay = drawPolylineModel.cWorldSpaceOverlay;
             _this._cScreenSpaceOverlay = drawPolylineModel.cScreenSpaceOverlay;
+            _this._cFloatingLengthAngles = drawPolylineModel.cFloatingLengthAngles();
         });
         return _this;
     }
@@ -788,6 +800,13 @@ var DrawLineMode = /** @class */ (function (_super) {
     Object.defineProperty(DrawLineMode.prototype, "cScreenSpaceOverlay", {
         get: function () {
             return this._cScreenSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(DrawLineMode.prototype, "cFloatingLengthAngles", {
+        get: function () {
+            return this._cFloatingLengthAngles;
         },
         enumerable: true,
         configurable: true
@@ -1948,7 +1967,7 @@ var Line3D = /** @class */ (function () {
         var line2 = line;
         var r1 = Ray3D_1.Ray3D.create(line1.getV1(), line1.getV2().sub(line1.getV1()));
         var r2 = Ray3D_1.Ray3D.create(line2.getV1(), line2.getV2().sub(line2.getV1()));
-        return Option_1.Option.join(r1.getClosestTimeOnThisRayWithOtherRay(r2).lift2(r2.getClosestTimeOnThisRayWithOtherRay(r1), function (t1, t2) {
+        return Option_1.Option.join(r1.closestTimeOnThisRayWithOtherRay(r2).lift2(r2.closestTimeOnThisRayWithOtherRay(r1), function (t1, t2) {
             if (t1 < 0.0 || t1 > 1.0) {
                 return Option_1.Option.none();
             }
@@ -2196,6 +2215,13 @@ var Mode = /** @class */ (function () {
     Object.defineProperty(Mode.prototype, "cScreenSpaceOverlay", {
         get: function () {
             return new sodium.Cell(function (canvasCtx) { });
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mode.prototype, "cFloatingLengthAngles", {
+        get: function () {
+            return new sodium.Cell([]);
         },
         enumerable: true,
         configurable: true
@@ -3821,6 +3847,84 @@ function renderScene(canvasSize, canvasCtx, sceneCtxOp) {
 }
 exports.renderScene = renderScene;
 //# sourceMappingURL=RenderScene.js.map
+});
+___scope___.file("app/ui/FloatingLengthAngleHelper.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var FloatingLengthAngleHelper = /** @class */ (function () {
+    function FloatingLengthAngleHelper() {
+    }
+    FloatingLengthAngleHelper.connect = function (parentDiv, cFloatingLengthAngles) {
+        return sodium.Transaction.run(function () {
+            var cleanups = [];
+            var handles = [];
+            var ssHandlesChanged = new sodium.StreamSink();
+            cleanups.push(cFloatingLengthAngles.listen(function (floatingLengthAngles) {
+                handles.forEach(function (handle) {
+                    parentDiv.removeChild(handle.div);
+                    handle.disconnect();
+                });
+                handles = [];
+                var _loop_1 = function (i) {
+                    var handleCleanups = [];
+                    var floatingLengthAngle = floatingLengthAngles[i];
+                    var div = document.createElement("div");
+                    var txtLength = document.createElement("input");
+                    txtLength.type = "text";
+                    txtLength.value = '' + floatingLengthAngle.initLength;
+                    var txtAngle = document.createElement("input");
+                    txtAngle.type = "text";
+                    txtAngle.value = '' + floatingLengthAngle.initAngle;
+                    div.appendChild(document.createTextNode("Length:"));
+                    div.appendChild(txtLength);
+                    div.appendChild(document.createElement("br"));
+                    div.appendChild(document.createTextNode("Angle:"));
+                    div.appendChild(txtAngle);
+                    div.style.position = "absolute";
+                    parentDiv.appendChild(div);
+                    handleCleanups.push(floatingLengthAngle.cPositionOp.listen(function (positionOp) {
+                        if (positionOp.isNone) {
+                            div.style.display = "none";
+                            return;
+                        }
+                        var position = positionOp.fromSome();
+                        div.style.display = "block";
+                        div.style.left = '' + position.x + "px";
+                        div.style.top = '' + (position.y - div.clientHeight - 10.0) + "px";
+                    }));
+                    handleCleanups.push(floatingLengthAngle.sSetLength.listen(function (length) { return txtLength.value = '' + length; }));
+                    handleCleanups.push(floatingLengthAngle.sSetAngle.listen(function (angle) { return txtAngle.value = '' + angle; }));
+                    handles.push(new FloatingLengthAngleHandle(div, handleCleanups));
+                };
+                for (var i = 0; i < floatingLengthAngles.length; ++i) {
+                    _loop_1(i);
+                }
+            }));
+            var cHandles = ssHandlesChanged.map(function (unused) { return handles; });
+            return function () {
+                handles.forEach(function (handle) { return handle.disconnect(); });
+                cleanups.forEach(function (cleanup) { return cleanup(); });
+                handles = [];
+                cleanups = [];
+            };
+        });
+    };
+    return FloatingLengthAngleHelper;
+}());
+exports.FloatingLengthAngleHelper = FloatingLengthAngleHelper;
+var FloatingLengthAngleHandle = /** @class */ (function () {
+    function FloatingLengthAngleHandle(div, handleCleanups) {
+        this.div = div;
+        this.handleCleanups = handleCleanups;
+    }
+    FloatingLengthAngleHandle.prototype.disconnect = function () {
+        this.handleCleanups.forEach(function (cleanup) { return cleanup(); });
+    };
+    return FloatingLengthAngleHandle;
+}());
+//# sourceMappingURL=FloatingLengthAngleHelper.js.map
 });
 return ___scope___.entry = "app/main.ts";
 });
