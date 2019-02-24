@@ -22,81 +22,30 @@ var App = /** @class */ (function () {
             var screenSpaceOverlay = function (canvasCtx) { };
             var canvas = document.getElementById("canvas");
             var canvasCtx = canvas.getContext("2d");
-            RenderScene_1.renderScene(Vector2D_1.Vector2D.create(canvas.width, canvas.height), canvasCtx, sceneCtxOp);
+            var renderScene2 = function () {
+                canvasCtx.fillStyle = "#FFFFFF";
+                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                {
+                    canvasCtx.save();
+                    canvasCtx.translate(0.5 * canvas.width, 0.5 * canvas.height);
+                    canvasCtx.scale(1.0, -1.0);
+                    RenderScene_1.renderScene(canvasCtx, sceneCtxOp);
+                    worldSpaceOverlay(canvasCtx);
+                    canvasCtx.restore();
+                }
+                screenSpaceOverlay(canvasCtx);
+            };
+            renderScene2();
             function fixCanvasAndCamera() {
                 var canvasParent = canvas.parentElement;
                 canvas.width = canvasParent.clientWidth;
                 canvas.height = canvasParent.clientHeight;
-                RenderScene_1.renderScene(Vector2D_1.Vector2D.create(canvas.width, canvas.height), canvasCtx, sceneCtxOp);
-                worldSpaceOverlay(canvasCtx);
-                screenSpaceOverlay(canvasCtx);
+                renderScene2();
             }
             fixCanvasAndCamera();
             window.addEventListener("resize", function (ev) {
                 fixCanvasAndCamera();
             });
-            /*
-            // shed model
-            (function() {
-                var lastModel: Model = null;
-                var lastModelCleanup: () => void = null;
-                var refreshShedModel: (mkModelEffect: MkModelEffect) => void =
-                    (mkModelEffect: MkModelEffect) => {
-                        if (mkModelEffect == null) {
-                            return;
-                        }
-                        var pModel = mkModelEffect.mkModel(textureLoader);
-                        pModel.then((model) => {
-                            if (lastModel != null) {
-                                scene.remove(lastModel.threeObject3D);
-                                if (lastModelCleanup != null) {
-                                    lastModelCleanup();
-                                    lastModelCleanup = null;
-                                }
-                                lastModel = null;
-                            }
-                            scene.add(model.threeObject3D);
-                            lastModel = model;
-                            lastModelCleanup = model.init();
-                            renderer.render(scene, camera);
-                        });
-                    };
-                clModel.listen(refreshShedModel);
-                window['forceRefreshShed'] = function() {
-                    refreshShedModel(clModel.sample());
-                };
-            })();
-            // overlay model
-            (function() {
-                var lastModel: Model = null;
-                var lastModelCleanup: () => void = null;
-                clOverlayModelOp.listen((mkModelEffectOp: Option<MkModelEffect>) => {
-                    var cleanupLastModel = () => {
-                        if (lastModel != null) {
-                            scene.remove(lastModel.threeObject3D);
-                            if (lastModelCleanup != null) {
-                                lastModelCleanup();
-                                lastModelCleanup = null;
-                            }
-                            lastModel = null;
-                        }
-                    };
-                    if (mkModelEffectOp.isNone) {
-                        cleanupLastModel();
-                        return;
-                    }
-                    var mkModelEffect = mkModelEffectOp.fromSome();
-                    var pModel = mkModelEffect.mkModel(textureLoader);
-                    pModel.then((model) => {
-                        cleanupLastModel();
-                        scene.add(model.threeObject3D);
-                        lastModel = model;
-                        lastModelCleanup = model.init();
-                        renderer.render(scene, camera);
-                    });
-                });
-            })();
-            */
             var ssDrawLine = new sodium.StreamSink();
             {
                 var btnDrawLine = document.getElementById("btnDrawLine");
@@ -105,10 +54,10 @@ var App = /** @class */ (function () {
                 });
             }
             var cScreenPosToWorldRayOp = new sodium.Cell(function (screenPt) {
-                return Option_1.Option.some(Ray3D_1.Ray3D.create(Vector3D_1.Vector3D.create(screenPt.x, screenPt.y, 100.0), Vector3D_1.Vector3D.negUnitZ));
+                return Option_1.Option.some(Ray3D_1.Ray3D.create(Vector3D_1.Vector3D.create(screenPt.x - 0.5 * canvas.width, -screenPt.y + 0.5 * canvas.height, 100.0), Vector3D_1.Vector3D.negUnitZ));
             });
             var cProjectWorldPointToScreenOp = new sodium.Cell(function (worldPt) {
-                return Option_1.Option.some(worldPt.xyToVector2D());
+                return Option_1.Option.some(Vector2D_1.Vector2D.create(worldPt.x + 0.5 * canvas.width, -worldPt.y + 0.5 * canvas.height));
             });
             var csMousePosOp = new sodium.CellSink(Option_1.Option.none());
             var ssMousePressed = new sodium.StreamSink();
@@ -144,22 +93,23 @@ var App = /** @class */ (function () {
                 csMousePosOp.listen(function (unused) { });
                 ssMousePressed.listen(function (unused) { });
             }
+            var slLengthAngleEntered = new sodium.StreamLoop();
             // model
             var appModel = new AppModel_1.AppModel({
                 cMousePosOp: csMousePosOp,
                 sMousePressed: ssMousePressed,
                 cScreenPointToWorldRayOp: cScreenPosToWorldRayOp,
                 cProjectWorldPointToScreenOp: cProjectWorldPointToScreenOp,
+                sLengthAngleEntered: slLengthAngleEntered,
                 sDrawLine: ssDrawLine
             });
-            FloatingLengthAngleHelper_1.FloatingLengthAngleHelper.connect(canvas.parentElement, appModel.cFloatingLengthAngles);
+            var floatingLengthAngleHelper = new FloatingLengthAngleHelper_1.FloatingLengthAngleHelper(canvas.parentElement, appModel.cFloatingLengthAngles);
+            slLengthAngleEntered.loop(floatingLengthAngleHelper.sLengthAngleEntered);
             appModel.cSceneCtxOp.lift3(appModel.cWorldSpaceOverlay, appModel.cScreenSpaceOverlay, function (sceneCtxOp2, worldSpaceOverlay2, screenSpaceOverlay2) { return function () {
                 sceneCtxOp = sceneCtxOp2;
                 worldSpaceOverlay = worldSpaceOverlay2;
                 screenSpaceOverlay = screenSpaceOverlay2;
-                RenderScene_1.renderScene(Vector2D_1.Vector2D.create(canvas.width, canvas.height), canvasCtx, sceneCtxOp);
-                worldSpaceOverlay(canvasCtx);
-                screenSpaceOverlay(canvasCtx);
+                renderScene2();
             }; }).listen(function (x) { return x(); });
             _this._appModel = appModel;
         });
@@ -669,7 +619,7 @@ var AppModel = /** @class */ (function () {
                     cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
                     cProjectWorldPointToScreenOp: params.cProjectWorldPointToScreenOp,
                     sReplyValueEntered: new sodium.Stream(),
-                    sLengthAngleEntered: new sodium.Stream(),
+                    sLengthAngleEntered: params.sLengthAngleEntered,
                     cScale: cScale
                 });
             })
@@ -3823,10 +3773,8 @@ ___scope___.file("app/model/RenderScene.js", function(exports, require, module, 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Line3DComponent_1 = require("../ecs/components/Line3DComponent");
-function renderScene(canvasSize, canvasCtx, sceneCtxOp) {
+function renderScene(canvasCtx, sceneCtxOp) {
     canvasCtx.strokeStyle = "#000000";
-    canvasCtx.fillStyle = "#FFFFFF";
-    canvasCtx.clearRect(0, 0, canvasSize.x, canvasSize.y);
     if (sceneCtxOp.isNone) {
         return;
     }
@@ -3853,11 +3801,12 @@ ___scope___.file("app/ui/FloatingLengthAngleHelper.js", function(exports, requir
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
+var Tuples_1 = require("../Tuples");
+var ArrayUtil_1 = require("../ArrayUtil");
 var FloatingLengthAngleHelper = /** @class */ (function () {
-    function FloatingLengthAngleHelper() {
-    }
-    FloatingLengthAngleHelper.connect = function (parentDiv, cFloatingLengthAngles) {
-        return sodium.Transaction.run(function () {
+    function FloatingLengthAngleHelper(parentDiv, cFloatingLengthAngles) {
+        var _this = this;
+        sodium.Transaction.run(function () {
             var cleanups = [];
             var handles = [];
             var ssHandlesChanged = new sodium.StreamSink();
@@ -3872,11 +3821,51 @@ var FloatingLengthAngleHelper = /** @class */ (function () {
                     var floatingLengthAngle = floatingLengthAngles[i];
                     var div = document.createElement("div");
                     var txtLength = document.createElement("input");
+                    var lengthFocused = true;
                     txtLength.type = "text";
                     txtLength.value = '' + floatingLengthAngle.initLength;
+                    txtLength.focus();
                     var txtAngle = document.createElement("input");
                     txtAngle.type = "text";
                     txtAngle.value = '' + floatingLengthAngle.initAngle;
+                    var ssHandleLengthAngleEntered = new sodium.StreamSink();
+                    var checkSendLengthAngleEntered = function () {
+                        var length = parseFloat(txtLength.value);
+                        var angle = parseFloat(txtAngle.value);
+                        if (!(isNaN(length) || isNaN(angle))) {
+                            ssHandleLengthAngleEntered.send(Tuples_1.T2.of(length, angle));
+                        }
+                    };
+                    txtLength.addEventListener("keydown", function (evt) {
+                        var tabKeyCode = 9;
+                        var enterKeyCode = 13;
+                        var ev = evt || window.event;
+                        if (ev.keyCode == tabKeyCode) {
+                            ev.preventDefault();
+                            lengthFocused = false;
+                            txtAngle.focus();
+                            txtAngle.select();
+                        }
+                        else if (ev.keyCode == enterKeyCode) {
+                            ev.preventDefault();
+                            checkSendLengthAngleEntered();
+                        }
+                    });
+                    txtAngle.addEventListener("keydown", function (evt) {
+                        var tabKeyCode = 9;
+                        var enterKeyCode = 13;
+                        var ev = evt || window.event;
+                        if (ev.keyCode == tabKeyCode) {
+                            ev.preventDefault();
+                            lengthFocused = true;
+                            txtLength.focus();
+                            txtLength.select();
+                        }
+                        else if (ev.keyCode == enterKeyCode) {
+                            ev.preventDefault();
+                            checkSendLengthAngleEntered();
+                        }
+                    });
                     div.appendChild(document.createTextNode("Length:"));
                     div.appendChild(txtLength);
                     div.appendChild(document.createElement("br"));
@@ -3894,29 +3883,58 @@ var FloatingLengthAngleHelper = /** @class */ (function () {
                         div.style.left = '' + position.x + "px";
                         div.style.top = '' + (position.y - div.clientHeight - 10.0) + "px";
                     }));
-                    handleCleanups.push(floatingLengthAngle.sSetLength.listen(function (length) { return txtLength.value = '' + length; }));
-                    handleCleanups.push(floatingLengthAngle.sSetAngle.listen(function (angle) { return txtAngle.value = '' + angle; }));
-                    handles.push(new FloatingLengthAngleHandle(div, handleCleanups));
+                    handleCleanups.push(floatingLengthAngle.sSetLength.listen(function (length) {
+                        txtLength.value = '' + length;
+                        if (lengthFocused) {
+                            txtLength.focus();
+                            txtLength.select();
+                        }
+                    }));
+                    handleCleanups.push(floatingLengthAngle.sSetAngle.listen(function (angle) {
+                        txtAngle.value = '' + angle;
+                        if (!lengthFocused) {
+                            txtAngle.focus();
+                            txtAngle.select();
+                        }
+                    }));
+                    handles.push(new FloatingLengthAngleHandle(floatingLengthAngle.id, div, ssHandleLengthAngleEntered, handleCleanups));
                 };
                 for (var i = 0; i < floatingLengthAngles.length; ++i) {
                     _loop_1(i);
                 }
+                window.setTimeout(function () { return ssHandlesChanged.send(sodium.Unit.UNIT); });
             }));
-            var cHandles = ssHandlesChanged.map(function (unused) { return handles; });
-            return function () {
+            var cHandles = ssHandlesChanged.map(function (unused) { return handles; }).hold([]);
+            var sLengthAngleEntered = sodium.Cell.switchS(cHandles.map(function (handles) {
+                return ArrayUtil_1.arrayReduce(handles.map(function (handle) { return handle.sLengthAngleEntered.map(function (x) { return Tuples_1.T3.of(handle.id, x._1, x._2); }); }), function (a, b) { return a.orElse(b); }).orSome_(function () { return new sodium.Stream(); });
+            }));
+            _this._sLengthAngleEntered = sLengthAngleEntered;
+            _this._disconnect = function () {
                 handles.forEach(function (handle) { return handle.disconnect(); });
                 cleanups.forEach(function (cleanup) { return cleanup(); });
                 handles = [];
                 cleanups = [];
             };
         });
+    }
+    Object.defineProperty(FloatingLengthAngleHelper.prototype, "sLengthAngleEntered", {
+        get: function () {
+            return this._sLengthAngleEntered;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FloatingLengthAngleHelper.prototype.disconnect = function () {
+        this._disconnect();
     };
     return FloatingLengthAngleHelper;
 }());
 exports.FloatingLengthAngleHelper = FloatingLengthAngleHelper;
 var FloatingLengthAngleHandle = /** @class */ (function () {
-    function FloatingLengthAngleHandle(div, handleCleanups) {
+    function FloatingLengthAngleHandle(id, div, sLengthAngleEntered, handleCleanups) {
+        this.id = id;
         this.div = div;
+        this.sLengthAngleEntered = sLengthAngleEntered;
         this.handleCleanups = handleCleanups;
     }
     FloatingLengthAngleHandle.prototype.disconnect = function () {
