@@ -12,6 +12,7 @@ var Vector2D_1 = require("./math/Vector2D");
 var AppModel_1 = require("./model/AppModel");
 var Vector3D_1 = require("./math/Vector3D");
 var RenderScene_1 = require("./model/RenderScene");
+var FloatingAskValuesAtHelper_1 = require("./ui/FloatingAskValuesAtHelper");
 var FloatingLengthAngleHelper_1 = require("./ui/FloatingLengthAngleHelper");
 var App = /** @class */ (function () {
     function App() {
@@ -51,6 +52,20 @@ var App = /** @class */ (function () {
                 var btnDrawLine = document.getElementById("btnDrawLine");
                 btnDrawLine.addEventListener("click", function () {
                     ssDrawLine.send(sodium.Unit.UNIT);
+                });
+            }
+            var ssDrawCircle = new sodium.StreamSink();
+            {
+                var btnDrawCircle = document.getElementById("btnDrawCircle");
+                btnDrawCircle.addEventListener("click", function () {
+                    ssDrawCircle.send(sodium.Unit.UNIT);
+                });
+            }
+            var ssFillet = new sodium.StreamSink();
+            {
+                var btnFillet = document.getElementById("btnFillet");
+                btnFillet.addEventListener("click", function () {
+                    ssFillet.send(sodium.Unit.UNIT);
                 });
             }
             var cScreenPosToWorldRayOp = new sodium.Cell(function (screenPt) {
@@ -93,6 +108,8 @@ var App = /** @class */ (function () {
                 csMousePosOp.listen(function (unused) { });
                 ssMousePressed.listen(function (unused) { });
             }
+            var slReplyValueChanged = new sodium.StreamLoop();
+            var slReplyValueEntered = new sodium.StreamLoop();
             var slLengthAngleEntered = new sodium.StreamLoop();
             // model
             var appModel = new AppModel_1.AppModel({
@@ -100,9 +117,16 @@ var App = /** @class */ (function () {
                 sMousePressed: ssMousePressed,
                 cScreenPointToWorldRayOp: cScreenPosToWorldRayOp,
                 cProjectWorldPointToScreenOp: cProjectWorldPointToScreenOp,
+                sReplyValueChanged: slReplyValueChanged,
+                sReplyValueEntered: slReplyValueEntered,
                 sLengthAngleEntered: slLengthAngleEntered,
-                sDrawLine: ssDrawLine
+                sDrawLine: ssDrawLine,
+                sDrawCircle: ssDrawCircle,
+                sFillet: ssFillet
             });
+            var floatingAskValuesAtHelper = new FloatingAskValuesAtHelper_1.FloatingAskValuesAtHelper(canvas.parentElement, appModel.cAskValuesAt);
+            slReplyValueChanged.loop(floatingAskValuesAtHelper.sReplyValueChanged);
+            slReplyValueEntered.loop(floatingAskValuesAtHelper.sReplyValueEntered);
             var floatingLengthAngleHelper = new FloatingLengthAngleHelper_1.FloatingLengthAngleHelper(canvas.parentElement, appModel.cFloatingLengthAngles);
             slLengthAngleEntered.loop(floatingLengthAngleHelper.sLengthAngleEntered);
             appModel.cSceneCtxOp.lift3(appModel.cWorldSpaceOverlay, appModel.cScreenSpaceOverlay, function (sceneCtxOp2, worldSpaceOverlay2, screenSpaceOverlay2) { return function () {
@@ -584,7 +608,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var MouseButton_1 = require("../MouseButton");
 var Option_1 = require("../Option");
+var DrawCircleMode_1 = require("../modes/DrawCircleMode");
 var DrawLineMode_1 = require("../modes/DrawLineMode");
+var FilletLinesMode_1 = require("../modes/FilletLinesMode");
 var IdleMode_1 = require("../modes/IdleMode");
 var MutableEcsScene_1 = require("../ecs/MutableEcsScene");
 var AppModel = /** @class */ (function () {
@@ -601,6 +627,7 @@ var AppModel = /** @class */ (function () {
             var cWorldSpaceOverlay = sodium.Cell.switchC(cMode.map(function (mode) { return mode.cWorldSpaceOverlay; }));
             var cScreenSpaceOverlay = sodium.Cell.switchC(cMode.map(function (mode) { return mode.cScreenSpaceOverlay; }));
             var cFloatingLengthAngles = sodium.Cell.switchC(cMode.map(function (mode) { return mode.cFloatingLengthAngles; }));
+            var cAskValuesAt = sodium.Cell.switchC(cMode.map(function (mode) { return mode.cAskValuesAt; }));
             sUpdate.listen(function (update) {
                 update(sceneCtx);
                 window.setTimeout(function () {
@@ -623,11 +650,37 @@ var AppModel = /** @class */ (function () {
                     cScale: cScale
                 });
             })
+                .orElse(params.sDrawCircle
+                .map(function (unused) {
+                return new DrawCircleMode_1.DrawCircleMode({
+                    cSceneCtxOp: csSceneCtxOp,
+                    cMousePosOp: params.cMousePosOp,
+                    sMousePressed: sMouseLeftPressed,
+                    cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                    cProjectWorldPointToScreenOp: params.cProjectWorldPointToScreenOp,
+                    sReplyValueEntered: params.sReplyValueEntered,
+                    cScale: cScale
+                });
+            }))
+                .orElse(params.sFillet
+                .map(function (unused) {
+                return new FilletLinesMode_1.FilletLinesMode({
+                    cSceneCtxOp: csSceneCtxOp,
+                    cMousePosOp: params.cMousePosOp,
+                    sMousePressed: sMouseLeftPressed,
+                    cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                    cProjectWorldPointToScreenOp: params.cProjectWorldPointToScreenOp,
+                    sReplyValueChanged: params.sReplyValueChanged,
+                    sReplyValueEntered: params.sReplyValueEntered,
+                    cScale: cScale
+                });
+            }))
                 .orElse(sFinished.map(function (unused) { return new IdleMode_1.IdleMode(); })));
             _this._cSceneCtxOp = csSceneCtxOp;
             _this._cWorldSpaceOverlay = cWorldSpaceOverlay;
             _this._cScreenSpaceOverlay = cScreenSpaceOverlay;
             _this._cFloatingLengthAngles = cFloatingLengthAngles;
+            _this._cAskValuesAt = cAskValuesAt;
         });
     }
     Object.defineProperty(AppModel.prototype, "cSceneCtxOp", {
@@ -658,12 +711,19 @@ var AppModel = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(AppModel.prototype, "cAskValuesAt", {
+        get: function () {
+            return this._cAskValuesAt;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return AppModel;
 }());
 exports.AppModel = AppModel;
 //# sourceMappingURL=AppModel.js.map
 });
-___scope___.file("app/modes/DrawLineMode.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/modes/DrawCircleMode.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 var __extends = (this && this.__extends) || (function () {
@@ -678,15 +738,17 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
-var DrawPolylineModel_1 = require("./DrawPolylineModel");
+var DrawCircleModel_1 = require("./DrawCircleModel");
 var Mode_1 = require("./Mode");
-var Option_1 = require("../Option");
+var Axes2DComponent_1 = require("../ecs/components/Axes2DComponent");
 var Line3DComponent_1 = require("../ecs/components/Line3DComponent");
+var Axes2D_1 = require("../math/Axes2D");
 var Axes3D_1 = require("../math/Axes3D");
 var ArrayUtil_1 = require("../ArrayUtil");
-var DrawLineMode = /** @class */ (function (_super) {
-    __extends(DrawLineMode, _super);
-    function DrawLineMode(params) {
+var Complex_1 = require("../math/Complex");
+var DrawCircleMode = /** @class */ (function (_super) {
+    __extends(DrawCircleMode, _super);
+    function DrawCircleMode(params) {
         var _this = _super.call(this) || this;
         sodium.Transaction.run(function () {
             var slReset = new sodium.StreamLoop();
@@ -706,13 +768,17 @@ var DrawLineMode = /** @class */ (function (_super) {
             var cPoints = cLines.map(function (lines) {
                 return ArrayUtil_1.arrayBind(lines, function (line) { return [line.v1, line.v2]; });
             });
-            var drawPolylineModel = new DrawPolylineModel_1.DrawPolylineModel(new sodium.Cell(Axes3D_1.Axes3D.identity), params.cMousePosOp, params.sMousePressed, cPoints, cLines, Option_1.Option.none(), params.cScreenPointToWorldRayOp, params.cProjectWorldPointToScreenOp, params.sReplyValueEntered, params.sLengthAngleEntered, slReset, params.cScale);
-            var sUpdate = drawPolylineModel
-                .sInsertLine()
-                .map(function (line) {
+            var drawCircleModel = new DrawCircleModel_1.DrawCircleModel(new sodium.Cell(Axes3D_1.Axes3D.identity), params.cMousePosOp, params.sMousePressed, cPoints, params.cScreenPointToWorldRayOp, params.cProjectWorldPointToScreenOp, params.sReplyValueEntered, params.cScale, new sodium.Cell(DrawCircleModel_1.DrawCircleModel.InsertStyle.Radius));
+            var sUpdate = drawCircleModel
+                .sInsertCircle()
+                .map(function (circle) {
                 return function (sceneCtx) {
+                    var o = circle._1.origin;
+                    var u = circle._1.u;
+                    var axes = Axes2D_1.Axes2D.create(o.xyToVector2D(), Complex_1.Complex.xy(u.xyToVector2D().normalize()));
                     sceneCtx.createEntity([
-                        Line3DComponent_1.Line3DComponent.of(line)
+                        Axes2DComponent_1.Axes2DComponent.create(axes),
+                        circle._2
                     ]);
                 };
             });
@@ -720,179 +786,97 @@ var DrawLineMode = /** @class */ (function (_super) {
             slReset.loop(sUpdate.mapTo(sodium.Unit.UNIT));
             _this._sUpdate = sUpdate;
             _this._sFinished = sFinished;
-            _this._cWorldSpaceOverlay = drawPolylineModel.cWorldSpaceOverlay;
-            _this._cScreenSpaceOverlay = drawPolylineModel.cScreenSpaceOverlay;
-            _this._cFloatingLengthAngles = drawPolylineModel.cFloatingLengthAngles();
+            _this._cWorldSpaceOverlay = drawCircleModel.cWorldSpaceOverlay;
+            _this._cScreenSpaceOverlay = drawCircleModel.cScreenSpaceOverlay;
+            _this._cAskValuesAt =
+                drawCircleModel
+                    .sAskValuesAt()
+                    .orElse(drawCircleModel.sHideAskValuesAt().mapTo([]))
+                    .hold([]);
         });
         return _this;
     }
-    Object.defineProperty(DrawLineMode.prototype, "sFinished", {
+    Object.defineProperty(DrawCircleMode.prototype, "sFinished", {
         get: function () {
             return this._sFinished;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(DrawLineMode.prototype, "sUpdate", {
+    Object.defineProperty(DrawCircleMode.prototype, "sUpdate", {
         get: function () {
             return this._sUpdate;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(DrawLineMode.prototype, "cWorldSpaceOverlay", {
+    Object.defineProperty(DrawCircleMode.prototype, "cWorldSpaceOverlay", {
         get: function () {
             return this._cWorldSpaceOverlay;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(DrawLineMode.prototype, "cScreenSpaceOverlay", {
+    Object.defineProperty(DrawCircleMode.prototype, "cScreenSpaceOverlay", {
         get: function () {
             return this._cScreenSpaceOverlay;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(DrawLineMode.prototype, "cFloatingLengthAngles", {
+    Object.defineProperty(DrawCircleMode.prototype, "cAskValuesAt", {
         get: function () {
-            return this._cFloatingLengthAngles;
+            return this._cAskValuesAt;
         },
         enumerable: true,
         configurable: true
     });
-    return DrawLineMode;
+    return DrawCircleMode;
 }(Mode_1.Mode));
-exports.DrawLineMode = DrawLineMode;
-//# sourceMappingURL=DrawLineMode.js.map
+exports.DrawCircleMode = DrawCircleMode;
+//# sourceMappingURL=DrawCircleMode.js.map
 });
-___scope___.file("app/modes/DrawPolylineModel.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/modes/DrawCircleModel.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var AskValueAtParams_1 = require("./AskValueAtParams");
-var FloatingLengthAngle_1 = require("./FloatingLengthAngle");
 var ArrayUtil_1 = require("../ArrayUtil");
 var Lazy_1 = require("../Lazy");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
 var Tuples_1 = require("../Tuples");
-var Line3D_1 = require("../math/Line3D");
+var CircleComponent_1 = require("../ecs/components/CircleComponent");
+var Axes3D_1 = require("../math/Axes3D");
 var Plane3D_1 = require("../math/Plane3D");
-var Ray2D_1 = require("../math/Ray2D");
-var Ray3D_1 = require("../math/Ray3D");
 var Vector2D_1 = require("../math/Vector2D");
-var Vector3D_1 = require("../math/Vector3D");
-var DrawPolylineModel = /** @class */ (function () {
-    function DrawPolylineModel(cWorkingAxes, cMousePosOp, sMousePressed, cGivenSnapPoints, cGivenLines, cGivenIntersectionPtUnderMouseOpOp, cScreenPointToWorldRayOp, cProjectWorldPointToScreenOp, sReplyValueEntered, sLengthAngleEntered, sReset, cScale) {
+var DrawCircleModel = /** @class */ (function () {
+    function DrawCircleModel(cWorkingAxes, cMousePosOp, sMousePressed, cGivenSnapPoints, cScreenPointToWorldRayOp, cProjectWorldPointToScreenOp, sReplyValueEntered, cScale, cInsertStyle) {
         var _this = this;
-        this.__cCurrentPolyline = null;
-        this.__sInsertLine = null;
         this.__sAskValuesAt = null;
         this.__sHideAskValuesAt = null;
-        this.__cFloatingLengthAngles = null;
+        this.__sInsertCircle = null;
         sodium.Transaction.run(function () {
-            var cWorkingPlane = cWorkingAxes.map(function (workingAxes) { return Plane3D_1.Plane3D.fromKnownPtAndNormal(workingAxes.origin, workingAxes.w); });
+            var slReset = (new sodium.StreamLoop());
+            var cWorkingPlane = cWorkingAxes.map(function (workingAxes) {
+                return Plane3D_1.Plane3D.fromKnownPtAndNormal(workingAxes.origin, workingAxes.w);
+            });
             var cMouseWorkingPlanePosOp = cWorkingPlane.lift3(cMousePosOp, cScreenPointToWorldRayOp, function (workingPlane, mousePosOp, screenPointToWorldRayOp) {
                 return mousePosOp
                     .bind(screenPointToWorldRayOp)
-                    .bind(function (mouseRay) {
-                    return mouseRay.collisionWithPlane(workingPlane);
-                });
+                    .bind(function (mouseRay) { return mouseRay.collisionWithPlane(workingPlane); });
             });
-            var clLastPointOp = (new sodium.CellLoop());
-            var cLinePerpPointSnaps = cWorkingPlane.lift3(cGivenLines, clLastPointOp, function (workingPlane, lines, lastPointOp) {
-                return lastPointOp.map(function (lastPoint) {
-                    return ArrayUtil_1.arrayBind(lines, function (line) {
-                        var lineRay = Ray3D_1.Ray3D.create(line.getV1(), line.getV2().sub(line.getV1()));
-                        var u = line.getV2().sub(line.getV1()).normalize();
-                        var w = workingPlane.n;
-                        var v = w.cross(u).normalize();
-                        var linePlane = Plane3D_1.Plane3D.fromKnownPtAndNormal(line.getV1(), v);
-                        var lastPointRay = Ray3D_1.Ray3D.create(lastPoint, v);
-                        var ptOp = lastPointRay.collisionWithPlane(linePlane);
-                        if (ptOp.isNone) {
-                            return [];
-                        }
-                        var pt = ptOp.fromSome();
-                        var t = lineRay.closestTimeToPoint(pt);
-                        if (t < 0.0 || t > 1.0) {
-                            return [];
-                        }
-                        return [pt];
-                    });
-                }).orSome([]);
+            var cSnapPoints = cWorkingPlane.lift(cGivenSnapPoints, function (workingPlane, givenSnapPoints) {
+                return givenSnapPoints.map(function (p) { return workingPlane.closestPoint(p); });
             });
-            var cLineMidPointSnaps = cGivenLines.map(function (lines) {
-                return lines.map(function (line) {
-                    return line.getV1().add(line.getV2()).scale(0.5);
-                });
-            });
-            var cLineIntersectionPointSnaps = cWorkingPlane.lift(cGivenLines, function (workingPlane, lines) {
-                return Lazy_1.Lazy.create(function () {
-                    return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRange(0, lines.length - 1), function (i) {
-                        var lineI = lines[i];
-                        var lineIPlane;
-                        var lineIRay = Ray3D_1.Ray3D.create(lineI.getV1(), lineI.getV2().sub(lineI.getV1()));
-                        {
-                            var u = lineI.getV2().sub(lineI.getV1());
-                            var w = workingPlane.n;
-                            var v = w.cross(u).normalize();
-                            lineIPlane = Plane3D_1.Plane3D.fromKnownPtAndNormal(lineI.getV1(), v);
-                        }
-                        ;
-                        return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRange(i + 1, lines.length), function (j) {
-                            var epsilion = 0.001;
-                            var lineJ = lines[j];
-                            var lineJRay = Ray3D_1.Ray3D.create(lineJ.getV1(), lineJ.getV2().sub(lineJ.getV1()));
-                            var tOp = lineJRay.collisionTimeWithPlane(lineIPlane);
-                            if (tOp.isNone) {
-                                return [];
-                            }
-                            var t = tOp.fromSome();
-                            if (t < 0.0 || t > 1.0) {
-                                return [];
-                            }
-                            var pt = lineJRay.positionFromTime(t);
-                            var t2 = lineIRay.closestTimeToPoint(pt);
-                            if (t2 < 0.0 || t2 > 1.0) {
-                                return [];
-                            }
-                            var pt2 = lineIRay.positionFromTime(t2);
-                            if (pt.distance(pt2) > epsilion) {
-                                return [];
-                            }
-                            return [pt.add(pt2).scale(0.5)];
-                        });
-                    });
-                });
-            });
-            var cGivenOrCalculatedIntersectionPoints = cGivenIntersectionPtUnderMouseOpOp
-                .map(function (cGivenIntersectionPtUnderMouseOp) {
-                return cGivenIntersectionPtUnderMouseOp.map(function (ptOp) {
-                    return Lazy_1.Lazy.pure(ptOp
-                        .map(function (pt) { return [pt]; })
-                        .orSome([]));
-                });
-            })
-                .orSome(cLineIntersectionPointSnaps);
-            var cSnapPoints = cGivenSnapPoints.lift4(cLinePerpPointSnaps, cLineMidPointSnaps, cGivenOrCalculatedIntersectionPoints, function (snapPoints, linePerpPointSnaps, lineMidPointSnaps, givenOrCalculatedIntersectionPoints) {
-                var allSnapPoints = ([]);
-                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, snapPoints);
-                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, linePerpPointSnaps);
-                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, lineMidPointSnaps);
-                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, givenOrCalculatedIntersectionPoints.get());
-                return allSnapPoints;
-            });
-            var cSnapPointUnderMouseOp = cMousePosOp.lift3(cSnapPoints, cProjectWorldPointToScreenOp, function (mousePosOp, snapPoints, projectWorldPointToScreenOp) {
-                return mousePosOp
-                    .bind(function (mousePos) {
+            var cSnapPointUnderMouseOp = cMousePosOp.lift3(cSnapPoints, cProjectWorldPointToScreenOp, function (mousePosOp, snapPoints, projectWorldPointToScreenOp) { return Lazy_1.Lazy.create(function () {
+                return mousePosOp.bind(function (mousePos) {
                     return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(snapPoints, function (snapPoint) {
                         return projectWorldPointToScreenOp(snapPoint)
-                            .map(function (snapPoint2) {
-                            var screenDistSquared = mousePos.distanceSquared(snapPoint2);
-                            if (screenDistSquared > DrawPolylineModel.SNAP_SCREEN_DIST * DrawPolylineModel.SNAP_SCREEN_DIST) {
+                            .map(function (pt) {
+                            var screenDistSquared = pt.distanceSquared(mousePos);
+                            if (screenDistSquared > DrawCircleModel.SNAP_SCREEN_DIST * DrawCircleModel.SNAP_SCREEN_DIST) {
                                 return [];
                             }
                             return [Tuples_1.T2.of(snapPoint, screenDistSquared)];
@@ -901,379 +885,180 @@ var DrawPolylineModel = /** @class */ (function () {
                     }), function (arg0, arg1) { return arg0._2 < arg1._2 ? arg0 : arg1; })
                         .map(function (x) { return x._1; });
                 });
-            });
-            var cAlongEdgeSnapPointUnderMouseOp = cMousePosOp.lift5(cGivenLines, cSnapPointUnderMouseOp, cProjectWorldPointToScreenOp, cScreenPointToWorldRayOp, function (mousePosOp, lines, snapPointUnderMouseOp, projectWorldPointToScreenOp, screenPointToWorldRayOp) {
-                return snapPointUnderMouseOp.isSome ?
-                    Option_1.Option.none() :
-                    mousePosOp.bind(function (mousePos) {
-                        return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(lines, function (line) {
-                            return projectWorldPointToScreenOp(line.getV1())
-                                .lift2(projectWorldPointToScreenOp(line.getV2()), function (pt1, pt2) {
-                                var projectedLineRay = Ray2D_1.Ray2D.fromOriginDirection(pt1, pt2.sub(pt1));
-                                var t = projectedLineRay.closestTimeToPoint(mousePos);
-                                var t2 = Math.max(0.0, Math.min(1.0, t));
-                                var pt = projectedLineRay.pointFromTime(t2);
-                                var rayThroughPtOp = screenPointToWorldRayOp(pt);
-                                if (rayThroughPtOp.isNone) {
-                                    return [];
-                                }
-                                var rayThroughPt = rayThroughPtOp.fromSome();
-                                var lineRay = Ray3D_1.Ray3D.create(line.getV1(), line.getV2().sub(line.getV1()));
-                                var t3Op = lineRay.closestTimeOnThisRayWithOtherRay(rayThroughPt);
-                                if (t3Op.isNone) {
-                                    return [];
-                                }
-                                var t3 = t3Op.fromSome();
-                                var pt3 = lineRay.positionFromTime(t3);
-                                var distanceSquared = pt.distanceSquared(mousePos);
-                                if (distanceSquared > DrawPolylineModel.SNAP_SCREEN_DIST * DrawPolylineModel.SNAP_SCREEN_DIST) {
-                                    return [];
-                                }
-                                return [Tuples_1.T2.of(pt3, distanceSquared)];
-                            })
-                                .orSome([]);
-                        }), function (arg0, arg1) { return arg0._2 < arg1._2 ? arg0 : arg1; })
-                            .map(function (x) { return x._1; });
-                    });
-            });
-            var slInsertFirstPoint = (new sodium.StreamLoop());
-            var cFirstPointOp = slInsertFirstPoint.map(function (arg0) { return Option_1.Option.some(arg0); }).orElse(sReset.mapTo(Option_1.Option.none())).hold(Option_1.Option.none());
-            var slInsertLine = (new sodium.StreamLoop());
-            var slLastPointOp = (new sodium.StreamLoop());
-            var cLastPointOp = slLastPointOp.hold(Option_1.Option.none());
-            clLastPointOp.loop(cLastPointOp);
-            slLastPointOp.loop(slInsertFirstPoint.orElse(slInsertLine).map(function (arg0) { return Option_1.Option.some(arg0); }).orElse(sReset.mapTo(Option_1.Option.none())));
-            slInsertFirstPoint.loop(SodiumUtil.streamFilterOption(sMousePressed
-                .gate(cLastPointOp.map(function (x) { return x.isNone; }))
+            }); });
+            var slFirstPointOp = (new sodium.StreamLoop());
+            var cFirstPointOp = slFirstPointOp.hold(Option_1.Option.none());
+            slFirstPointOp.loop(SodiumUtil
+                .streamFilterOption(sMousePressed
+                .gate(cFirstPointOp.map(function (x) { return x.isNone; }))
                 .snapshot1(cSnapPointUnderMouseOp)
-                .snapshot3(cAlongEdgeSnapPointUnderMouseOp, cMouseWorkingPlanePosOp, function (snapPointUnderMouseOp, alongEdgeSnapPointUnderMouseOp, mouseWorkingPlanePosOp) {
-                return snapPointUnderMouseOp
-                    .orElse(alongEdgeSnapPointUnderMouseOp)
-                    .orElse(mouseWorkingPlanePosOp);
-            })));
-            var cLinesUnderFromPoint = cGivenLines.lift(cLastPointOp, function (lines, lastPointOp) {
-                return lastPointOp
-                    .map(function (lastPoint) {
-                    return lines
-                        .filter(function (line) {
-                        var epsilon = 0.001;
-                        var lineRay = Ray3D_1.Ray3D.create(line.getV1(), line.getV2().sub(line.getV1()));
-                        var t = lineRay.closestTimeToPoint(lastPoint);
-                        var t2 = Math.max(0.0, Math.min(1.0, t));
-                        var pt = lineRay.positionFromTime(t2);
-                        return pt.distance(lastPoint) <= epsilon;
-                    });
-                })
-                    .orSome([]);
-            });
-            var cSnapDirections = cWorkingPlane.lift(cLinesUnderFromPoint, function (workingPlane, linesUnderFromPoint) {
-                return ArrayUtil_1.arrayJoin([
-                    [Vector3D_1.Vector3D.unitX_$LI$(), Vector3D_1.Vector3D.unitY_$LI$()],
-                    linesUnderFromPoint.map(function (line) {
-                        var u = line.getV2().sub(line.getV1());
-                        var w = workingPlane.n;
-                        var v = w.cross(u).normalize();
-                        return v;
-                    })
-                ]);
-            });
-            var c_directionSnapPt_isFromFirst_isFromLast_op = cSnapPointUnderMouseOp
-                .lift6(cFirstPointOp, cLastPointOp, cSnapDirections, cMousePosOp, cMouseWorkingPlanePosOp, function (arg0, arg1, arg2, arg3, arg4, arg5) {
-                return Tuples_1.T6.of(arg0, arg1, arg2, arg3, arg4, arg5);
-            })
-                .lift(cProjectWorldPointToScreenOp, function (arg0, arg1) {
-                return Tuples_1.T2.of(arg0, arg1);
-            })
-                .map(function (x) {
-                var snapPointUnderMouseOp = x._1._1;
-                var firstPointOp = x._1._2;
-                var lastPointOp = x._1._3;
-                var snapDirections = x._1._4;
-                var mousePosOp = x._1._5;
-                var mouseWorkingPlanePosOp = x._1._6;
-                var projectWorldPointToScreenOp = x._2;
-                if (snapPointUnderMouseOp.isSome) {
-                    return Option_1.Option.none();
-                }
-                if (mousePosOp.isNone) {
-                    return Option_1.Option.none();
-                }
-                var mousePos = mousePosOp.fromSome();
-                if (mouseWorkingPlanePosOp.isNone) {
-                    return Option_1.Option.none();
-                }
-                var mouseWorkingPlanePos = mouseWorkingPlanePosOp.fromSome();
-                var calcDirectionSnapPtFromPointOp = function (fromPoint) {
+                .snapshot(cMouseWorkingPlanePosOp, function (snapPointUnderMouseOp, mouseWorkingPlanePosOp) {
+                return snapPointUnderMouseOp.get().orElse(mouseWorkingPlanePosOp);
+            }))
+                .map(function (arg0) { return Option_1.Option.some(arg0); })
+                .orElse(slReset.mapTo(Option_1.Option.none())));
+            var cSnapDirections = cWorkingAxes.map(function (workingAxes) { /* asList */ return [workingAxes.u, workingAxes.v]; });
+            var cSnapDirectionPointUnderMouseOp = cMousePosOp.lift5(cMouseWorkingPlanePosOp, cFirstPointOp, cSnapDirections, cProjectWorldPointToScreenOp, function (mousePosOp, mouseWorkingPlanePosOp, firstPointOp, snapDirections, projectWorldPointToScreenOp) { return Lazy_1.Lazy.create(function () {
+                return Option_1.Option.join(mousePosOp.lift3(mouseWorkingPlanePosOp, firstPointOp, function (mousePos, mouseWorkingPlanePos, firstPoint) {
                     return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(snapDirections, function (snapDirection) {
-                        var snapDirectionRay = Ray3D_1.Ray3D.create(fromPoint, snapDirection);
-                        var pt = snapDirectionRay.closestPoint(mouseWorkingPlanePos);
+                        var pt = firstPoint.add(snapDirection.scale(mouseWorkingPlanePos.sub(firstPoint).dot(snapDirection)));
                         return projectWorldPointToScreenOp(pt)
                             .map(function (pt2) {
                             var screenDistSquared = pt2.distanceSquared(mousePos);
-                            if (screenDistSquared > DrawPolylineModel.SNAP_SCREEN_DIST * DrawPolylineModel.SNAP_SCREEN_DIST) {
+                            if (screenDistSquared > DrawCircleModel.SNAP_SCREEN_DIST * DrawCircleModel.SNAP_SCREEN_DIST) {
                                 return [];
                             }
-                            return [Tuples_1.T2.of(Tuples_1.T2.of(pt, snapDirectionRay), screenDistSquared)];
+                            return [Tuples_1.T2.of(pt, screenDistSquared)];
                         })
                             .orSome([]);
                     }), function (arg0, arg1) { return arg0._2 < arg1._2 ? arg0 : arg1; })
                         .map(function (x) { return x._1; });
-                };
-                var directionSnapPtFromFirstPointOp = firstPointOp.bind(calcDirectionSnapPtFromPointOp);
-                var directionSnapPtFromLastPointOp = lastPointOp.bind(calcDirectionSnapPtFromPointOp);
-                if (directionSnapPtFromFirstPointOp.isSome) {
-                    var directionSnapPtFromFirstPoint = directionSnapPtFromFirstPointOp.fromSome();
-                    if (directionSnapPtFromLastPointOp.isSome) {
-                        var directionSnapPtFromLastPoint = directionSnapPtFromLastPointOp.fromSome();
-                        var intersectingPointOp = void 0;
-                        {
-                            var tOp = directionSnapPtFromFirstPoint._2.closestTimeOnThisRayWithOtherRay(directionSnapPtFromLastPoint._2);
-                            if (tOp.isNone) {
-                                intersectingPointOp = Option_1.Option.none();
-                            }
-                            else {
-                                var epsilon = 0.001;
-                                var t = tOp.fromSome();
-                                var pt = directionSnapPtFromFirstPoint._2.positionFromTime(t);
-                                var pt2 = directionSnapPtFromLastPoint._2.closestPoint(pt);
-                                if (pt.distance(pt2) <= epsilon) {
-                                    intersectingPointOp = Option_1.Option.some(pt.add(pt2).scale(0.5));
-                                }
-                                else {
-                                    intersectingPointOp = Option_1.Option.none();
-                                }
-                            }
-                        }
-                        ;
-                        if (intersectingPointOp.isSome) {
-                            var intersectingPoint = intersectingPointOp.fromSome();
-                            return Option_1.Option.some(Tuples_1.T3.of(intersectingPoint, true, true));
-                        }
-                        return Option_1.Option.some(Tuples_1.T3.of(directionSnapPtFromFirstPoint._1, true, false));
-                    }
-                    else {
-                        return Option_1.Option.some(Tuples_1.T3.of(directionSnapPtFromFirstPoint._1, true, false));
-                    }
-                }
-                else {
-                    if (directionSnapPtFromLastPointOp.isSome) {
-                        var directionSnapPtFromLastPoint = directionSnapPtFromLastPointOp.fromSome();
-                        return Option_1.Option.some(Tuples_1.T3.of(directionSnapPtFromLastPoint._1, false, true));
-                    }
-                    else {
-                        return Option_1.Option.none();
-                    }
-                }
+                }));
+            }); });
+            var cMovingSecondPointOp = cFirstPointOp.lift4(cSnapPointUnderMouseOp, cSnapDirectionPointUnderMouseOp, cMouseWorkingPlanePosOp, function (firstPointOp, snapPointUnderMouseOp, snapDirectionPointUnderMouseOp, mouseWorkingPlanePosOp) {
+                return firstPointOp.isNone ? Option_1.Option.none() : snapPointUnderMouseOp.get().orElse_(function () { return snapDirectionPointUnderMouseOp.get(); }).orElse(mouseWorkingPlanePosOp);
             });
-            var cDirectionSnapPointOp = c_directionSnapPt_isFromFirst_isFromLast_op
-                .map(function (directionSnapPt_isFromFirst_isFromLast_op) {
-                return directionSnapPt_isFromFirst_isFromLast_op.map(function (x) { return x._1; });
-            });
-            var cMovingNextPointOp = cSnapPointUnderMouseOp.lift4(cDirectionSnapPointOp, cAlongEdgeSnapPointUnderMouseOp, cMouseWorkingPlanePosOp, function (snapPointUnderMouseOp, directionSnapPointOp, alongEdgeSnapPointUnderMouseOp, mouseWorkingPlanePosOp) {
-                return snapPointUnderMouseOp
-                    .orElse(directionSnapPointOp)
-                    .orElse(alongEdgeSnapPointUnderMouseOp)
-                    .orElse(mouseWorkingPlanePosOp);
-            });
-            var cMovingNextLineOp = cLastPointOp.lift(cMovingNextPointOp, function (lastPointOp, movingNextPointOp) {
-                return lastPointOp.lift2(movingNextPointOp, function (lastPoint, movingNextPoint) {
-                    return Line3D_1.Line3D.create(lastPoint, movingNextPoint);
+            var cMovingCircleOp = cWorkingAxes.lift4(cInsertStyle, cFirstPointOp, cMovingSecondPointOp, function (workingAxes, insertStyle, firstPointOp, movingSecondPointOp) {
+                return firstPointOp.lift2(movingSecondPointOp, function (firstPoint, movingSecondPoint) {
+                    switch ((insertStyle)) {
+                        case DrawCircleModel.InsertStyle.Radius:
+                            return Tuples_1.T2.of(Axes3D_1.Axes3D.create(firstPoint, workingAxes.orientation), CircleComponent_1.CircleComponent.withRadius(firstPoint.distance(movingSecondPoint)));
+                        case DrawCircleModel.InsertStyle.Diameter:
+                            return Tuples_1.T2.of(Axes3D_1.Axes3D.create(firstPoint.add(movingSecondPoint).scale(0.5), workingAxes.orientation), CircleComponent_1.CircleComponent.withRadius(0.5 * firstPoint.distance(movingSecondPoint)));
+                        default:
+                            throw Object.defineProperty(new Error(), '__classes', { configurable: true, value: ['java.lang.Throwable', 'java.lang.IllegalStateException', 'java.lang.Object', 'java.lang.RuntimeException', 'java.lang.Exception'] });
+                    }
                 });
             });
-            var cIsSnappingToDirection = cSnapPointUnderMouseOp.lift(c_directionSnapPt_isFromFirst_isFromLast_op, function (snapPointUnderMouseOp, directionSnapPt_isFromFirst_isFromLast_op) {
-                if (snapPointUnderMouseOp.isSome) {
-                    return false;
-                }
-                if (directionSnapPt_isFromFirst_isFromLast_op.isNone) {
-                    return false;
-                }
-                var directionSnapPt_isFromFirst_isFromLast = directionSnapPt_isFromFirst_isFromLast_op.fromSome();
-                return directionSnapPt_isFromFirst_isFromLast._3;
-            });
-            var cDirectionalSnapDottedLines = cSnapPointUnderMouseOp.lift4(c_directionSnapPt_isFromFirst_isFromLast_op, cFirstPointOp, cLastPointOp, function (snapPointUnderMouseOp, directionSnapPt_isFromFirst_isFromLast_op, firstPointOp, lastPointOp) {
-                if (snapPointUnderMouseOp.isSome) {
-                    return /* emptyList */ [];
-                }
-                if (directionSnapPt_isFromFirst_isFromLast_op.isNone) {
-                    return /* emptyList */ [];
-                }
-                var directionSnapPt_isFromFirst_isFromLast = directionSnapPt_isFromFirst_isFromLast_op.fromSome();
-                var result = ([]);
-                if (directionSnapPt_isFromFirst_isFromLast._2) {
-                    if (firstPointOp.isSome) {
-                        var firstPoint = firstPointOp.fromSome();
-                        /* add */ (result.push(Line3D_1.Line3D.create(directionSnapPt_isFromFirst_isFromLast._1, firstPoint)) > 0);
-                    }
-                }
-                if (directionSnapPt_isFromFirst_isFromLast._3) {
-                    if (lastPointOp.isSome) {
-                        var lastPoint = lastPointOp.fromSome();
-                        /* add */ (result.push(Line3D_1.Line3D.create(directionSnapPt_isFromFirst_isFromLast._1, lastPoint)) > 0);
-                    }
-                }
-                return result;
-            });
-            var sInitLineOp = SodiumUtil.streamFilterOption(sodium.Operational
-                .value(cMovingNextLineOp)
-                .collect(Option_1.Option.none(), function (nextLineOp, lastLineOp) {
-                var change;
-                if (lastLineOp.isSome != nextLineOp.isSome) {
-                    change = Option_1.Option.some(nextLineOp);
+            var sInitMovingCircleOp = SodiumUtil.streamFilterOption(sodium.Operational
+                .updates(cMovingCircleOp)
+                .collect(Option_1.Option.none(), function (newValue, oldValue) {
+                var result;
+                if (newValue.isSome != oldValue.isSome) {
+                    result = Option_1.Option.some(newValue);
                 }
                 else {
-                    change = Option_1.Option.none();
+                    result = Option_1.Option.none();
                 }
-                return new sodium.Tuple2(change, nextLineOp);
+                return new sodium.Tuple2(result, newValue);
             }));
-            slInsertLine.loop(SodiumUtil
-                .streamFilterOption(sReplyValueEntered.snapshot3(cMovingNextLineOp, cScale, function (replyValueEntered, movingNextLineOp, scale) {
-                return movingNextLineOp.bind(function (movingNextLine) {
-                    var u = movingNextLine.getV2().sub(movingNextLine.getV1()).normalize();
-                    if (!u.allFinite()) {
-                        return Option_1.Option.none();
-                    }
-                    return Option_1.Option.some(movingNextLine.getV1().add(u.scale(replyValueEntered._2 * scale)));
-                });
-            }))
-                .orElse(SodiumUtil.streamFilterOption(sLengthAngleEntered.snapshot4(cMovingNextLineOp, cScale, cWorkingAxes, function (lengthAngleEntered, movingNextLineOp, scale, workingAxes) {
-                return movingNextLineOp.bind(function (movingNextLine) {
-                    var u = movingNextLine.getV2().sub(movingNextLine.getV1()).normalize();
-                    if (!u.allFinite()) {
-                        return Option_1.Option.none();
-                    }
-                    var ca = Math.cos(/* toRadians */ (function (x) { return x * Math.PI / 180; })(lengthAngleEntered._3));
-                    var sa = Math.sin(/* toRadians */ (function (x) { return x * Math.PI / 180; })(lengthAngleEntered._3));
-                    var pt = workingAxes.pointFromThisSpace(movingNextLine.getV1().add(Vector3D_1.Vector3D.create(lengthAngleEntered._2 * ca * scale, lengthAngleEntered._2 * sa * scale, 0.0)));
-                    return Option_1.Option.some(pt);
-                });
-            })))
-                .orElse(SodiumUtil.streamFilterOption(sMousePressed.snapshot1(cMovingNextPointOp))));
-            _this.__cFloatingLengthAngles =
-                sInitLineOp
-                    .snapshot3(cScale, cWorkingAxes, function (initLineOp, initScale, initWorkingAxes) {
-                    return initLineOp
-                        .map(function (initLine) {
-                        var angle;
-                        {
-                            var line2 = initLine.toSpace(initWorkingAxes);
-                            var delta = line2.getV2().sub(line2.getV1());
-                            angle = /* toDegrees */ (function (x) { return x * 180 / Math.PI; })(Math.atan2(delta.getY(), delta.getX()));
-                        }
-                        ;
-                        return /* singletonList */ [
-                            new FloatingLengthAngle_1.FloatingLengthAngle(1, initLine.getLength() / initScale, angle, SodiumUtil
-                                .streamFilterOption(sodium.Operational.updates(cMovingNextLineOp))
-                                .snapshot(cScale, function (line, scale) { return line.getLength() / scale; }), SodiumUtil
-                                .streamFilterOption(sodium.Operational.updates(cMovingNextLineOp))
-                                .snapshot(cWorkingAxes, function (line, workingAxes) {
-                                var line2 = line.toSpace(workingAxes);
-                                var delta = line2.getV2().sub(line2.getV1());
-                                return /* toDegrees */ (function (x) { return x * 180 / Math.PI; })(Math.atan2(delta.getY(), delta.getX()));
-                            }), cMousePosOp
-                                .map(function (mousePosOp) {
-                                return mousePosOp.map(function (mousePos) { return mousePos.add(Vector2D_1.Vector2D.create(0.0, -20.0)); });
-                            }))
-                        ];
-                    })
-                        .orSome([]);
-                })
-                    .hold([]);
             _this.__sAskValuesAt =
                 SodiumUtil
-                    .streamFilterOption(sInitLineOp)
-                    .snapshot(cScale, function (initLine, initScale) { /* singletonList */ return [
-                    new AskValueAtParams_1.AskValueAtParams({
-                        id: 1,
-                        cLabelOp: new sodium.Cell(Option_1.Option.some("Length (mm):")),
-                        cPosition: cMovingNextPointOp.lift3(cProjectWorldPointToScreenOp, cMousePosOp, function (movingNextPointOp, projectWorldPointToScreenOp, mousePosOp) {
-                            return movingNextPointOp
-                                .bind(projectWorldPointToScreenOp)
-                                .map(function (pt) { return pt.add(Vector2D_1.Vector2D.create(10.0, -10.0)); })
-                                .orElse(mousePosOp)
-                                .orSome(Vector2D_1.Vector2D.zero);
-                        }),
-                        initialValue: initLine.getLength() / initScale,
-                        sSetValue: SodiumUtil
-                            .streamFilterOption(sodium.Operational.updates(cMovingNextLineOp))
-                            .snapshot(cScale, function (line, scale) { return line.getLength() / scale; })
-                    })
-                ]; });
-            _this.__sHideAskValuesAt = sInitLineOp.filter(function (x) { return x.isNone; }).mapTo(sodium.Unit.UNIT);
-            _this.__sInsertLine =
-                SodiumUtil.streamFilterOption(slInsertLine.snapshot(cLastPointOp, function (pt2, pt1Op) {
-                    return pt1Op.map(function (pt1) { return Line3D_1.Line3D.create(pt1, pt2); });
-                }));
-            var slCurrentPolyline = (new sodium.StreamLoop());
-            _this.__cCurrentPolyline = slCurrentPolyline.hold(/* emptyList */ []);
-            slCurrentPolyline.loop(slInsertFirstPoint
-                .orElse(slInsertLine)
-                .snapshot(_this.__cCurrentPolyline, function (pt, currentPolyline) {
-                var currentPolyline2 = ([]);
-                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(currentPolyline2, currentPolyline);
-                /* add */ (currentPolyline2.push(pt) > 0);
-                return currentPolyline2;
-            }).orElse(sReset.mapTo(/* emptyList */ [])));
+                    .streamFilterOption(sInitMovingCircleOp)
+                    .snapshot3(cInsertStyle, cScale, function (initCircle, initInsertStyle, initScale) {
+                    var initValue;
+                    switch ((initInsertStyle)) {
+                        case DrawCircleModel.InsertStyle.Radius:
+                            initValue = initCircle._2.radius() / initScale;
+                            break;
+                        case DrawCircleModel.InsertStyle.Diameter:
+                            initValue = 2.0 * initCircle._2.radius() / initScale;
+                            break;
+                        default:
+                            throw Object.defineProperty(new Error(), '__classes', { configurable: true, value: ['java.lang.Throwable', 'java.lang.IllegalStateException', 'java.lang.Object', 'java.lang.RuntimeException', 'java.lang.Exception'] });
+                    }
+                    return /* singletonList */ [
+                        new AskValueAtParams_1.AskValueAtParams({
+                            id: 1,
+                            cLabelOp: cInsertStyle.map(function (insertStyle) {
+                                switch ((insertStyle)) {
+                                    case DrawCircleModel.InsertStyle.Radius:
+                                        return Option_1.Option.some("Radius:");
+                                    case DrawCircleModel.InsertStyle.Diameter:
+                                        return Option_1.Option.some("Diameter:");
+                                    default:
+                                        throw Object.defineProperty(new Error(), '__classes', { configurable: true, value: ['java.lang.Throwable', 'java.lang.IllegalStateException', 'java.lang.Object', 'java.lang.RuntimeException', 'java.lang.Exception'] });
+                                }
+                            }),
+                            cPosition: cMousePosOp.lift3(cMovingSecondPointOp, cProjectWorldPointToScreenOp, function (mousePosOp, movingSecondPointOp, projectWorldPointToScreenOp) {
+                                return movingSecondPointOp
+                                    .bind(projectWorldPointToScreenOp)
+                                    .orElse(mousePosOp)
+                                    .map(function (pos) { return pos.add(Vector2D_1.Vector2D.create(0.0, -20.0)); })
+                                    .orSome(Vector2D_1.Vector2D.zero);
+                            }),
+                            initialValue: initValue,
+                            sSetValue: SodiumUtil.streamFilterOption(sodium.Operational.updates(cMovingCircleOp.lift3(cInsertStyle, cScale, function (movingCircleOp, insertStyle, scale) {
+                                return movingCircleOp.map(function (movingCircle) {
+                                    switch ((insertStyle)) {
+                                        case DrawCircleModel.InsertStyle.Radius:
+                                            return movingCircle._2.radius() / scale;
+                                        case DrawCircleModel.InsertStyle.Diameter:
+                                            return 2.0 * movingCircle._2.radius() / scale;
+                                        default:
+                                            throw Object.defineProperty(new Error(), '__classes', { configurable: true, value: ['java.lang.Throwable', 'java.lang.IllegalStateException', 'java.lang.Object', 'java.lang.RuntimeException', 'java.lang.Exception'] });
+                                    }
+                                });
+                            })))
+                        })
+                    ];
+                });
+            _this.__sHideAskValuesAt = sInitMovingCircleOp.filter(function (x) { return x.isNone; }).mapTo(sodium.Unit.UNIT);
+            _this.__sInsertCircle =
+                SodiumUtil
+                    .streamFilterOption(sReplyValueEntered.snapshot6(cWorkingAxes, cInsertStyle, cFirstPointOp, cMovingSecondPointOp, cScale, function (replyValueEntered, workingAxes, insertStyle, firstPointOp, movingSecondPointOp, scale) {
+                    return firstPointOp.lift2(movingSecondPointOp, function (firstPoint, movingSecondPoint) {
+                        switch ((insertStyle)) {
+                            case DrawCircleModel.InsertStyle.Radius:
+                                return Tuples_1.T2.of(Axes3D_1.Axes3D.Builder.fromOriginOrientation().setOrigin(firstPoint).setOrientation(workingAxes.orientation).build(), CircleComponent_1.CircleComponent.withRadius(replyValueEntered._2 * scale));
+                            case DrawCircleModel.InsertStyle.Diameter:
+                                {
+                                    var secondPoint = movingSecondPoint.sub(firstPoint).normalize().scale(replyValueEntered._2 * scale);
+                                    return Tuples_1.T2.of(Axes3D_1.Axes3D.Builder.fromOriginOrientation().setOrigin(firstPoint.add(secondPoint).scale(0.5)).setOrientation(workingAxes.orientation).build(), CircleComponent_1.CircleComponent.withRadius(0.5 * replyValueEntered._2 * scale));
+                                }
+                                ;
+                            default:
+                                throw Object.defineProperty(new Error(), '__classes', { configurable: true, value: ['java.lang.Throwable', 'java.lang.IllegalStateException', 'java.lang.Object', 'java.lang.RuntimeException', 'java.lang.Exception'] });
+                        }
+                    });
+                }))
+                    .orElse(SodiumUtil.streamFilterOption(sMousePressed.snapshot1(cMovingCircleOp)));
+            slReset.loop(_this.__sInsertCircle.mapTo(sodium.Unit.UNIT));
             _this._cWorldSpaceOverlay =
-                _this.__cCurrentPolyline.lift6(cFirstPointOp, cLastPointOp, cMovingNextLineOp, cIsSnappingToDirection, cDirectionalSnapDottedLines, function (polyline, firstPointOp, lastPointOp, movingNextLineOp, isSnappingToDirection, directionalSnapDottedLines) {
+                cMovingCircleOp.map(function (movingCircleOp) {
                     return function (canvasCtx) {
+                        if (movingCircleOp.isNone) {
+                            return;
+                        }
+                        var movingCircle = movingCircleOp.fromSome();
                         canvasCtx.save();
-                        canvasCtx.strokeStyle = "#0000FF";
-                        if (polyline.length >= 2) {
-                            canvasCtx.beginPath();
-                            canvasCtx.moveTo(polyline[0].x, polyline[0].y);
-                            for (var i = 1; i < polyline.length; ++i) {
-                                canvasCtx.lineTo(polyline[i].x, polyline[i].y);
-                            }
-                            canvasCtx.stroke();
-                        }
-                        if (movingNextLineOp.isSome) {
-                            var movingNextLine = movingNextLineOp.fromSome();
-                            if (isSnappingToDirection) {
-                                canvasCtx.save();
-                                canvasCtx.lineWidth = 2.0;
-                            }
-                            canvasCtx.beginPath();
-                            canvasCtx.moveTo(movingNextLine.v1.x, movingNextLine.v1.y);
-                            canvasCtx.lineTo(movingNextLine.v2.x, movingNextLine.v2.y);
-                            canvasCtx.stroke();
-                            if (isSnappingToDirection) {
-                                canvasCtx.restore();
-                            }
-                        }
-                        if (directionalSnapDottedLines.length != 0) {
-                            canvasCtx.save();
-                            canvasCtx.setLineDash([5, 10]);
-                            canvasCtx.beginPath();
-                            for (var i = 0; i < directionalSnapDottedLines.length; ++i) {
-                                canvasCtx.moveTo(directionalSnapDottedLines[i].v1.x, directionalSnapDottedLines[i].v1.y);
-                                canvasCtx.lineTo(directionalSnapDottedLines[i].v2.x, directionalSnapDottedLines[i].v2.y);
-                            }
-                            canvasCtx.stroke();
-                            canvasCtx.restore();
-                        }
+                        canvasCtx.fillStyle = "#0000FF";
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(movingCircle._1.origin.x, movingCircle._1.origin.y, movingCircle._2.radius(), 0.0, 2.0 * Math.PI);
+                        canvasCtx.stroke();
                         canvasCtx.restore();
                     };
                 });
             _this._cScreenSpaceOverlay =
-                cSnapPointUnderMouseOp.lift3(cAlongEdgeSnapPointUnderMouseOp, cProjectWorldPointToScreenOp, function (snapPointUnderMouseOp, alongEdgeSnapPointUnderMouseOp, projectWorldPointToScreenOp) {
-                    var projectedSnapPointUnderMouseOp = snapPointUnderMouseOp.bind(projectWorldPointToScreenOp);
-                    var projectedAlongEdgeSnapPointUnderMouseOp = alongEdgeSnapPointUnderMouseOp.bind(projectWorldPointToScreenOp);
+                cSnapPointUnderMouseOp.lift4(cFirstPointOp, cSnapDirectionPointUnderMouseOp, cProjectWorldPointToScreenOp, function (snapPointUnderMouseOp, firstPointOp, snapDirectionPointUnderMouseOp, projectWorldPointToScreenOp) {
                     return function (canvasCtx) {
+                        var projectedSnapPointUnderMouseOp = snapPointUnderMouseOp.get().bind(projectWorldPointToScreenOp);
+                        var projectedFirstPointOp = firstPointOp.bind(projectWorldPointToScreenOp);
+                        var projectedSnapDirectionPointUnderMouseOp = snapDirectionPointUnderMouseOp.get().bind(projectWorldPointToScreenOp);
                         if (projectedSnapPointUnderMouseOp.isSome) {
                             canvasCtx.save();
-                            canvasCtx.fillStyle = "#00FF00";
-                            var pt = projectedSnapPointUnderMouseOp.fromSome();
+                            var projectedSnapPointUnderMouse = projectedSnapDirectionPointUnderMouseOp.fromSome();
+                            canvasCtx.fillStyle = "#0000FF";
                             canvasCtx.beginPath();
-                            canvasCtx.arc(pt.x, pt.y, DrawPolylineModel.SNAP_PT_RADIUS, 0, 2.0 * Math.PI);
+                            canvasCtx.arc(projectedSnapPointUnderMouse.x, projectedSnapPointUnderMouse.y, DrawCircleModel.SNAP_PT_RADIUS, 0.0, 2.0 * Math.PI);
                             canvasCtx.fill();
                             canvasCtx.restore();
                         }
-                        else if (projectedAlongEdgeSnapPointUnderMouseOp.isSome) {
+                        if (projectedFirstPointOp.isSome) {
+                            var projectedFirstPoint = projectedFirstPointOp.fromSome();
+                            canvasCtx.save();
+                            canvasCtx.fillStyle = "#00FF00";
+                            canvasCtx.beginPath();
+                            canvasCtx.arc(projectedFirstPoint.x, projectedFirstPoint.y, DrawCircleModel.SNAP_PT_RADIUS, 0.0, 2.0 * Math.PI);
+                            canvasCtx.fill();
+                            canvasCtx.restore();
+                        }
+                        if (projectedSnapDirectionPointUnderMouseOp.isSome) {
+                            var projectedSnapDirectionPointUnderMouse = projectedSnapDirectionPointUnderMouseOp.fromSome();
                             canvasCtx.save();
                             canvasCtx.fillStyle = "#0000FF";
-                            var pt = projectedAlongEdgeSnapPointUnderMouseOp.fromSome();
                             canvasCtx.beginPath();
-                            canvasCtx.arc(pt.x, pt.y, DrawPolylineModel.SNAP_PT_RADIUS, 0, 2.0 * Math.PI);
+                            canvasCtx.arc(projectedSnapDirectionPointUnderMouse.x, projectedSnapDirectionPointUnderMouse.y, DrawCircleModel.SNAP_PT_RADIUS, 0.0, 2.0 * Math.PI);
                             canvasCtx.fill();
                             canvasCtx.restore();
                         }
@@ -1281,42 +1066,44 @@ var DrawPolylineModel = /** @class */ (function () {
                 });
         });
     }
-    Object.defineProperty(DrawPolylineModel.prototype, "cWorldSpaceOverlay", {
+    Object.defineProperty(DrawCircleModel.prototype, "cWorldSpaceOverlay", {
         get: function () {
             return this._cWorldSpaceOverlay;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(DrawPolylineModel.prototype, "cScreenSpaceOverlay", {
+    Object.defineProperty(DrawCircleModel.prototype, "cScreenSpaceOverlay", {
         get: function () {
             return this._cScreenSpaceOverlay;
         },
         enumerable: true,
         configurable: true
     });
-    DrawPolylineModel.prototype.cCurrentPolyline = function () {
-        return this.__cCurrentPolyline;
-    };
-    DrawPolylineModel.prototype.sInsertLine = function () {
-        return this.__sInsertLine;
-    };
-    DrawPolylineModel.prototype.sAskValuesAt = function () {
+    DrawCircleModel.prototype.sAskValuesAt = function () {
         return this.__sAskValuesAt;
     };
-    DrawPolylineModel.prototype.sHideAskValuesAt = function () {
+    DrawCircleModel.prototype.sHideAskValuesAt = function () {
         return this.__sHideAskValuesAt;
     };
-    DrawPolylineModel.prototype.cFloatingLengthAngles = function () {
-        return this.__cFloatingLengthAngles;
+    DrawCircleModel.prototype.sInsertCircle = function () {
+        return this.__sInsertCircle;
     };
-    DrawPolylineModel.SNAP_SCREEN_DIST = 15.0;
-    DrawPolylineModel.SNAP_PT_RADIUS = 5.0;
-    return DrawPolylineModel;
+    DrawCircleModel.SNAP_SCREEN_DIST = 15.0;
+    DrawCircleModel.SNAP_PT_RADIUS = 5.0;
+    return DrawCircleModel;
 }());
-exports.DrawPolylineModel = DrawPolylineModel;
-DrawPolylineModel["__class"] = "com.shedmasta.core.cadmodes.DrawPolylineModel";
-//# sourceMappingURL=DrawPolylineModel.js.map
+exports.DrawCircleModel = DrawCircleModel;
+DrawCircleModel["__class"] = "DrawCircleModel";
+(function (DrawCircleModel) {
+    var InsertStyle;
+    (function (InsertStyle) {
+        InsertStyle[InsertStyle["Radius"] = 0] = "Radius";
+        InsertStyle[InsertStyle["Diameter"] = 1] = "Diameter";
+    })(InsertStyle = DrawCircleModel.InsertStyle || (DrawCircleModel.InsertStyle = {}));
+})(DrawCircleModel = exports.DrawCircleModel || (exports.DrawCircleModel = {}));
+exports.DrawCircleModel = DrawCircleModel;
+//# sourceMappingURL=DrawCircleModel.js.map
 });
 ___scope___.file("app/modes/AskValueAtParams.js", function(exports, require, module, __filename, __dirname){
 
@@ -1370,73 +1157,6 @@ var AskValueAtParams = /** @class */ (function () {
 exports.AskValueAtParams = AskValueAtParams;
 AskValueAtParams["__class"] = "AskValueAtParams";
 //# sourceMappingURL=AskValueAtParams.js.map
-});
-___scope___.file("app/modes/FloatingLengthAngle.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var FloatingLengthAngle = /** @class */ (function () {
-    function FloatingLengthAngle(id, initLength, initAngle, sSetLength, sSetAngle, cPositionOp) {
-        this._id = 0;
-        this._initLength = 0;
-        this._initAngle = 0;
-        this._sSetLength = null;
-        this._sSetAngle = null;
-        this._cPositionOp = null;
-        this._id = id;
-        this._initLength = initLength;
-        this._initAngle = initAngle;
-        this._sSetLength = sSetLength;
-        this._sSetAngle = sSetAngle;
-        this._cPositionOp = cPositionOp;
-    }
-    Object.defineProperty(FloatingLengthAngle.prototype, "id", {
-        get: function () {
-            return this._id;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FloatingLengthAngle.prototype, "initLength", {
-        get: function () {
-            return this._initLength;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FloatingLengthAngle.prototype, "initAngle", {
-        get: function () {
-            return this._initAngle;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FloatingLengthAngle.prototype, "sSetLength", {
-        get: function () {
-            return this._sSetLength;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FloatingLengthAngle.prototype, "sSetAngle", {
-        get: function () {
-            return this._sSetAngle;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FloatingLengthAngle.prototype, "cPositionOp", {
-        get: function () {
-            return this._cPositionOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return FloatingLengthAngle;
-}());
-exports.FloatingLengthAngle = FloatingLengthAngle;
-FloatingLengthAngle["__class"] = "FloatingLengthAngle";
-//# sourceMappingURL=FloatingLengthAngle.js.map
 });
 ___scope___.file("app/ArrayUtil.js", function(exports, require, module, __filename, __dirname){
 
@@ -1871,355 +1591,41 @@ var T6 = /** @class */ (function () {
 exports.T6 = T6;
 //# sourceMappingURL=Tuples.js.map
 });
-___scope___.file("app/math/Line3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Ray3D_1 = require("./Ray3D");
-var Vector3D_1 = require("./Vector3D");
-var Option_1 = require("../Option");
-/**
- *
- * @author Clinton
- * @class
- */
-var Line3D = /** @class */ (function () {
-    function Line3D(v1, v2) {
-        this.v1 = null;
-        this.v2 = null;
-        this.v1 = v1;
-        this.v2 = v2;
-    }
-    Line3D.create = function (v1, v2) {
-        return new Line3D(v1, v2);
-    };
-    Line3D.prototype.getV1 = function () {
-        return this.v1;
-    };
-    Line3D.prototype.getV2 = function () {
-        return this.v2;
-    };
-    Line3D.prototype.getLengthSquared = function () {
-        var d = this.v2.sub(this.v1);
-        return d.dot(d);
-    };
-    Line3D.prototype.getLength = function () {
-        return Math.sqrt(this.getLengthSquared());
-    };
-    Line3D.prototype.fromSpace = function (space) {
-        return Line3D.create(space.pointFromThisSpace(this.v1), space.pointFromThisSpace(this.v2));
-    };
-    Line3D.prototype.toSpace = function (space) {
-        return Line3D.create(space.pointToThisSpace(this.v1), space.pointToThisSpace(this.v2));
-    };
-    Line3D.prototype.lineLineIntersection = function (line) {
-        var line1 = this;
-        var line2 = line;
-        var r1 = Ray3D_1.Ray3D.create(line1.getV1(), line1.getV2().sub(line1.getV1()));
-        var r2 = Ray3D_1.Ray3D.create(line2.getV1(), line2.getV2().sub(line2.getV1()));
-        return Option_1.Option.join(r1.closestTimeOnThisRayWithOtherRay(r2).lift2(r2.closestTimeOnThisRayWithOtherRay(r1), function (t1, t2) {
-            if (t1 < 0.0 || t1 > 1.0) {
-                return Option_1.Option.none();
-            }
-            if (t2 < 0.0 || t2 > 1.0) {
-                return Option_1.Option.none();
-            }
-            var p1 = r1.positionFromTime(t1);
-            var p2 = r2.positionFromTime(t2);
-            if (p1.distanceSquared(p2) <= 0.001 * 0.001) {
-                return Option_1.Option.some(p1.add(p2).scale(0.5));
-            }
-            else {
-                return Option_1.Option.none();
-            }
-        }));
-    };
-    return Line3D;
-}());
-exports.Line3D = Line3D;
-Line3D["__class"] = "Line3D";
-(function (Line3D) {
-    var Builder = /** @class */ (function () {
-        function Builder() {
-            this.v1 = null;
-            this.v2 = null;
-        }
-        Builder.create = function () {
-            return new Line3D.Builder();
-        };
-        Builder.prototype.set = function (other) {
-            this.v1 = other.v1;
-            this.v2 = other.v2;
-            return this;
-        };
-        Builder.prototype.setV1$com_sm_fp_data_math_Vector3D = function (v1) {
-            this.v1 = v1;
-            return this;
-        };
-        Builder.prototype.setV1$double$double$double = function (x, y, z) {
-            this.v1 = Vector3D_1.Vector3D.create(x, y, z);
-            return this;
-        };
-        Builder.prototype.setV1 = function (x, y, z) {
-            if (((typeof x === 'number') || x === null) && ((typeof y === 'number') || y === null) && ((typeof z === 'number') || z === null)) {
-                return this.setV1$double$double$double(x, y, z);
-            }
-            else if (((x != null && x instanceof Vector3D_1.Vector3D) || x === null) && y === undefined && z === undefined) {
-                return this.setV1$com_sm_fp_data_math_Vector3D(x);
-            }
-            else
-                throw new Error('invalid overload');
-        };
-        Builder.prototype.setV2$com_sm_fp_data_math_Vector3D = function (v2) {
-            this.v2 = v2;
-            return this;
-        };
-        Builder.prototype.setV2$double$double$double = function (x, y, z) {
-            this.v2 = Vector3D_1.Vector3D.create(x, y, z);
-            return this;
-        };
-        Builder.prototype.setV2 = function (x, y, z) {
-            if (((typeof x === 'number') || x === null) && ((typeof y === 'number') || y === null) && ((typeof z === 'number') || z === null)) {
-                return this.setV2$double$double$double(x, y, z);
-            }
-            else if (((x != null && x instanceof Vector3D_1.Vector3D) || x === null) && y === undefined && z === undefined) {
-                return this.setV2$com_sm_fp_data_math_Vector3D(x);
-            }
-            else
-                throw new Error('invalid overload');
-        };
-        Builder.prototype.build = function () {
-            return Line3D.create(this.v1, this.v2);
-        };
-        return Builder;
-    }());
-    Line3D.Builder = Builder;
-    Builder["__class"] = "Line3D.Builder";
-})(Line3D = exports.Line3D || (exports.Line3D = {}));
-exports.Line3D = Line3D;
-//# sourceMappingURL=Line3D.js.map
-});
-___scope___.file("app/math/Plane3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Plane3D = /** @class */ (function () {
-    function Plane3D(n, d) {
-        this._n = n;
-        this._d = d;
-    }
-    Plane3D.create = function (n, d) {
-        return new Plane3D(n, d);
-    };
-    Plane3D.fromKnownPtAndNormal = function (knownPt, normal) {
-        return Plane3D.create(normal, -normal.dot(knownPt));
-    };
-    Object.defineProperty(Plane3D.prototype, "n", {
-        get: function () {
-            return this._n;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Plane3D.prototype, "d", {
-        get: function () {
-            return this._d;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Plane3D;
-}());
-exports.Plane3D = Plane3D;
-//# sourceMappingURL=Plane3D.js.map
-});
-___scope___.file("app/math/Ray2D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Vector2D_1 = require("./Vector2D");
-var Option_1 = require("../Option");
-/**
- *
- * @author Clinton
- * @class
- */
-var Ray2D = /** @class */ (function () {
-    function Ray2D(origin, direction) {
-        this._origin = null;
-        this._direction = null;
-        this._origin = origin;
-        this._direction = direction;
-    }
-    Ray2D.fromOriginDirection = function (origin, direction) {
-        return new Ray2D(origin, direction);
-    };
-    Object.defineProperty(Ray2D.prototype, "origin", {
-        get: function () {
-            return this._origin;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Ray2D.prototype, "direction", {
-        get: function () {
-            return this._direction;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Ray2D.prototype.intersectionTime = function (plane) {
-        var t = -(plane.getD() + this._origin.dot(plane.getN())) / (this._direction.dot(plane.getN()));
-        if ( /* isNaN */isNaN(t) || /* isInfinite */ (function (value) { return Number.NEGATIVE_INFINITY === value || Number.POSITIVE_INFINITY === value; })(t)) {
-            return Option_1.Option.none();
-        }
-        return Option_1.Option.some(t);
-    };
-    Ray2D.prototype.closestTimeToPoint = function (point) {
-        var t = point.sub(this.origin).dot(this.direction) / this.direction.dot(this.direction);
-        return t;
-    };
-    Ray2D.prototype.pointFromTime = function (time) {
-        return Vector2D_1.Vector2D.create(this._origin.x + this._direction.x * time, this._origin.y + this._direction.y * time);
-    };
-    Ray2D.prototype.intersectionPoint = function (plane) {
-        var _this = this;
-        return this.intersectionTime(plane).map(function (t) { return _this.pointFromTime(t); });
-    };
-    return Ray2D;
-}());
-exports.Ray2D = Ray2D;
-Ray2D["__class"] = "Ray2D";
-(function (Ray2D) {
-    var Builder = /** @class */ (function () {
-        function Builder() {
-            this.origin = null;
-            this.direction = null;
-        }
-        Builder.originAndDirection = function () {
-            return new Ray2D.Builder();
-        };
-        /**
-         *
-         * @param {Vector2D} origin
-         * @return {*}
-         */
-        Builder.prototype.setOrigin = function (origin) {
-            this.origin = origin;
-            return this;
-        };
-        /**
-         *
-         * @param {Vector2D} direction
-         * @return {*}
-         */
-        Builder.prototype.setDirection = function (direction) {
-            this.direction = direction;
-            return this;
-        };
-        /**
-         *
-         * @return {Ray2D}
-         */
-        Builder.prototype.build = function () {
-            return new Ray2D(this.origin, this.direction);
-        };
-        return Builder;
-    }());
-    Ray2D.Builder = Builder;
-    Builder["__class"] = "Ray2D.Builder";
-    Builder["__interfaces"] = ["Ray2D.SetDirectionStep", "Ray2D.BuildStep", "Ray2D.SetOriginStep"];
-})(Ray2D = exports.Ray2D || (exports.Ray2D = {}));
-exports.Ray2D = Ray2D;
-//# sourceMappingURL=Ray2D.js.map
-});
-___scope___.file("app/modes/Mode.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var sodium = require("sodiumjs");
-var Mode = /** @class */ (function () {
-    function Mode() {
-    }
-    Object.defineProperty(Mode.prototype, "sUpdate", {
-        get: function () {
-            return new sodium.Stream();
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Mode.prototype, "sFinished", {
-        get: function () {
-            return new sodium.Stream();
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Mode.prototype, "cWorldSpaceOverlay", {
-        get: function () {
-            return new sodium.Cell(function (canvasCtx) { });
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Mode.prototype, "cScreenSpaceOverlay", {
-        get: function () {
-            return new sodium.Cell(function (canvasCtx) { });
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Mode.prototype, "cFloatingLengthAngles", {
-        get: function () {
-            return new sodium.Cell([]);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Mode;
-}());
-exports.Mode = Mode;
-//# sourceMappingURL=Mode.js.map
-});
-___scope___.file("app/ecs/components/Line3DComponent.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/ecs/components/CircleComponent.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var EcsComponent_1 = require("../EcsComponent");
 var EcsComponentType_1 = require("../EcsComponentType");
 var EcsComponentValue_1 = require("../EcsComponentValue");
-var Line3DComponent = /** @class */ (function () {
-    function Line3DComponent(line) {
-        this._line = null;
-        this._line = line;
+var CircleComponent = /** @class */ (function () {
+    function CircleComponent(radius) {
+        this._radius = 0;
+        this._radius = radius;
     }
-    Line3DComponent.of = function (line) {
-        return new Line3DComponent(line);
+    CircleComponent.withRadius = function (radius) {
+        return new CircleComponent(radius);
     };
-    Object.defineProperty(Line3DComponent.prototype, "line", {
-        get: function () {
-            return this._line;
-        },
-        enumerable: true,
-        configurable: true
-    });
+    CircleComponent.prototype.radius = function () {
+        return this._radius;
+    };
     /**
      *
      * @return {EcsComponentValue}
      */
-    Line3DComponent.prototype.ecsComponentValue = function () {
-        return EcsComponentValue_1.EcsComponentValue.of(Line3DComponent.ecsComponent_$LI$(), this);
+    CircleComponent.prototype.ecsComponentValue = function () {
+        return EcsComponentValue_1.EcsComponentValue.of(CircleComponent.ecsComponent_$LI$(), this);
     };
-    Line3DComponent.ecsComponent_$LI$ = function () { if (Line3DComponent.ecsComponent == null)
-        Line3DComponent.ecsComponent = EcsComponent_1.EcsComponent.of(EcsComponentType_1.EcsComponentType.of("Line3DComponent")); return Line3DComponent.ecsComponent; };
+    CircleComponent.ecsComponent_$LI$ = function () { if (CircleComponent.ecsComponent == null)
+        CircleComponent.ecsComponent = EcsComponent_1.EcsComponent.of(EcsComponentType_1.EcsComponentType.of("CircleComponent")); return CircleComponent.ecsComponent; };
     ;
-    return Line3DComponent;
+    return CircleComponent;
 }());
-exports.Line3DComponent = Line3DComponent;
-Line3DComponent["__class"] = "Line3DComponent";
-Line3DComponent["__interfaces"] = ["IsEcsComponentValue"];
-Line3DComponent.ecsComponent_$LI$();
-//# sourceMappingURL=Line3DComponent.js.map
+exports.CircleComponent = CircleComponent;
+CircleComponent["__class"] = "CircleComponent";
+CircleComponent["__interfaces"] = ["IsEcsComponentValue"];
+CircleComponent.ecsComponent_$LI$();
+//# sourceMappingURL=CircleComponent.js.map
 });
 ___scope___.file("app/ecs/EcsComponent.js", function(exports, require, module, __filename, __dirname){
 
@@ -2959,6 +2365,2328 @@ exports.Quaternion = Quaternion;
 Quaternion.identity_$LI$();
 //# sourceMappingURL=Quaternion.js.map
 });
+___scope___.file("app/math/Plane3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector3D_1 = require("./Vector3D");
+var Option_1 = require("../Option");
+var Plane3D = /** @class */ (function () {
+    function Plane3D(n, d) {
+        this._n = n;
+        this._d = d;
+    }
+    Plane3D.create = function (n, d) {
+        return new Plane3D(n, d);
+    };
+    Plane3D.fromKnownPtAndNormal = function (knownPt, normal) {
+        return Plane3D.create(normal, -normal.dot(knownPt));
+    };
+    Object.defineProperty(Plane3D.prototype, "n", {
+        get: function () {
+            return this._n;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Plane3D.prototype, "d", {
+        get: function () {
+            return this._d;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Plane3D.prototype.moveInNormalDirection = function (dist) {
+        return new Plane3D(this.n, this.d - dist * this.n.length());
+    };
+    Plane3D.prototype.closestPoint = function (p) {
+        var t = -(this.d + p.dot(this.n)) / this.n.dot(this.n);
+        return p.add(this.n.scale(t));
+    };
+    Plane3D.prototype.threePlaneIntersection = function (p2, p3) {
+        var p1 = this;
+        var x1 = p1.closestPoint(Vector3D_1.Vector3D.zero_$LI$());
+        var x2 = p2.closestPoint(Vector3D_1.Vector3D.zero_$LI$());
+        var x3 = p3.closestPoint(Vector3D_1.Vector3D.zero_$LI$());
+        var n1 = p1.n;
+        var n2 = p2.n;
+        var n3 = p3.n;
+        var x = n2.cross(n3).scale(x1.dot(n1)).add(n3.cross(n1).scale(x2.dot(n2))).add(n1.cross(n2).scale(x3.dot(n3)));
+        var n1x = n1.getX();
+        var n1y = n1.getY();
+        var n1z = n1.getZ();
+        var n2x = n2.getX();
+        var n2y = n2.getY();
+        var n2z = n2.getZ();
+        var n3x = n3.getX();
+        var n3y = n3.getY();
+        var n3z = n3.getZ();
+        var det = n1x * (n2y * n3z - n3y * n2z) + n2x * (n3y * n1z - n1y * n3z) + n3x * (n1y * n2z - n2y * n1z);
+        if (Math.abs(det) < 0.001) {
+            return Option_1.Option.none();
+        }
+        return Option_1.Option.some(x.scale(1.0 / det));
+    };
+    Plane3D.prototype.fromSpace = function (space) {
+        var knownPoint = this.closestPoint(Vector3D_1.Vector3D.zero_$LI$());
+        var newN = space.vectorFromThisSpace(this.n);
+        var newKnownPoint = space.pointFromThisSpace(knownPoint);
+        return Plane3D.fromKnownPtAndNormal(newKnownPoint, newN);
+    };
+    Plane3D.prototype.toSpace = function (space) {
+        var knownPoint = this.closestPoint(Vector3D_1.Vector3D.zero_$LI$());
+        var newN = space.vectorToThisSpace(this.n);
+        var newKnownPoint = space.pointToThisSpace(knownPoint);
+        return Plane3D.fromKnownPtAndNormal(newKnownPoint, newN);
+    };
+    return Plane3D;
+}());
+exports.Plane3D = Plane3D;
+//# sourceMappingURL=Plane3D.js.map
+});
+___scope___.file("app/modes/Mode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Mode = /** @class */ (function () {
+    function Mode() {
+    }
+    Object.defineProperty(Mode.prototype, "sUpdate", {
+        get: function () {
+            return new sodium.Stream();
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mode.prototype, "sFinished", {
+        get: function () {
+            return new sodium.Stream();
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mode.prototype, "cWorldSpaceOverlay", {
+        get: function () {
+            return new sodium.Cell(function (canvasCtx) { });
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mode.prototype, "cScreenSpaceOverlay", {
+        get: function () {
+            return new sodium.Cell(function (canvasCtx) { });
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mode.prototype, "cFloatingLengthAngles", {
+        get: function () {
+            return new sodium.Cell([]);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mode.prototype, "cAskValuesAt", {
+        get: function () {
+            return new sodium.Cell([]);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Mode;
+}());
+exports.Mode = Mode;
+//# sourceMappingURL=Mode.js.map
+});
+___scope___.file("app/ecs/components/Axes2DComponent.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var EcsComponent_1 = require("../EcsComponent");
+var EcsComponentType_1 = require("../EcsComponentType");
+var EcsComponentValue_1 = require("../EcsComponentValue");
+var Axes2DComponent = /** @class */ (function () {
+    function Axes2DComponent(axes2D) {
+        this._axes2D = axes2D;
+    }
+    Axes2DComponent.create = function (axes2D) {
+        return new Axes2DComponent(axes2D);
+    };
+    Axes2DComponent.prototype.axes2D = function () {
+        return this._axes2D;
+    };
+    /**
+     *
+     * @return {com.shedmasta.core.ecs2.EcsComponentValue}
+     */
+    Axes2DComponent.prototype.ecsComponentValue = function () {
+        return EcsComponentValue_1.EcsComponentValue.of(Axes2DComponent.ecsComponent_$LI$(), this);
+    };
+    Axes2DComponent.ecsComponent_$LI$ = function () { if (Axes2DComponent.ecsComponent == null)
+        Axes2DComponent.ecsComponent = EcsComponent_1.EcsComponent.of(EcsComponentType_1.EcsComponentType.of("Axes2D")); return Axes2DComponent.ecsComponent; };
+    ;
+    return Axes2DComponent;
+}());
+exports.Axes2DComponent = Axes2DComponent;
+Axes2DComponent["__class"] = "Axes2DComponent";
+Axes2DComponent["__interfaces"] = ["IsEcsComponentValue"];
+Axes2DComponent.ecsComponent_$LI$();
+//# sourceMappingURL=Axes2DComponent.js.map
+});
+___scope___.file("app/ecs/components/Line3DComponent.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var EcsComponent_1 = require("../EcsComponent");
+var EcsComponentType_1 = require("../EcsComponentType");
+var EcsComponentValue_1 = require("../EcsComponentValue");
+var Line3DComponent = /** @class */ (function () {
+    function Line3DComponent(line) {
+        this._line = null;
+        this._line = line;
+    }
+    Line3DComponent.of = function (line) {
+        return new Line3DComponent(line);
+    };
+    Object.defineProperty(Line3DComponent.prototype, "line", {
+        get: function () {
+            return this._line;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    /**
+     *
+     * @return {EcsComponentValue}
+     */
+    Line3DComponent.prototype.ecsComponentValue = function () {
+        return EcsComponentValue_1.EcsComponentValue.of(Line3DComponent.ecsComponent_$LI$(), this);
+    };
+    Line3DComponent.ecsComponent_$LI$ = function () { if (Line3DComponent.ecsComponent == null)
+        Line3DComponent.ecsComponent = EcsComponent_1.EcsComponent.of(EcsComponentType_1.EcsComponentType.of("Line3DComponent")); return Line3DComponent.ecsComponent; };
+    ;
+    return Line3DComponent;
+}());
+exports.Line3DComponent = Line3DComponent;
+Line3DComponent["__class"] = "Line3DComponent";
+Line3DComponent["__interfaces"] = ["IsEcsComponentValue"];
+Line3DComponent.ecsComponent_$LI$();
+//# sourceMappingURL=Line3DComponent.js.map
+});
+___scope___.file("app/math/Axes2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector2D_1 = require("./Vector2D");
+var Complex_1 = require("./Complex");
+/**
+ *
+ * @author Clinton
+ * @class
+ */
+var Axes2D = /** @class */ (function () {
+    function Axes2D(origin, orientation) {
+        this._origin = null;
+        this._orientation = null;
+        this._origin = origin;
+        this._orientation = orientation;
+    }
+    Axes2D.identity_$LI$ = function () { if (Axes2D.identity == null)
+        Axes2D.identity = new Axes2D(Vector2D_1.Vector2D.create(0.0, 0.0), Complex_1.Complex.rot0_$LI$()); return Axes2D.identity; };
+    ;
+    Axes2D.create = function (origin, orientation) {
+        return new Axes2D(origin, orientation);
+    };
+    Object.defineProperty(Axes2D.prototype, "origin", {
+        get: function () {
+            return this._origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Axes2D.prototype, "orientation", {
+        get: function () {
+            return this._orientation;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Axes2D.prototype.getOrigin = function () {
+        return this._origin;
+    };
+    Axes2D.prototype.getOrientation = function () {
+        return this._orientation;
+    };
+    Axes2D.prototype.pointFromSpace = function (p) {
+        return this._orientation.rotate(p).add(this._origin);
+    };
+    Axes2D.prototype.pointToSpace = function (p) {
+        return this._orientation.conjugate().rotate(p.sub(this._origin));
+    };
+    Axes2D.prototype.vectorFromSpace = function (v) {
+        return this._orientation.rotate(v);
+    };
+    Axes2D.prototype.vectorToSpace = function (v) {
+        return this._orientation.conjugate().rotate(v);
+    };
+    Axes2D.prototype.axesFromSpace = function (a) {
+        return Axes2D.Builder.fromOriginOrientation().setOrigin(this.pointFromSpace(a.getOrigin())).setOrientation(a.getOrientation().times(this._orientation)).build();
+    };
+    Axes2D.prototype.axesToSpace = function (a) {
+        return Axes2D.Builder.fromOriginOrientation().setOrigin(this.pointToSpace(a.getOrigin())).setOrientation(this.getOrientation().conjugate().times(a.getOrientation())).build();
+    };
+    return Axes2D;
+}());
+exports.Axes2D = Axes2D;
+Axes2D["__class"] = "Axes2D";
+(function (Axes2D) {
+    var FromOriginOrientationBuilder = /** @class */ (function () {
+        function FromOriginOrientationBuilder() {
+            this.originX = 0;
+            this.originY = 0;
+            this.orientation = null;
+        }
+        /**
+         *
+         * @param {number} originX
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginX = function (originX) {
+            this.originX = originX;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originX
+         * @param {number} originY
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginXY = function (originX, originY) {
+            this.originX = originX;
+            this.originY = originY;
+            return this;
+        };
+        /**
+         *
+         * @param {Vector2D} origin
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOrigin = function (origin) {
+            this.originX = origin.x;
+            this.originY = origin.y;
+            return this;
+        };
+        /**
+         *
+         * @param {number} originY
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOriginY = function (originY) {
+            this.originY = originY;
+            return this;
+        };
+        /**
+         *
+         * @param {Complex} orientation
+         * @return {*}
+         */
+        FromOriginOrientationBuilder.prototype.setOrientation = function (orientation) {
+            this.orientation = orientation;
+            return this;
+        };
+        /**
+         *
+         * @return {Axes2D}
+         */
+        FromOriginOrientationBuilder.prototype.build = function () {
+            return new Axes2D(Vector2D_1.Vector2D.create(this.originX, this.originY), this.orientation);
+        };
+        return FromOriginOrientationBuilder;
+    }());
+    Axes2D.FromOriginOrientationBuilder = FromOriginOrientationBuilder;
+    FromOriginOrientationBuilder["__class"] = "Axes2D.FromOriginOrientationBuilder";
+    FromOriginOrientationBuilder["__interfaces"] = ["Axes2D.FromOriginOrientationSetOrientationStep", "Axes2D.FromOriginOrientationSetOriginYStep", "Axes2D.BuildStep", "Axes2D.FromOriginOrientationSetOriginXStep"];
+    var Builder = /** @class */ (function () {
+        function Builder() {
+        }
+        Builder.fromOriginOrientation = function () {
+            return new Axes2D.FromOriginOrientationBuilder();
+        };
+        return Builder;
+    }());
+    Axes2D.Builder = Builder;
+    Builder["__class"] = "Axes2D.Builder";
+})(Axes2D = exports.Axes2D || (exports.Axes2D = {}));
+exports.Axes2D = Axes2D;
+Axes2D.identity_$LI$();
+//# sourceMappingURL=Axes2D.js.map
+});
+___scope___.file("app/math/Complex.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector2D_1 = require("./Vector2D");
+/**
+ *
+ * @author Clinton
+ * @class
+ */
+var Complex = /** @class */ (function () {
+    function Complex(x, y) {
+        this._x = 0;
+        this._y = 0;
+        this._x = x;
+        this._y = y;
+    }
+    Complex.rot0_$LI$ = function () { if (Complex.rot0 == null)
+        Complex.rot0 = new Complex(1, 0); return Complex.rot0; };
+    ;
+    Complex.xy = function (xy) {
+        return new Complex(xy.x, xy.y);
+    };
+    Object.defineProperty(Complex.prototype, "x", {
+        get: function () {
+            return this._x;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Complex.prototype, "y", {
+        get: function () {
+            return this._y;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Complex.prototype.getX = function () {
+        return this._x;
+    };
+    Complex.prototype.getY = function () {
+        return this._y;
+    };
+    Complex.prototype.getLengthSquared = function () {
+        return this._x * this._x + this._y * this._y;
+    };
+    Complex.prototype.getLength = function () {
+        return Math.sqrt(this.getLengthSquared());
+    };
+    Complex.prototype.normalize = function () {
+        var length = this.getLength();
+        return new Complex(this._x / length, this._y / length);
+    };
+    Complex.prototype.times = function (rhs) {
+        var lhs = this;
+        return new Complex(lhs._x * rhs._x - lhs._y * rhs._y, lhs._x * rhs._y + lhs._y * rhs._x);
+    };
+    Complex.prototype.conjugate = function () {
+        return new Complex(this._x, -this._y);
+    };
+    Complex.prototype.rotate = function (p) {
+        var uX = this._x;
+        var uY = this._y;
+        var vX = -uY;
+        var vY = uX;
+        return Vector2D_1.Vector2D.create(p.x * uX + p.y * vX, p.x * uY + p.y * vY);
+    };
+    Complex.prototype.getU = function () {
+        return Vector2D_1.Vector2D.create(this._x, this._y);
+    };
+    Complex.prototype.getV = function () {
+        return Vector2D_1.Vector2D.create(-this._y, this._x);
+    };
+    Complex.prototype.getAngle = function () {
+        return /* toDegrees */ (function (x) { return x * 180 / Math.PI; })(Math.atan2(this._y, this._x));
+    };
+    return Complex;
+}());
+exports.Complex = Complex;
+Complex["__class"] = "Complex";
+(function (Complex) {
+    var FromXYBuilder = /** @class */ (function () {
+        function FromXYBuilder() {
+            this.x = 0;
+            this.y = 0;
+        }
+        /**
+         *
+         * @param {number} x
+         * @return {*}
+         */
+        FromXYBuilder.prototype.setX = function (x) {
+            this.x = x;
+            return this;
+        };
+        /**
+         *
+         * @param {number} x
+         * @param {number} y
+         * @return {*}
+         */
+        FromXYBuilder.prototype.setXY = function (x, y) {
+            this.x = x;
+            this.y = y;
+            return this;
+        };
+        /**
+         *
+         * @param {Vector2D} xy
+         * @return {*}
+         */
+        FromXYBuilder.prototype.set = function (xy) {
+            this.x = xy.x;
+            this.y = xy.y;
+            return this;
+        };
+        /**
+         *
+         * @param {number} y
+         * @return {*}
+         */
+        FromXYBuilder.prototype.setY = function (y) {
+            this.y = y;
+            return this;
+        };
+        /**
+         *
+         * @return {Complex}
+         */
+        FromXYBuilder.prototype.build = function () {
+            return new Complex(this.x, this.y);
+        };
+        return FromXYBuilder;
+    }());
+    Complex.FromXYBuilder = FromXYBuilder;
+    FromXYBuilder["__class"] = "Complex.FromXYBuilder";
+    FromXYBuilder["__interfaces"] = ["Complex.FromXYSetXStep", "Complex.FromXYSetYStep", "Complex.BuildStep"];
+    var FromAngleBuilder = /** @class */ (function () {
+        function FromAngleBuilder() {
+            this.angle = 0;
+        }
+        /**
+         *
+         * @param {number} angle
+         * @return {*}
+         */
+        FromAngleBuilder.prototype.setAngle = function (angle) {
+            this.angle = angle;
+            return this;
+        };
+        /**
+         *
+         * @return {Complex}
+         */
+        FromAngleBuilder.prototype.build = function () {
+            return new Complex(Math.cos(/* toRadians */ (function (x) { return x * Math.PI / 180; })(this.angle)), Math.sin(/* toRadians */ (function (x) { return x * Math.PI / 180; })(this.angle)));
+        };
+        return FromAngleBuilder;
+    }());
+    Complex.FromAngleBuilder = FromAngleBuilder;
+    FromAngleBuilder["__class"] = "Complex.FromAngleBuilder";
+    FromAngleBuilder["__interfaces"] = ["Complex.FromAngleSetAngleStep", "Complex.BuildStep"];
+    var Builder = /** @class */ (function () {
+        function Builder() {
+        }
+        Builder.fromXY = function () {
+            return new Complex.FromXYBuilder();
+        };
+        Builder.fromAngle = function () {
+            return new Complex.FromAngleBuilder();
+        };
+        return Builder;
+    }());
+    Complex.Builder = Builder;
+    Builder["__class"] = "Complex.Builder";
+})(Complex = exports.Complex || (exports.Complex = {}));
+exports.Complex = Complex;
+Complex.rot0_$LI$();
+//# sourceMappingURL=Complex.js.map
+});
+___scope___.file("app/modes/DrawLineMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var DrawPolylineModel_1 = require("./DrawPolylineModel");
+var Mode_1 = require("./Mode");
+var Option_1 = require("../Option");
+var Line3DComponent_1 = require("../ecs/components/Line3DComponent");
+var Axes3D_1 = require("../math/Axes3D");
+var ArrayUtil_1 = require("../ArrayUtil");
+var DrawLineMode = /** @class */ (function (_super) {
+    __extends(DrawLineMode, _super);
+    function DrawLineMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var slReset = new sodium.StreamLoop();
+            var cLines = params.cSceneCtxOp.map(function (sceneCtxOp) {
+                return sceneCtxOp
+                    .map(function (sceneCtx) {
+                    return ArrayUtil_1.arrayBind(sceneCtx
+                        .entitiesWithAllComponents([Line3DComponent_1.Line3DComponent.ecsComponent.type()]), function (lineId) {
+                        return sceneCtx
+                            .getComponent(lineId, Line3DComponent_1.Line3DComponent.ecsComponent)
+                            .map(function (x) { return [x.line]; })
+                            .orSome([]);
+                    });
+                })
+                    .orSome([]);
+            });
+            var cPoints = cLines.map(function (lines) {
+                return ArrayUtil_1.arrayBind(lines, function (line) { return [line.v1, line.v2]; });
+            });
+            var drawPolylineModel = new DrawPolylineModel_1.DrawPolylineModel(new sodium.Cell(Axes3D_1.Axes3D.identity), params.cMousePosOp, params.sMousePressed, cPoints, cLines, Option_1.Option.none(), params.cScreenPointToWorldRayOp, params.cProjectWorldPointToScreenOp, params.sReplyValueEntered, params.sLengthAngleEntered, slReset, params.cScale);
+            var sUpdate = drawPolylineModel
+                .sInsertLine()
+                .map(function (line) {
+                return function (sceneCtx) {
+                    sceneCtx.createEntity([
+                        Line3DComponent_1.Line3DComponent.of(line)
+                    ]);
+                };
+            });
+            var sFinished = sUpdate.mapTo(sodium.Unit.UNIT);
+            slReset.loop(sUpdate.mapTo(sodium.Unit.UNIT));
+            _this._sUpdate = sUpdate;
+            _this._sFinished = sFinished;
+            _this._cWorldSpaceOverlay = drawPolylineModel.cWorldSpaceOverlay;
+            _this._cScreenSpaceOverlay = drawPolylineModel.cScreenSpaceOverlay;
+            _this._cFloatingLengthAngles = drawPolylineModel.cFloatingLengthAngles();
+        });
+        return _this;
+    }
+    Object.defineProperty(DrawLineMode.prototype, "sFinished", {
+        get: function () {
+            return this._sFinished;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(DrawLineMode.prototype, "sUpdate", {
+        get: function () {
+            return this._sUpdate;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(DrawLineMode.prototype, "cWorldSpaceOverlay", {
+        get: function () {
+            return this._cWorldSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(DrawLineMode.prototype, "cScreenSpaceOverlay", {
+        get: function () {
+            return this._cScreenSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(DrawLineMode.prototype, "cFloatingLengthAngles", {
+        get: function () {
+            return this._cFloatingLengthAngles;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return DrawLineMode;
+}(Mode_1.Mode));
+exports.DrawLineMode = DrawLineMode;
+//# sourceMappingURL=DrawLineMode.js.map
+});
+___scope___.file("app/modes/DrawPolylineModel.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var AskValueAtParams_1 = require("./AskValueAtParams");
+var FloatingLengthAngle_1 = require("./FloatingLengthAngle");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Lazy_1 = require("../Lazy");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Tuples_1 = require("../Tuples");
+var Line3D_1 = require("../math/Line3D");
+var Plane3D_1 = require("../math/Plane3D");
+var Ray2D_1 = require("../math/Ray2D");
+var Ray3D_1 = require("../math/Ray3D");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var DrawPolylineModel = /** @class */ (function () {
+    function DrawPolylineModel(cWorkingAxes, cMousePosOp, sMousePressed, cGivenSnapPoints, cGivenLines, cGivenIntersectionPtUnderMouseOpOp, cScreenPointToWorldRayOp, cProjectWorldPointToScreenOp, sReplyValueEntered, sLengthAngleEntered, sReset, cScale) {
+        var _this = this;
+        this.__cCurrentPolyline = null;
+        this.__sInsertLine = null;
+        this.__sAskValuesAt = null;
+        this.__sHideAskValuesAt = null;
+        this.__cFloatingLengthAngles = null;
+        sodium.Transaction.run(function () {
+            var cWorkingPlane = cWorkingAxes.map(function (workingAxes) { return Plane3D_1.Plane3D.fromKnownPtAndNormal(workingAxes.origin, workingAxes.w); });
+            var cMouseWorkingPlanePosOp = cWorkingPlane.lift3(cMousePosOp, cScreenPointToWorldRayOp, function (workingPlane, mousePosOp, screenPointToWorldRayOp) {
+                return mousePosOp
+                    .bind(screenPointToWorldRayOp)
+                    .bind(function (mouseRay) {
+                    return mouseRay.collisionWithPlane(workingPlane);
+                });
+            });
+            var clLastPointOp = (new sodium.CellLoop());
+            var cLinePerpPointSnaps = cWorkingPlane.lift3(cGivenLines, clLastPointOp, function (workingPlane, lines, lastPointOp) {
+                return lastPointOp.map(function (lastPoint) {
+                    return ArrayUtil_1.arrayBind(lines, function (line) {
+                        var lineRay = Ray3D_1.Ray3D.create(line.getV1(), line.getV2().sub(line.getV1()));
+                        var u = line.getV2().sub(line.getV1()).normalize();
+                        var w = workingPlane.n;
+                        var v = w.cross(u).normalize();
+                        var linePlane = Plane3D_1.Plane3D.fromKnownPtAndNormal(line.getV1(), v);
+                        var lastPointRay = Ray3D_1.Ray3D.create(lastPoint, v);
+                        var ptOp = lastPointRay.collisionWithPlane(linePlane);
+                        if (ptOp.isNone) {
+                            return [];
+                        }
+                        var pt = ptOp.fromSome();
+                        var t = lineRay.closestTimeToPoint(pt);
+                        if (t < 0.0 || t > 1.0) {
+                            return [];
+                        }
+                        return [pt];
+                    });
+                }).orSome([]);
+            });
+            var cLineMidPointSnaps = cGivenLines.map(function (lines) {
+                return lines.map(function (line) {
+                    return line.getV1().add(line.getV2()).scale(0.5);
+                });
+            });
+            var cLineIntersectionPointSnaps = cWorkingPlane.lift(cGivenLines, function (workingPlane, lines) {
+                return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRange(0, lines.length - 1), function (i) {
+                        var lineI = lines[i];
+                        var lineIPlane;
+                        var lineIRay = Ray3D_1.Ray3D.create(lineI.getV1(), lineI.getV2().sub(lineI.getV1()));
+                        {
+                            var u = lineI.getV2().sub(lineI.getV1());
+                            var w = workingPlane.n;
+                            var v = w.cross(u).normalize();
+                            lineIPlane = Plane3D_1.Plane3D.fromKnownPtAndNormal(lineI.getV1(), v);
+                        }
+                        ;
+                        return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRange(i + 1, lines.length), function (j) {
+                            var epsilion = 0.001;
+                            var lineJ = lines[j];
+                            var lineJRay = Ray3D_1.Ray3D.create(lineJ.getV1(), lineJ.getV2().sub(lineJ.getV1()));
+                            var tOp = lineJRay.collisionTimeWithPlane(lineIPlane);
+                            if (tOp.isNone) {
+                                return [];
+                            }
+                            var t = tOp.fromSome();
+                            if (t < 0.0 || t > 1.0) {
+                                return [];
+                            }
+                            var pt = lineJRay.positionFromTime(t);
+                            var t2 = lineIRay.closestTimeToPoint(pt);
+                            if (t2 < 0.0 || t2 > 1.0) {
+                                return [];
+                            }
+                            var pt2 = lineIRay.positionFromTime(t2);
+                            if (pt.distance(pt2) > epsilion) {
+                                return [];
+                            }
+                            return [pt.add(pt2).scale(0.5)];
+                        });
+                    });
+                });
+            });
+            var cGivenOrCalculatedIntersectionPoints = cGivenIntersectionPtUnderMouseOpOp
+                .map(function (cGivenIntersectionPtUnderMouseOp) {
+                return cGivenIntersectionPtUnderMouseOp.map(function (ptOp) {
+                    return Lazy_1.Lazy.pure(ptOp
+                        .map(function (pt) { return [pt]; })
+                        .orSome([]));
+                });
+            })
+                .orSome(cLineIntersectionPointSnaps);
+            var cSnapPoints = cGivenSnapPoints.lift4(cLinePerpPointSnaps, cLineMidPointSnaps, cGivenOrCalculatedIntersectionPoints, function (snapPoints, linePerpPointSnaps, lineMidPointSnaps, givenOrCalculatedIntersectionPoints) {
+                var allSnapPoints = ([]);
+                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, snapPoints);
+                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, linePerpPointSnaps);
+                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, lineMidPointSnaps);
+                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(allSnapPoints, givenOrCalculatedIntersectionPoints.get());
+                return allSnapPoints;
+            });
+            var cSnapPointUnderMouseOp = cMousePosOp.lift3(cSnapPoints, cProjectWorldPointToScreenOp, function (mousePosOp, snapPoints, projectWorldPointToScreenOp) {
+                return mousePosOp
+                    .bind(function (mousePos) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(snapPoints, function (snapPoint) {
+                        return projectWorldPointToScreenOp(snapPoint)
+                            .map(function (snapPoint2) {
+                            var screenDistSquared = mousePos.distanceSquared(snapPoint2);
+                            if (screenDistSquared > DrawPolylineModel.SNAP_SCREEN_DIST * DrawPolylineModel.SNAP_SCREEN_DIST) {
+                                return [];
+                            }
+                            return [Tuples_1.T2.of(snapPoint, screenDistSquared)];
+                        })
+                            .orSome([]);
+                    }), function (arg0, arg1) { return arg0._2 < arg1._2 ? arg0 : arg1; })
+                        .map(function (x) { return x._1; });
+                });
+            });
+            var cAlongEdgeSnapPointUnderMouseOp = cMousePosOp.lift5(cGivenLines, cSnapPointUnderMouseOp, cProjectWorldPointToScreenOp, cScreenPointToWorldRayOp, function (mousePosOp, lines, snapPointUnderMouseOp, projectWorldPointToScreenOp, screenPointToWorldRayOp) {
+                return snapPointUnderMouseOp.isSome ?
+                    Option_1.Option.none() :
+                    mousePosOp.bind(function (mousePos) {
+                        return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(lines, function (line) {
+                            return projectWorldPointToScreenOp(line.getV1())
+                                .lift2(projectWorldPointToScreenOp(line.getV2()), function (pt1, pt2) {
+                                var projectedLineRay = Ray2D_1.Ray2D.fromOriginDirection(pt1, pt2.sub(pt1));
+                                var t = projectedLineRay.closestTimeToPoint(mousePos);
+                                var t2 = Math.max(0.0, Math.min(1.0, t));
+                                var pt = projectedLineRay.pointFromTime(t2);
+                                var rayThroughPtOp = screenPointToWorldRayOp(pt);
+                                if (rayThroughPtOp.isNone) {
+                                    return [];
+                                }
+                                var rayThroughPt = rayThroughPtOp.fromSome();
+                                var lineRay = Ray3D_1.Ray3D.create(line.getV1(), line.getV2().sub(line.getV1()));
+                                var t3Op = lineRay.closestTimeOnThisRayWithOtherRay(rayThroughPt);
+                                if (t3Op.isNone) {
+                                    return [];
+                                }
+                                var t3 = t3Op.fromSome();
+                                var pt3 = lineRay.positionFromTime(t3);
+                                var distanceSquared = pt.distanceSquared(mousePos);
+                                if (distanceSquared > DrawPolylineModel.SNAP_SCREEN_DIST * DrawPolylineModel.SNAP_SCREEN_DIST) {
+                                    return [];
+                                }
+                                return [Tuples_1.T2.of(pt3, distanceSquared)];
+                            })
+                                .orSome([]);
+                        }), function (arg0, arg1) { return arg0._2 < arg1._2 ? arg0 : arg1; })
+                            .map(function (x) { return x._1; });
+                    });
+            });
+            var slInsertFirstPoint = (new sodium.StreamLoop());
+            var cFirstPointOp = slInsertFirstPoint.map(function (arg0) { return Option_1.Option.some(arg0); }).orElse(sReset.mapTo(Option_1.Option.none())).hold(Option_1.Option.none());
+            var slInsertLine = (new sodium.StreamLoop());
+            var slLastPointOp = (new sodium.StreamLoop());
+            var cLastPointOp = slLastPointOp.hold(Option_1.Option.none());
+            clLastPointOp.loop(cLastPointOp);
+            slLastPointOp.loop(slInsertFirstPoint.orElse(slInsertLine).map(function (arg0) { return Option_1.Option.some(arg0); }).orElse(sReset.mapTo(Option_1.Option.none())));
+            slInsertFirstPoint.loop(SodiumUtil.streamFilterOption(sMousePressed
+                .gate(cLastPointOp.map(function (x) { return x.isNone; }))
+                .snapshot1(cSnapPointUnderMouseOp)
+                .snapshot3(cAlongEdgeSnapPointUnderMouseOp, cMouseWorkingPlanePosOp, function (snapPointUnderMouseOp, alongEdgeSnapPointUnderMouseOp, mouseWorkingPlanePosOp) {
+                return snapPointUnderMouseOp
+                    .orElse(alongEdgeSnapPointUnderMouseOp)
+                    .orElse(mouseWorkingPlanePosOp);
+            })));
+            var cLinesUnderFromPoint = cGivenLines.lift(cLastPointOp, function (lines, lastPointOp) {
+                return lastPointOp
+                    .map(function (lastPoint) {
+                    return lines
+                        .filter(function (line) {
+                        var epsilon = 0.001;
+                        var lineRay = Ray3D_1.Ray3D.create(line.getV1(), line.getV2().sub(line.getV1()));
+                        var t = lineRay.closestTimeToPoint(lastPoint);
+                        var t2 = Math.max(0.0, Math.min(1.0, t));
+                        var pt = lineRay.positionFromTime(t2);
+                        return pt.distance(lastPoint) <= epsilon;
+                    });
+                })
+                    .orSome([]);
+            });
+            var cSnapDirections = cWorkingPlane.lift(cLinesUnderFromPoint, function (workingPlane, linesUnderFromPoint) {
+                return ArrayUtil_1.arrayJoin([
+                    [Vector3D_1.Vector3D.unitX_$LI$(), Vector3D_1.Vector3D.unitY_$LI$()],
+                    linesUnderFromPoint.map(function (line) {
+                        var u = line.getV2().sub(line.getV1());
+                        var w = workingPlane.n;
+                        var v = w.cross(u).normalize();
+                        return v;
+                    })
+                ]);
+            });
+            var c_directionSnapPt_isFromFirst_isFromLast_op = cSnapPointUnderMouseOp
+                .lift6(cFirstPointOp, cLastPointOp, cSnapDirections, cMousePosOp, cMouseWorkingPlanePosOp, function (arg0, arg1, arg2, arg3, arg4, arg5) {
+                return Tuples_1.T6.of(arg0, arg1, arg2, arg3, arg4, arg5);
+            })
+                .lift(cProjectWorldPointToScreenOp, function (arg0, arg1) {
+                return Tuples_1.T2.of(arg0, arg1);
+            })
+                .map(function (x) {
+                var snapPointUnderMouseOp = x._1._1;
+                var firstPointOp = x._1._2;
+                var lastPointOp = x._1._3;
+                var snapDirections = x._1._4;
+                var mousePosOp = x._1._5;
+                var mouseWorkingPlanePosOp = x._1._6;
+                var projectWorldPointToScreenOp = x._2;
+                if (snapPointUnderMouseOp.isSome) {
+                    return Option_1.Option.none();
+                }
+                if (mousePosOp.isNone) {
+                    return Option_1.Option.none();
+                }
+                var mousePos = mousePosOp.fromSome();
+                if (mouseWorkingPlanePosOp.isNone) {
+                    return Option_1.Option.none();
+                }
+                var mouseWorkingPlanePos = mouseWorkingPlanePosOp.fromSome();
+                var calcDirectionSnapPtFromPointOp = function (fromPoint) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(snapDirections, function (snapDirection) {
+                        var snapDirectionRay = Ray3D_1.Ray3D.create(fromPoint, snapDirection);
+                        var pt = snapDirectionRay.closestPoint(mouseWorkingPlanePos);
+                        return projectWorldPointToScreenOp(pt)
+                            .map(function (pt2) {
+                            var screenDistSquared = pt2.distanceSquared(mousePos);
+                            if (screenDistSquared > DrawPolylineModel.SNAP_SCREEN_DIST * DrawPolylineModel.SNAP_SCREEN_DIST) {
+                                return [];
+                            }
+                            return [Tuples_1.T2.of(Tuples_1.T2.of(pt, snapDirectionRay), screenDistSquared)];
+                        })
+                            .orSome([]);
+                    }), function (arg0, arg1) { return arg0._2 < arg1._2 ? arg0 : arg1; })
+                        .map(function (x) { return x._1; });
+                };
+                var directionSnapPtFromFirstPointOp = firstPointOp.bind(calcDirectionSnapPtFromPointOp);
+                var directionSnapPtFromLastPointOp = lastPointOp.bind(calcDirectionSnapPtFromPointOp);
+                if (directionSnapPtFromFirstPointOp.isSome) {
+                    var directionSnapPtFromFirstPoint = directionSnapPtFromFirstPointOp.fromSome();
+                    if (directionSnapPtFromLastPointOp.isSome) {
+                        var directionSnapPtFromLastPoint = directionSnapPtFromLastPointOp.fromSome();
+                        var intersectingPointOp = void 0;
+                        {
+                            var tOp = directionSnapPtFromFirstPoint._2.closestTimeOnThisRayWithOtherRay(directionSnapPtFromLastPoint._2);
+                            if (tOp.isNone) {
+                                intersectingPointOp = Option_1.Option.none();
+                            }
+                            else {
+                                var epsilon = 0.001;
+                                var t = tOp.fromSome();
+                                var pt = directionSnapPtFromFirstPoint._2.positionFromTime(t);
+                                var pt2 = directionSnapPtFromLastPoint._2.closestPoint(pt);
+                                if (pt.distance(pt2) <= epsilon) {
+                                    intersectingPointOp = Option_1.Option.some(pt.add(pt2).scale(0.5));
+                                }
+                                else {
+                                    intersectingPointOp = Option_1.Option.none();
+                                }
+                            }
+                        }
+                        ;
+                        if (intersectingPointOp.isSome) {
+                            var intersectingPoint = intersectingPointOp.fromSome();
+                            return Option_1.Option.some(Tuples_1.T3.of(intersectingPoint, true, true));
+                        }
+                        return Option_1.Option.some(Tuples_1.T3.of(directionSnapPtFromFirstPoint._1, true, false));
+                    }
+                    else {
+                        return Option_1.Option.some(Tuples_1.T3.of(directionSnapPtFromFirstPoint._1, true, false));
+                    }
+                }
+                else {
+                    if (directionSnapPtFromLastPointOp.isSome) {
+                        var directionSnapPtFromLastPoint = directionSnapPtFromLastPointOp.fromSome();
+                        return Option_1.Option.some(Tuples_1.T3.of(directionSnapPtFromLastPoint._1, false, true));
+                    }
+                    else {
+                        return Option_1.Option.none();
+                    }
+                }
+            });
+            var cDirectionSnapPointOp = c_directionSnapPt_isFromFirst_isFromLast_op
+                .map(function (directionSnapPt_isFromFirst_isFromLast_op) {
+                return directionSnapPt_isFromFirst_isFromLast_op.map(function (x) { return x._1; });
+            });
+            var cMovingNextPointOp = cSnapPointUnderMouseOp.lift4(cDirectionSnapPointOp, cAlongEdgeSnapPointUnderMouseOp, cMouseWorkingPlanePosOp, function (snapPointUnderMouseOp, directionSnapPointOp, alongEdgeSnapPointUnderMouseOp, mouseWorkingPlanePosOp) {
+                return snapPointUnderMouseOp
+                    .orElse(directionSnapPointOp)
+                    .orElse(alongEdgeSnapPointUnderMouseOp)
+                    .orElse(mouseWorkingPlanePosOp);
+            });
+            var cMovingNextLineOp = cLastPointOp.lift(cMovingNextPointOp, function (lastPointOp, movingNextPointOp) {
+                return lastPointOp.lift2(movingNextPointOp, function (lastPoint, movingNextPoint) {
+                    return Line3D_1.Line3D.create(lastPoint, movingNextPoint);
+                });
+            });
+            var cIsSnappingToDirection = cSnapPointUnderMouseOp.lift(c_directionSnapPt_isFromFirst_isFromLast_op, function (snapPointUnderMouseOp, directionSnapPt_isFromFirst_isFromLast_op) {
+                if (snapPointUnderMouseOp.isSome) {
+                    return false;
+                }
+                if (directionSnapPt_isFromFirst_isFromLast_op.isNone) {
+                    return false;
+                }
+                var directionSnapPt_isFromFirst_isFromLast = directionSnapPt_isFromFirst_isFromLast_op.fromSome();
+                return directionSnapPt_isFromFirst_isFromLast._3;
+            });
+            var cDirectionalSnapDottedLines = cSnapPointUnderMouseOp.lift4(c_directionSnapPt_isFromFirst_isFromLast_op, cFirstPointOp, cLastPointOp, function (snapPointUnderMouseOp, directionSnapPt_isFromFirst_isFromLast_op, firstPointOp, lastPointOp) {
+                if (snapPointUnderMouseOp.isSome) {
+                    return /* emptyList */ [];
+                }
+                if (directionSnapPt_isFromFirst_isFromLast_op.isNone) {
+                    return /* emptyList */ [];
+                }
+                var directionSnapPt_isFromFirst_isFromLast = directionSnapPt_isFromFirst_isFromLast_op.fromSome();
+                var result = ([]);
+                if (directionSnapPt_isFromFirst_isFromLast._2) {
+                    if (firstPointOp.isSome) {
+                        var firstPoint = firstPointOp.fromSome();
+                        /* add */ (result.push(Line3D_1.Line3D.create(directionSnapPt_isFromFirst_isFromLast._1, firstPoint)) > 0);
+                    }
+                }
+                if (directionSnapPt_isFromFirst_isFromLast._3) {
+                    if (lastPointOp.isSome) {
+                        var lastPoint = lastPointOp.fromSome();
+                        /* add */ (result.push(Line3D_1.Line3D.create(directionSnapPt_isFromFirst_isFromLast._1, lastPoint)) > 0);
+                    }
+                }
+                return result;
+            });
+            var sInitLineOp = SodiumUtil.streamFilterOption(sodium.Operational
+                .value(cMovingNextLineOp)
+                .collect(Option_1.Option.none(), function (nextLineOp, lastLineOp) {
+                var change;
+                if (lastLineOp.isSome != nextLineOp.isSome) {
+                    change = Option_1.Option.some(nextLineOp);
+                }
+                else {
+                    change = Option_1.Option.none();
+                }
+                return new sodium.Tuple2(change, nextLineOp);
+            }));
+            slInsertLine.loop(SodiumUtil
+                .streamFilterOption(sReplyValueEntered.snapshot3(cMovingNextLineOp, cScale, function (replyValueEntered, movingNextLineOp, scale) {
+                return movingNextLineOp.bind(function (movingNextLine) {
+                    var u = movingNextLine.getV2().sub(movingNextLine.getV1()).normalize();
+                    if (!u.allFinite()) {
+                        return Option_1.Option.none();
+                    }
+                    return Option_1.Option.some(movingNextLine.getV1().add(u.scale(replyValueEntered._2 * scale)));
+                });
+            }))
+                .orElse(SodiumUtil.streamFilterOption(sLengthAngleEntered.snapshot4(cMovingNextLineOp, cScale, cWorkingAxes, function (lengthAngleEntered, movingNextLineOp, scale, workingAxes) {
+                return movingNextLineOp.bind(function (movingNextLine) {
+                    var u = movingNextLine.getV2().sub(movingNextLine.getV1()).normalize();
+                    if (!u.allFinite()) {
+                        return Option_1.Option.none();
+                    }
+                    var ca = Math.cos(/* toRadians */ (function (x) { return x * Math.PI / 180; })(lengthAngleEntered._3));
+                    var sa = Math.sin(/* toRadians */ (function (x) { return x * Math.PI / 180; })(lengthAngleEntered._3));
+                    var pt = workingAxes.pointFromThisSpace(movingNextLine.getV1().add(Vector3D_1.Vector3D.create(lengthAngleEntered._2 * ca * scale, lengthAngleEntered._2 * sa * scale, 0.0)));
+                    return Option_1.Option.some(pt);
+                });
+            })))
+                .orElse(SodiumUtil.streamFilterOption(sMousePressed.snapshot1(cMovingNextPointOp))));
+            _this.__cFloatingLengthAngles =
+                sInitLineOp
+                    .snapshot3(cScale, cWorkingAxes, function (initLineOp, initScale, initWorkingAxes) {
+                    return initLineOp
+                        .map(function (initLine) {
+                        var angle;
+                        {
+                            var line2 = initLine.toSpace(initWorkingAxes);
+                            var delta = line2.getV2().sub(line2.getV1());
+                            angle = /* toDegrees */ (function (x) { return x * 180 / Math.PI; })(Math.atan2(delta.getY(), delta.getX()));
+                        }
+                        ;
+                        return /* singletonList */ [
+                            new FloatingLengthAngle_1.FloatingLengthAngle(1, initLine.getLength() / initScale, angle, SodiumUtil
+                                .streamFilterOption(sodium.Operational.updates(cMovingNextLineOp))
+                                .snapshot(cScale, function (line, scale) { return line.getLength() / scale; }), SodiumUtil
+                                .streamFilterOption(sodium.Operational.updates(cMovingNextLineOp))
+                                .snapshot(cWorkingAxes, function (line, workingAxes) {
+                                var line2 = line.toSpace(workingAxes);
+                                var delta = line2.getV2().sub(line2.getV1());
+                                return /* toDegrees */ (function (x) { return x * 180 / Math.PI; })(Math.atan2(delta.getY(), delta.getX()));
+                            }), cMousePosOp
+                                .map(function (mousePosOp) {
+                                return mousePosOp.map(function (mousePos) { return mousePos.add(Vector2D_1.Vector2D.create(0.0, -20.0)); });
+                            }))
+                        ];
+                    })
+                        .orSome([]);
+                })
+                    .hold([]);
+            _this.__sAskValuesAt =
+                SodiumUtil
+                    .streamFilterOption(sInitLineOp)
+                    .snapshot(cScale, function (initLine, initScale) { /* singletonList */ return [
+                    new AskValueAtParams_1.AskValueAtParams({
+                        id: 1,
+                        cLabelOp: new sodium.Cell(Option_1.Option.some("Length (mm):")),
+                        cPosition: cMovingNextPointOp.lift3(cProjectWorldPointToScreenOp, cMousePosOp, function (movingNextPointOp, projectWorldPointToScreenOp, mousePosOp) {
+                            return movingNextPointOp
+                                .bind(projectWorldPointToScreenOp)
+                                .map(function (pt) { return pt.add(Vector2D_1.Vector2D.create(10.0, -10.0)); })
+                                .orElse(mousePosOp)
+                                .orSome(Vector2D_1.Vector2D.zero);
+                        }),
+                        initialValue: initLine.getLength() / initScale,
+                        sSetValue: SodiumUtil
+                            .streamFilterOption(sodium.Operational.updates(cMovingNextLineOp))
+                            .snapshot(cScale, function (line, scale) { return line.getLength() / scale; })
+                    })
+                ]; });
+            _this.__sHideAskValuesAt = sInitLineOp.filter(function (x) { return x.isNone; }).mapTo(sodium.Unit.UNIT);
+            _this.__sInsertLine =
+                SodiumUtil.streamFilterOption(slInsertLine.snapshot(cLastPointOp, function (pt2, pt1Op) {
+                    return pt1Op.map(function (pt1) { return Line3D_1.Line3D.create(pt1, pt2); });
+                }));
+            var slCurrentPolyline = (new sodium.StreamLoop());
+            _this.__cCurrentPolyline = slCurrentPolyline.hold(/* emptyList */ []);
+            slCurrentPolyline.loop(slInsertFirstPoint
+                .orElse(slInsertLine)
+                .snapshot(_this.__cCurrentPolyline, function (pt, currentPolyline) {
+                var currentPolyline2 = ([]);
+                /* addAll */ (function (l1, l2) { return l1.push.apply(l1, l2); })(currentPolyline2, currentPolyline);
+                /* add */ (currentPolyline2.push(pt) > 0);
+                return currentPolyline2;
+            }).orElse(sReset.mapTo(/* emptyList */ [])));
+            _this._cWorldSpaceOverlay =
+                _this.__cCurrentPolyline.lift6(cFirstPointOp, cLastPointOp, cMovingNextLineOp, cIsSnappingToDirection, cDirectionalSnapDottedLines, function (polyline, firstPointOp, lastPointOp, movingNextLineOp, isSnappingToDirection, directionalSnapDottedLines) {
+                    return function (canvasCtx) {
+                        canvasCtx.save();
+                        canvasCtx.strokeStyle = "#0000FF";
+                        if (polyline.length >= 2) {
+                            canvasCtx.beginPath();
+                            canvasCtx.moveTo(polyline[0].x, polyline[0].y);
+                            for (var i = 1; i < polyline.length; ++i) {
+                                canvasCtx.lineTo(polyline[i].x, polyline[i].y);
+                            }
+                            canvasCtx.stroke();
+                        }
+                        if (movingNextLineOp.isSome) {
+                            var movingNextLine = movingNextLineOp.fromSome();
+                            if (isSnappingToDirection) {
+                                canvasCtx.save();
+                                canvasCtx.lineWidth = 2.0;
+                            }
+                            canvasCtx.beginPath();
+                            canvasCtx.moveTo(movingNextLine.v1.x, movingNextLine.v1.y);
+                            canvasCtx.lineTo(movingNextLine.v2.x, movingNextLine.v2.y);
+                            canvasCtx.stroke();
+                            if (isSnappingToDirection) {
+                                canvasCtx.restore();
+                            }
+                        }
+                        if (directionalSnapDottedLines.length != 0) {
+                            canvasCtx.save();
+                            canvasCtx.setLineDash([5, 10]);
+                            canvasCtx.beginPath();
+                            for (var i = 0; i < directionalSnapDottedLines.length; ++i) {
+                                canvasCtx.moveTo(directionalSnapDottedLines[i].v1.x, directionalSnapDottedLines[i].v1.y);
+                                canvasCtx.lineTo(directionalSnapDottedLines[i].v2.x, directionalSnapDottedLines[i].v2.y);
+                            }
+                            canvasCtx.stroke();
+                            canvasCtx.restore();
+                        }
+                        canvasCtx.restore();
+                    };
+                });
+            _this._cScreenSpaceOverlay =
+                cSnapPointUnderMouseOp.lift3(cAlongEdgeSnapPointUnderMouseOp, cProjectWorldPointToScreenOp, function (snapPointUnderMouseOp, alongEdgeSnapPointUnderMouseOp, projectWorldPointToScreenOp) {
+                    var projectedSnapPointUnderMouseOp = snapPointUnderMouseOp.bind(projectWorldPointToScreenOp);
+                    var projectedAlongEdgeSnapPointUnderMouseOp = alongEdgeSnapPointUnderMouseOp.bind(projectWorldPointToScreenOp);
+                    return function (canvasCtx) {
+                        if (projectedSnapPointUnderMouseOp.isSome) {
+                            canvasCtx.save();
+                            canvasCtx.fillStyle = "#00FF00";
+                            var pt = projectedSnapPointUnderMouseOp.fromSome();
+                            canvasCtx.beginPath();
+                            canvasCtx.arc(pt.x, pt.y, DrawPolylineModel.SNAP_PT_RADIUS, 0, 2.0 * Math.PI);
+                            canvasCtx.fill();
+                            canvasCtx.restore();
+                        }
+                        else if (projectedAlongEdgeSnapPointUnderMouseOp.isSome) {
+                            canvasCtx.save();
+                            canvasCtx.fillStyle = "#0000FF";
+                            var pt = projectedAlongEdgeSnapPointUnderMouseOp.fromSome();
+                            canvasCtx.beginPath();
+                            canvasCtx.arc(pt.x, pt.y, DrawPolylineModel.SNAP_PT_RADIUS, 0, 2.0 * Math.PI);
+                            canvasCtx.fill();
+                            canvasCtx.restore();
+                        }
+                    };
+                });
+        });
+    }
+    Object.defineProperty(DrawPolylineModel.prototype, "cWorldSpaceOverlay", {
+        get: function () {
+            return this._cWorldSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(DrawPolylineModel.prototype, "cScreenSpaceOverlay", {
+        get: function () {
+            return this._cScreenSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    DrawPolylineModel.prototype.cCurrentPolyline = function () {
+        return this.__cCurrentPolyline;
+    };
+    DrawPolylineModel.prototype.sInsertLine = function () {
+        return this.__sInsertLine;
+    };
+    DrawPolylineModel.prototype.sAskValuesAt = function () {
+        return this.__sAskValuesAt;
+    };
+    DrawPolylineModel.prototype.sHideAskValuesAt = function () {
+        return this.__sHideAskValuesAt;
+    };
+    DrawPolylineModel.prototype.cFloatingLengthAngles = function () {
+        return this.__cFloatingLengthAngles;
+    };
+    DrawPolylineModel.SNAP_SCREEN_DIST = 15.0;
+    DrawPolylineModel.SNAP_PT_RADIUS = 5.0;
+    return DrawPolylineModel;
+}());
+exports.DrawPolylineModel = DrawPolylineModel;
+DrawPolylineModel["__class"] = "com.shedmasta.core.cadmodes.DrawPolylineModel";
+//# sourceMappingURL=DrawPolylineModel.js.map
+});
+___scope___.file("app/modes/FloatingLengthAngle.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var FloatingLengthAngle = /** @class */ (function () {
+    function FloatingLengthAngle(id, initLength, initAngle, sSetLength, sSetAngle, cPositionOp) {
+        this._id = 0;
+        this._initLength = 0;
+        this._initAngle = 0;
+        this._sSetLength = null;
+        this._sSetAngle = null;
+        this._cPositionOp = null;
+        this._id = id;
+        this._initLength = initLength;
+        this._initAngle = initAngle;
+        this._sSetLength = sSetLength;
+        this._sSetAngle = sSetAngle;
+        this._cPositionOp = cPositionOp;
+    }
+    Object.defineProperty(FloatingLengthAngle.prototype, "id", {
+        get: function () {
+            return this._id;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FloatingLengthAngle.prototype, "initLength", {
+        get: function () {
+            return this._initLength;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FloatingLengthAngle.prototype, "initAngle", {
+        get: function () {
+            return this._initAngle;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FloatingLengthAngle.prototype, "sSetLength", {
+        get: function () {
+            return this._sSetLength;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FloatingLengthAngle.prototype, "sSetAngle", {
+        get: function () {
+            return this._sSetAngle;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FloatingLengthAngle.prototype, "cPositionOp", {
+        get: function () {
+            return this._cPositionOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return FloatingLengthAngle;
+}());
+exports.FloatingLengthAngle = FloatingLengthAngle;
+FloatingLengthAngle["__class"] = "FloatingLengthAngle";
+//# sourceMappingURL=FloatingLengthAngle.js.map
+});
+___scope___.file("app/math/Line3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Ray3D_1 = require("./Ray3D");
+var Vector3D_1 = require("./Vector3D");
+var Option_1 = require("../Option");
+/**
+ *
+ * @author Clinton
+ * @class
+ */
+var Line3D = /** @class */ (function () {
+    function Line3D(v1, v2) {
+        this._v1 = null;
+        this._v2 = null;
+        this._v1 = v1;
+        this._v2 = v2;
+    }
+    Line3D.create = function (v1, v2) {
+        return new Line3D(v1, v2);
+    };
+    Object.defineProperty(Line3D.prototype, "v1", {
+        get: function () {
+            return this._v1;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Line3D.prototype, "v2", {
+        get: function () {
+            return this._v2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Line3D.prototype.getV1 = function () {
+        return this._v1;
+    };
+    Line3D.prototype.getV2 = function () {
+        return this._v2;
+    };
+    Line3D.prototype.getLengthSquared = function () {
+        var d = this._v2.sub(this._v1);
+        return d.dot(d);
+    };
+    Line3D.prototype.getLength = function () {
+        return Math.sqrt(this.getLengthSquared());
+    };
+    Line3D.prototype.fromSpace = function (space) {
+        return Line3D.create(space.pointFromThisSpace(this._v1), space.pointFromThisSpace(this._v2));
+    };
+    Line3D.prototype.toSpace = function (space) {
+        return Line3D.create(space.pointToThisSpace(this._v1), space.pointToThisSpace(this._v2));
+    };
+    Line3D.prototype.lineLineIntersection = function (line) {
+        var line1 = this;
+        var line2 = line;
+        var r1 = Ray3D_1.Ray3D.create(line1.getV1(), line1.getV2().sub(line1.getV1()));
+        var r2 = Ray3D_1.Ray3D.create(line2.getV1(), line2.getV2().sub(line2.getV1()));
+        return Option_1.Option.join(r1.closestTimeOnThisRayWithOtherRay(r2).lift2(r2.closestTimeOnThisRayWithOtherRay(r1), function (t1, t2) {
+            if (t1 < 0.0 || t1 > 1.0) {
+                return Option_1.Option.none();
+            }
+            if (t2 < 0.0 || t2 > 1.0) {
+                return Option_1.Option.none();
+            }
+            var p1 = r1.positionFromTime(t1);
+            var p2 = r2.positionFromTime(t2);
+            if (p1.distanceSquared(p2) <= 0.001 * 0.001) {
+                return Option_1.Option.some(p1.add(p2).scale(0.5));
+            }
+            else {
+                return Option_1.Option.none();
+            }
+        }));
+    };
+    return Line3D;
+}());
+exports.Line3D = Line3D;
+Line3D["__class"] = "Line3D";
+(function (Line3D) {
+    var Builder = /** @class */ (function () {
+        function Builder() {
+            this.v1 = null;
+            this.v2 = null;
+        }
+        Builder.create = function () {
+            return new Line3D.Builder();
+        };
+        Builder.prototype.set = function (other) {
+            this.v1 = other._v1;
+            this.v2 = other._v2;
+            return this;
+        };
+        Builder.prototype.setV1$com_sm_fp_data_math_Vector3D = function (v1) {
+            this.v1 = v1;
+            return this;
+        };
+        Builder.prototype.setV1$double$double$double = function (x, y, z) {
+            this.v1 = Vector3D_1.Vector3D.create(x, y, z);
+            return this;
+        };
+        Builder.prototype.setV1 = function (x, y, z) {
+            if (((typeof x === 'number') || x === null) && ((typeof y === 'number') || y === null) && ((typeof z === 'number') || z === null)) {
+                return this.setV1$double$double$double(x, y, z);
+            }
+            else if (((x != null && x instanceof Vector3D_1.Vector3D) || x === null) && y === undefined && z === undefined) {
+                return this.setV1$com_sm_fp_data_math_Vector3D(x);
+            }
+            else
+                throw new Error('invalid overload');
+        };
+        Builder.prototype.setV2$com_sm_fp_data_math_Vector3D = function (v2) {
+            this.v2 = v2;
+            return this;
+        };
+        Builder.prototype.setV2$double$double$double = function (x, y, z) {
+            this.v2 = Vector3D_1.Vector3D.create(x, y, z);
+            return this;
+        };
+        Builder.prototype.setV2 = function (x, y, z) {
+            if (((typeof x === 'number') || x === null) && ((typeof y === 'number') || y === null) && ((typeof z === 'number') || z === null)) {
+                return this.setV2$double$double$double(x, y, z);
+            }
+            else if (((x != null && x instanceof Vector3D_1.Vector3D) || x === null) && y === undefined && z === undefined) {
+                return this.setV2$com_sm_fp_data_math_Vector3D(x);
+            }
+            else
+                throw new Error('invalid overload');
+        };
+        Builder.prototype.build = function () {
+            return Line3D.create(this.v1, this.v2);
+        };
+        return Builder;
+    }());
+    Line3D.Builder = Builder;
+    Builder["__class"] = "Line3D.Builder";
+})(Line3D = exports.Line3D || (exports.Line3D = {}));
+exports.Line3D = Line3D;
+//# sourceMappingURL=Line3D.js.map
+});
+___scope___.file("app/math/Ray2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector2D_1 = require("./Vector2D");
+var Option_1 = require("../Option");
+/**
+ *
+ * @author Clinton
+ * @class
+ */
+var Ray2D = /** @class */ (function () {
+    function Ray2D(origin, direction) {
+        this._origin = null;
+        this._direction = null;
+        this._origin = origin;
+        this._direction = direction;
+    }
+    Ray2D.fromOriginDirection = function (origin, direction) {
+        return new Ray2D(origin, direction);
+    };
+    Object.defineProperty(Ray2D.prototype, "origin", {
+        get: function () {
+            return this._origin;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Ray2D.prototype, "direction", {
+        get: function () {
+            return this._direction;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Ray2D.prototype.intersectionTime = function (plane) {
+        var t = -(plane.getD() + this._origin.dot(plane.getN())) / (this._direction.dot(plane.getN()));
+        if ( /* isNaN */isNaN(t) || /* isInfinite */ (function (value) { return Number.NEGATIVE_INFINITY === value || Number.POSITIVE_INFINITY === value; })(t)) {
+            return Option_1.Option.none();
+        }
+        return Option_1.Option.some(t);
+    };
+    Ray2D.prototype.closestTimeToPoint = function (point) {
+        var t = point.sub(this.origin).dot(this.direction) / this.direction.dot(this.direction);
+        return t;
+    };
+    Ray2D.prototype.pointFromTime = function (time) {
+        return Vector2D_1.Vector2D.create(this._origin.x + this._direction.x * time, this._origin.y + this._direction.y * time);
+    };
+    Ray2D.prototype.intersectionPoint = function (plane) {
+        var _this = this;
+        return this.intersectionTime(plane).map(function (t) { return _this.pointFromTime(t); });
+    };
+    return Ray2D;
+}());
+exports.Ray2D = Ray2D;
+Ray2D["__class"] = "Ray2D";
+(function (Ray2D) {
+    var Builder = /** @class */ (function () {
+        function Builder() {
+            this.origin = null;
+            this.direction = null;
+        }
+        Builder.originAndDirection = function () {
+            return new Ray2D.Builder();
+        };
+        /**
+         *
+         * @param {Vector2D} origin
+         * @return {*}
+         */
+        Builder.prototype.setOrigin = function (origin) {
+            this.origin = origin;
+            return this;
+        };
+        /**
+         *
+         * @param {Vector2D} direction
+         * @return {*}
+         */
+        Builder.prototype.setDirection = function (direction) {
+            this.direction = direction;
+            return this;
+        };
+        /**
+         *
+         * @return {Ray2D}
+         */
+        Builder.prototype.build = function () {
+            return new Ray2D(this.origin, this.direction);
+        };
+        return Builder;
+    }());
+    Ray2D.Builder = Builder;
+    Builder["__class"] = "Ray2D.Builder";
+    Builder["__interfaces"] = ["Ray2D.SetDirectionStep", "Ray2D.BuildStep", "Ray2D.SetOriginStep"];
+})(Ray2D = exports.Ray2D || (exports.Ray2D = {}));
+exports.Ray2D = Ray2D;
+//# sourceMappingURL=Ray2D.js.map
+});
+___scope___.file("app/modes/FilletLinesMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var FilletLinesModel_1 = require("./FilletLinesModel");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Mode_1 = require("./Mode");
+var Tuples_1 = require("../Tuples");
+var ArcComponent_1 = require("../ecs/components/ArcComponent");
+var Axes2DComponent_1 = require("../ecs/components/Axes2DComponent");
+var Line3DComponent_1 = require("../ecs/components/Line3DComponent");
+var Axes2D_1 = require("../math/Axes2D");
+var Axes3D_1 = require("../math/Axes3D");
+var Complex_1 = require("../math/Complex");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var FilletLinesMode = /** @class */ (function (_super) {
+    __extends(FilletLinesMode, _super);
+    function FilletLinesMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var slReset = new sodium.StreamLoop();
+            var cLines = params.cSceneCtxOp.map(function (sceneCtxOp) {
+                return sceneCtxOp
+                    .map(function (sceneCtx) {
+                    return ArrayUtil_1.arrayBind(sceneCtx
+                        .entitiesWithAllComponents([Line3DComponent_1.Line3DComponent.ecsComponent.type()]), function (lineId) {
+                        return sceneCtx
+                            .getComponent(lineId, Line3DComponent_1.Line3DComponent.ecsComponent)
+                            .map(function (x) { return [Tuples_1.T2.of(lineId, x.line)]; })
+                            .orSome([]);
+                    });
+                })
+                    .orSome([]);
+            });
+            var filletLinesModel = new FilletLinesModel_1.FilletLinesModel(params.cMousePosOp, params.sMousePressed, cLines, params.cScreenPointToWorldRayOp, params.cProjectWorldPointToScreenOp, params.sReplyValueChanged, params.sReplyValueEntered, params.cScale);
+            var sUpdate = filletLinesModel.sPerformFillet().map(function (performFillet) {
+                return function (sceneCtx) {
+                    var line1Axes = Axes2D_1.Axes2D.identity_$LI$();
+                    var line2Axes = Axes2D_1.Axes2D.identity_$LI$();
+                    var line1Axes2;
+                    var line2Axes2;
+                    {
+                        var o = line1Axes.getOrigin();
+                        var u = line1Axes.getOrientation().getU();
+                        line1Axes2 = Axes3D_1.Axes3D.Builder.fromOriginOrientation().setOrigin(Vector3D_1.Vector3D.create(o.x, o.y, 0.0)).setOrientation(Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ_$LI$(), Vector3D_1.Vector3D.create(u.x, u.y, 0.0))).build();
+                    }
+                    ;
+                    {
+                        var o = line2Axes.getOrigin();
+                        var u = line2Axes.getOrientation().getU();
+                        line2Axes2 = Axes3D_1.Axes3D.Builder.fromOriginOrientation().setOrigin(Vector3D_1.Vector3D.create(o.x, o.y, 0.0)).setOrientation(Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ_$LI$(), Vector3D_1.Vector3D.create(u.x, u.y, 0.0))).build();
+                    }
+                    ;
+                    var parentWorldAxes = Axes2D_1.Axes2D.identity_$LI$();
+                    sceneCtx.setComponents(performFillet._1._1._1, [Line3DComponent_1.Line3DComponent.of(performFillet._1._1._2.toSpace(line1Axes2))]);
+                    sceneCtx.setComponents(performFillet._1._2._1, [Line3DComponent_1.Line3DComponent.of(performFillet._1._2._2.toSpace(line2Axes2))]);
+                    var axes_partialCircle_op = performFillet._2;
+                    if (axes_partialCircle_op.isSome) {
+                        var axes_partialCircle = axes_partialCircle_op.fromSome();
+                        var axes = axes_partialCircle._1;
+                        var axes2 = void 0;
+                        var flipAngle = axes.w.getZ() < 0.0;
+                        {
+                            var o = axes.origin;
+                            var u = flipAngle ? axes.u.scale(-1.0) : axes.u;
+                            axes2 = Axes2D_1.Axes2D.Builder.fromOriginOrientation().setOrigin(Vector2D_1.Vector2D.create(o.getX(), o.getY())).setOrientation(Complex_1.Complex.xy(Vector2D_1.Vector2D.create(u.getX(), u.getY()).normalize())).build();
+                        }
+                        ;
+                        var axesLocal = parentWorldAxes.axesToSpace(axes2);
+                        var partialCircle = axes_partialCircle._2;
+                        var partialCircle2 = void 0;
+                        if (flipAngle) {
+                            partialCircle2 = new ArcComponent_1.ArcComponent(partialCircle.radius(), 180.0 - partialCircle.startAngle(), -partialCircle.extent());
+                        }
+                        else {
+                            partialCircle2 = partialCircle;
+                        }
+                        sceneCtx.createEntity([Axes2DComponent_1.Axes2DComponent.create(axesLocal), partialCircle2]);
+                    }
+                };
+            });
+            var sFinished = sUpdate.mapTo(sodium.Unit.UNIT);
+            slReset.loop(sUpdate.mapTo(sodium.Unit.UNIT));
+            _this._sUpdate = sUpdate;
+            _this._sFinished = sFinished;
+            _this._cWorldSpaceOverlay = filletLinesModel.cWorldSpaceOverlay;
+            _this._cScreenSpaceOverlay = filletLinesModel.cScreenSpaceOverlay;
+            _this._cAskValuesAt = filletLinesModel.sAskValuesAt().orElse(filletLinesModel.sHideAskValuesAt().mapTo([])).hold([]);
+        });
+        return _this;
+    }
+    Object.defineProperty(FilletLinesMode.prototype, "sFinished", {
+        get: function () {
+            return this._sFinished;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FilletLinesMode.prototype, "sUpdate", {
+        get: function () {
+            return this._sUpdate;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FilletLinesMode.prototype, "cWorldSpaceOverlay", {
+        get: function () {
+            return this._cWorldSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FilletLinesMode.prototype, "cScreenSpaceOverlay", {
+        get: function () {
+            return this._cScreenSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FilletLinesMode.prototype, "cAskValuesAt", {
+        get: function () {
+            return this._cAskValuesAt;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return FilletLinesMode;
+}(Mode_1.Mode));
+exports.FilletLinesMode = FilletLinesMode;
+//# sourceMappingURL=FilletLinesMode.js.map
+});
+___scope___.file("app/modes/FilletLinesModel.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var AskValueAtParams_1 = require("./AskValueAtParams");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Lazy_1 = require("../Lazy");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Tuples_1 = require("../Tuples");
+var Vectors_1 = require("../Vectors");
+var ArcComponent_1 = require("../ecs/components/ArcComponent");
+var Axes3D_1 = require("../math/Axes3D");
+var Line2D_1 = require("../math/Line2D");
+var Line3D_1 = require("../math/Line3D");
+var Util_1 = require("../math/Util");
+var Plane3D_1 = require("../math/Plane3D");
+var Quaternion_1 = require("../math/Quaternion");
+var Ray2D_1 = require("../math/Ray2D");
+var Ray3D_1 = require("../math/Ray3D");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var FilletLinesModel = /** @class */ (function () {
+    function FilletLinesModel(cMousePosOp, sMousePressed, cLines, cScreenPointToWorldRayOp, cProjectWorldPointToScreenOp, sReplyValueChanged, sReplyValueEntered, cScale) {
+        var _this = this;
+        this.__sAskValuesAt = null;
+        this.__sHideAskValuesAt = null;
+        this.__sPerformFillet = null;
+        sodium.Transaction.run(function () {
+            var slReset = (new sodium.StreamLoop());
+            var cMouseRayOp = cMousePosOp.lift(cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) { return mousePosOp.bind(screenPointToWorldRayOp); });
+            var cProjectedLines = cLines.lift(cProjectWorldPointToScreenOp, function (lines, projectWorldPointToScreenOp) {
+                return ArrayUtil_1.arrayBind(lines, function (line) {
+                    return projectWorldPointToScreenOp(line._2.getV1())
+                        .lift2(projectWorldPointToScreenOp(line._2.getV2()), function (pt1, pt2) { return [Tuples_1.T3.of(line._1, line._2, Line2D_1.Line2D.create(pt1, pt2))]; })
+                        .orSome([]);
+                });
+            });
+            var cProjectedLineUnderMouseOp = cMousePosOp.lift3(cMouseRayOp, cProjectedLines, function (mousePosOp, mouseRayOp, projectedLines) { return Lazy_1.Lazy.create(function () {
+                return Option_1.Option.join(mousePosOp.lift2(mouseRayOp, function (mousePos, mouseRay) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(projectedLines, function (projectedLine) {
+                        var lineRay = Ray2D_1.Ray2D.fromOriginDirection(projectedLine._3.v1, projectedLine._3.v2.sub(projectedLine._3.v1));
+                        var t = lineRay.closestTimeToPoint(mousePos);
+                        var t2 = Math.max(0.0, Math.min(1.0, t));
+                        var pt = lineRay.pointFromTime(t2);
+                        var distanceSquared = mousePos.distanceSquared(pt);
+                        if (distanceSquared > FilletLinesModel.SNAP_SCREEN_DIST * FilletLinesModel.SNAP_SCREEN_DIST) {
+                            return [];
+                        }
+                        var pt2;
+                        {
+                            var lineRay2 = Ray3D_1.Ray3D.create(projectedLine._2.v1, projectedLine._2.v2.sub(projectedLine._2.v1));
+                            var t3Op = lineRay2.closestTimeOnThisRayWithOtherRay(mouseRay);
+                            if (t3Op.isNone) {
+                                return [];
+                            }
+                            var t3 = t3Op.fromSome();
+                            var t4 = Math.max(0.0, Math.min(1.0, t3));
+                            pt2 = lineRay2.positionFromTime(t4);
+                        }
+                        ;
+                        return [Tuples_1.T2.of(Tuples_1.T4.of(projectedLine._1, projectedLine._2, projectedLine._3, pt2), distanceSquared)];
+                    }), function (arg0, arg1) { return arg0._2 < arg1._2 ? arg0 : arg1; })
+                        .map(function (x) { return x._1; });
+                }));
+            }); });
+            var slSelectedFirstLineOp = (new sodium.StreamLoop());
+            var cSelectedFirstLineOp = slSelectedFirstLineOp.hold(Option_1.Option.none());
+            var slSelectedSecondLineOp = (new sodium.StreamLoop());
+            var cSelectedSecondLineOp = slSelectedSecondLineOp.hold(Option_1.Option.none());
+            var cSelectableProjectedLineUnderMouseOp = cSelectedFirstLineOp.lift3(cSelectedSecondLineOp, cProjectedLineUnderMouseOp, function (selectedFirstLineOp, selectedSecondLineOp, projectedLineUnderMouseOp) { return Lazy_1.Lazy.create(function () {
+                if (selectedFirstLineOp.isSome && selectedSecondLineOp.isSome) {
+                    return Option_1.Option.none();
+                }
+                var projectedLineUnderMouseOp2 = projectedLineUnderMouseOp.get();
+                if (projectedLineUnderMouseOp2.isNone) {
+                    return Option_1.Option.none();
+                }
+                var projectedLineUnderMouse = projectedLineUnderMouseOp2.fromSome();
+                if (selectedFirstLineOp.isSome) {
+                    var selectedFirstLine = selectedFirstLineOp.fromSome();
+                    if ( /* equals */(function (o1, o2) { if (o1 && o1.equals) {
+                        return o1.equals(o2);
+                    }
+                    else {
+                        return o1 === o2;
+                    } })(selectedFirstLine._1, projectedLineUnderMouse._1)) {
+                        return Option_1.Option.none();
+                    }
+                }
+                if (selectedSecondLineOp.isSome) {
+                    var selectedSecondLine = selectedSecondLineOp.fromSome();
+                    if ( /* equals */(function (o1, o2) { if (o1 && o1.equals) {
+                        return o1.equals(o2);
+                    }
+                    else {
+                        return o1 === o2;
+                    } })(selectedSecondLine._1, projectedLineUnderMouse._1)) {
+                        return Option_1.Option.none();
+                    }
+                }
+                return Option_1.Option.some(projectedLineUnderMouse);
+            }); });
+            slSelectedFirstLineOp.loop(SodiumUtil
+                .streamFilterOption(sMousePressed
+                .gate(cSelectedFirstLineOp.map(function (x) { return x.isNone; }))
+                .snapshot1(cSelectableProjectedLineUnderMouseOp)
+                .map(function (selectableProjectedLineUnderMouseOp) {
+                return selectableProjectedLineUnderMouseOp.get().map(function (selectableProjectedLineUnderMouse) {
+                    return Tuples_1.T3.of(selectableProjectedLineUnderMouse._1, selectableProjectedLineUnderMouse._2, selectableProjectedLineUnderMouse._4);
+                });
+            }))
+                .map(function (arg0) { return Option_1.Option.some(arg0); })
+                .orElse(slReset.mapTo(Option_1.Option.none())));
+            slSelectedSecondLineOp.loop(SodiumUtil
+                .streamFilterOption(sMousePressed
+                .gate(cSelectedFirstLineOp.map(function (x) { return x.isSome; }))
+                .gate(cSelectedSecondLineOp.map(function (x) { return x.isNone; }))
+                .snapshot1(cSelectableProjectedLineUnderMouseOp)
+                .map(function (selectableProjectedLineUnderMouseOp) {
+                return selectableProjectedLineUnderMouseOp.get()
+                    .map(function (selectableProjectedLineUnderMouse) {
+                    return Tuples_1.T3.of(selectableProjectedLineUnderMouse._1, selectableProjectedLineUnderMouse._2, selectableProjectedLineUnderMouse._4);
+                });
+            }))
+                .map(function (arg0) { return Option_1.Option.some(arg0); })
+                .orElse(slReset.mapTo(Option_1.Option.none())));
+            var cIntersectionPointOp = cSelectedFirstLineOp.lift(cSelectedSecondLineOp, function (selectedFirstLineOp, selectedSecondLineOp) {
+                return Option_1.Option.join(selectedFirstLineOp.lift2(selectedSecondLineOp, function (selectedFirstLine, selectedSecondLine) {
+                    var line1 = selectedFirstLine._2;
+                    var line2 = selectedSecondLine._2;
+                    var ray1 = Ray3D_1.Ray3D.create(line1.getV1(), line1.getV2().sub(line1.getV1()));
+                    var ray2 = Ray3D_1.Ray3D.create(line2.getV1(), line2.getV2().sub(line2.getV1()));
+                    var t1Op = ray1.closestTimeOnThisRayWithOtherRay(ray2);
+                    if (t1Op.isNone) {
+                        return Option_1.Option.none();
+                    }
+                    var t1 = t1Op.fromSome();
+                    var t2Op = ray2.closestTimeOnThisRayWithOtherRay(ray1);
+                    if (t2Op.isNone) {
+                        return Option_1.Option.none();
+                    }
+                    var t2 = t2Op.fromSome();
+                    return Option_1.Option.some(ray1.positionFromTime(t1).add(ray2.positionFromTime(t2)).scale(0.5));
+                }));
+            });
+            var cSelectedLinesAreParallel = cSelectedFirstLineOp.lift(cSelectedSecondLineOp, function (firstLineOp, secondLineOp) {
+                return firstLineOp
+                    .lift2(secondLineOp, function (firstLine, secondLine) {
+                    var epsilon = 0.001;
+                    var u1 = firstLine._2.getV2().sub(firstLine._2.getV1()).normalize();
+                    var u2 = secondLine._2.getV2().sub(secondLine._2.getV1()).normalize();
+                    return Math.abs(1.0 - Math.abs(u1.dot(u2))) <= epsilon;
+                })
+                    .orSome(false);
+            });
+            var cCircleRadiusToCirclePositionOpOp = cSelectedFirstLineOp.lift3(cSelectedSecondLineOp, cSelectedLinesAreParallel, function (selectedFirstLineOp, selectedSecondLineOp, selectedLinesAreParallel) {
+                return selectedLinesAreParallel ?
+                    Option_1.Option.none() :
+                    selectedFirstLineOp.lift2(selectedSecondLineOp, function (selectedFirstLine, selectedSecondLine) {
+                        var u1 = selectedFirstLine._2.getV2().sub(selectedFirstLine._2.getV1()).normalize();
+                        var u2 = selectedSecondLine._2.getV2().sub(selectedSecondLine._2.getV1()).normalize();
+                        var n = u1.cross(u2).normalize();
+                        var o1 = selectedFirstLine._3;
+                        var o2 = selectedSecondLine._3;
+                        var dir1;
+                        {
+                            var _dir1 = n.cross(u1);
+                            dir1 = o2.sub(o1).dot(_dir1) < 0.0 ? _dir1.scale(-1.0) : _dir1;
+                        }
+                        ;
+                        var dir2;
+                        {
+                            var _dir2 = n.cross(u2);
+                            dir2 = o1.sub(o2).dot(_dir2) < 0.0 ? _dir2.scale(-1.0) : _dir2;
+                        }
+                        ;
+                        return function (radius) {
+                            var line1MovedPt1 = selectedFirstLine._2.getV1().add(dir1.scale(radius));
+                            var line2MovedPt1 = selectedSecondLine._2.getV1().add(dir2.scale(radius));
+                            var ray1 = Ray3D_1.Ray3D.create(line1MovedPt1, selectedFirstLine._2.getV2().sub(selectedFirstLine._2.getV1()));
+                            var ray2 = Ray3D_1.Ray3D.create(line2MovedPt1, selectedSecondLine._2.getV2().sub(selectedSecondLine._2.getV1()));
+                            var plane1 = Plane3D_1.Plane3D.fromKnownPtAndNormal(line1MovedPt1, dir1);
+                            var plane2 = Plane3D_1.Plane3D.fromKnownPtAndNormal(line2MovedPt1, dir2);
+                            return ray1.collisionWithPlane(plane2)
+                                .lift2(ray2.collisionWithPlane(plane1), function (pt1, pt2) {
+                                return pt1.add(pt2).scale(0.5);
+                            });
+                        };
+                    });
+            });
+            var cParallelLineCircleRadiusOp = cSelectedFirstLineOp.lift3(cSelectedSecondLineOp, cSelectedLinesAreParallel, function (selectedFirstLineOp, selectedSecondLineOp, selectedLinesAreParallel) {
+                if (!selectedLinesAreParallel) {
+                    return Option_1.Option.none();
+                }
+                return selectedFirstLineOp.lift2(selectedSecondLineOp, function (selectedFirstLine, selectedSecondLine) {
+                    var line1 = selectedFirstLine._2;
+                    var line2 = selectedSecondLine._2;
+                    var ray1 = Ray3D_1.Ray3D.create(line1.getV1(), line1.getV2().sub(line1.getV1()));
+                    var pt = line2.getV1().add(line2.getV2()).scale(0.5);
+                    return 0.5 * ray1.closestPoint(pt).distance(pt);
+                });
+            });
+            var cIntersectingLineCircleRadiusOp = SodiumUtil
+                .streamFilterOption(sReplyValueChanged.map(function (x) { return x._2; }))
+                .map(function (x) { return Option_1.Option.some(x); })
+                .orElse(slReset.mapTo(Option_1.Option.some(0.0)))
+                .hold(Option_1.Option.some(0.0))
+                .lift(cScale, function (radiusOp, scale) { return radiusOp.map(function (radius) { return radius * scale; }); });
+            var cCircleRadiusOp = sodium.Cell.switchC(cSelectedLinesAreParallel
+                .map(sodium.lambda1(function (selectedLinesAreParallel) {
+                return selectedLinesAreParallel ?
+                    cParallelLineCircleRadiusOp :
+                    cIntersectingLineCircleRadiusOp;
+            }, [cParallelLineCircleRadiusOp, cIntersectingLineCircleRadiusOp])));
+            var cParallelLinePartialCircleWithNewPointsOp = cMouseRayOp.lift4(cSelectedFirstLineOp, cSelectedSecondLineOp, cParallelLineCircleRadiusOp, function (mouseRayOp, selectedFirstLineOp, selectedSecondLineOp, parallelLineCircleRadiusOp) {
+                return mouseRayOp.lift4(selectedFirstLineOp, selectedSecondLineOp, parallelLineCircleRadiusOp, function (mouseRay, selectedFirstLine, selectedSecondLine, circleRadius) {
+                    var line1 = selectedFirstLine._2;
+                    var line2 = selectedSecondLine._2;
+                    var ray1 = Ray3D_1.Ray3D.create(line1.getV1(), line1.getV2().sub(line1.getV1()));
+                    var ray2 = Ray3D_1.Ray3D.create(line2.getV1(), line2.getV2().sub(line2.getV1()));
+                    var midPt1 = line1.getV1().add(line1.getV2()).scale(0.5);
+                    var midPt2 = line2.getV1().add(line2.getV2()).scale(0.5);
+                    var midPtDelta = midPt2.sub(midPt1);
+                    var o = midPt1.add(midPt2).scale(0.5);
+                    var u = line1.getV2().sub(line1.getV1()).normalize();
+                    var v = midPtDelta.sub(u.scale(u.dot(midPtDelta))).normalize();
+                    var w = u.cross(v);
+                    var ray = Ray3D_1.Ray3D.create(o, u);
+                    var pt1;
+                    var pt2;
+                    {
+                        var t1 = ray.closestTimeToPoint(line1.getV1());
+                        var t2 = ray.closestTimeToPoint(line1.getV2());
+                        var t3 = ray.closestTimeToPoint(line2.getV1());
+                        var t4 = ray.closestTimeToPoint(line2.getV2());
+                        var tMin = Math.min(Math.min(t1, t2), Math.min(t3, t4));
+                        var tMax = Math.max(Math.max(t1, t2), Math.max(t3, t4));
+                        pt1 = ray.positionFromTime(tMin);
+                        pt2 = ray.positionFromTime(tMax);
+                    }
+                    ;
+                    var circleO;
+                    var startAngle;
+                    if (mouseRay.closestPoint(pt1).distanceSquared(pt1) < mouseRay.closestPoint(pt2).distanceSquared(pt2)) {
+                        circleO = pt1;
+                        startAngle = 90.0;
+                    }
+                    else {
+                        circleO = pt2;
+                        startAngle = 270.0;
+                    }
+                    var newPoint1 = ray1.closestPoint(circleO);
+                    var newPoint2 = ray2.closestPoint(circleO);
+                    var circleAxes = Axes3D_1.Axes3D.Builder.fromOriginOrientation().setOrigin(circleO).setOrientation(Quaternion_1.Quaternion.fromWU(w, u)).build();
+                    return Tuples_1.T4.of(circleAxes, new ArcComponent_1.ArcComponent(circleRadius, startAngle, 180.0), newPoint1, newPoint2);
+                });
+            });
+            var cIntersectingPartialCircleWithNewPointsOp = cSelectedFirstLineOp.lift4(cSelectedSecondLineOp, cCircleRadiusOp, cCircleRadiusToCirclePositionOpOp, function (selectedFirstLineOp, selectedSecondLineOp, circleRadiusOp, circleRadiusToCirclePositionOpOp) {
+                return Option_1.Option.join(selectedFirstLineOp.lift4(selectedSecondLineOp, circleRadiusOp, circleRadiusToCirclePositionOpOp, function (selectedFirstLine, selectedSecondLine, circleRadius, circleRadiusToCirclePositionOp) {
+                    return circleRadiusToCirclePositionOp(circleRadius)
+                        .map(function (circlePosition) {
+                        var u1 = selectedFirstLine._2.getV2().sub(selectedFirstLine._2.getV1()).normalize();
+                        var u2 = selectedSecondLine._2.getV2().sub(selectedSecondLine._2.getV1()).normalize();
+                        var circleW = u1.cross(u2).normalize();
+                        var circleV;
+                        {
+                            var testX = Math.abs(circleW.getX());
+                            var testY = Math.abs(circleW.getY());
+                            var testZ = Math.abs(circleW.getZ());
+                            var useVec = void 0;
+                            if (testX <= testY) {
+                                if (testX <= testZ) {
+                                    useVec = Vector3D_1.Vector3D.unitX_$LI$();
+                                }
+                                else {
+                                    useVec = Vector3D_1.Vector3D.unitZ_$LI$();
+                                }
+                            }
+                            else {
+                                if (testY <= testZ) {
+                                    useVec = Vector3D_1.Vector3D.unitY_$LI$();
+                                }
+                                else {
+                                    useVec = Vector3D_1.Vector3D.unitZ_$LI$();
+                                }
+                            }
+                            circleV = circleW.cross(useVec).normalize();
+                        }
+                        ;
+                        var circleAxes = Axes3D_1.Axes3D.Builder.fromOriginOrientation().setOrigin(circlePosition).setOrientation(Quaternion_1.Quaternion.fromVW(circleV, circleW)).build();
+                        var startAngle;
+                        var extent;
+                        var newPoint1;
+                        var newPoint2;
+                        {
+                            var ray1 = Ray3D_1.Ray3D.create(selectedFirstLine._2.getV1(), selectedFirstLine._2.getV2().sub(selectedFirstLine._2.getV1()));
+                            var ray2 = Ray3D_1.Ray3D.create(selectedSecondLine._2.getV1(), selectedSecondLine._2.getV2().sub(selectedSecondLine._2.getV1()));
+                            newPoint1 = ray1.closestPoint(circlePosition);
+                            newPoint2 = ray2.closestPoint(circlePosition);
+                            var pt12 = circleAxes.pointToThisSpace(newPoint1);
+                            var pt22 = circleAxes.pointToThisSpace(newPoint2);
+                            var angle1 = (function (x) { return x * 180 / Math.PI; })(Math.atan2(pt12.getY(), pt12.getX()));
+                            var angle2 = (function (x) { return x * 180 / Math.PI; })(Math.atan2(pt22.getY(), pt22.getX()));
+                            var angleDiff = angle2 - angle1;
+                            if (angleDiff < 0.0) {
+                                angleDiff += 360.0;
+                            }
+                            if (angleDiff <= 180.0) {
+                                startAngle = angle1;
+                                extent = angleDiff;
+                            }
+                            else {
+                                startAngle = angle2;
+                                extent = 360.0 - angleDiff;
+                            }
+                        }
+                        ;
+                        return Tuples_1.T4.of(circleAxes, new ArcComponent_1.ArcComponent(circleRadius, startAngle, extent), newPoint1, newPoint2);
+                    });
+                }));
+            });
+            var cPartialCircleWithNewPointsOp = sodium.Cell.switchC(cSelectedLinesAreParallel.map(sodium.lambda1(function (selectedLinesAreParallel) {
+                return selectedLinesAreParallel ?
+                    cParallelLinePartialCircleWithNewPointsOp :
+                    cIntersectingPartialCircleWithNewPointsOp;
+            }, [cParallelLinePartialCircleWithNewPointsOp, cIntersectingPartialCircleWithNewPointsOp])));
+            var cPartialCircleOp = cPartialCircleWithNewPointsOp.map(function (partialCircleWithNewPointsOp) {
+                return partialCircleWithNewPointsOp.map(function (partialCircleWithNewPoints) {
+                    return Tuples_1.T2.of(partialCircleWithNewPoints._1, partialCircleWithNewPoints._2);
+                });
+            });
+            var cNewFirstLineNewSecondLineOp = cSelectedFirstLineOp.lift5(cSelectedSecondLineOp, cPartialCircleWithNewPointsOp, cIntersectionPointOp, cSelectedLinesAreParallel, function (selectedFirstLineOp, selectedSecondLineOp, partialCircleWithNewPointsOp, intersectionPointOp, selectedLinesAreParallel) {
+                var intersectionPointToUseOp = selectedLinesAreParallel ?
+                    partialCircleWithNewPointsOp
+                        .map(function (partialCircleWithNewPoints) {
+                        return partialCircleWithNewPoints._3.add(partialCircleWithNewPoints._4).scale(0.5);
+                    }) :
+                    intersectionPointOp;
+                return selectedFirstLineOp.lift4(selectedSecondLineOp, partialCircleWithNewPointsOp, intersectionPointToUseOp, function (selectedFirstLine, selectedSecondLine, partialCircleWithNewPoints, intersectionPoint) {
+                    var newFirstLine;
+                    {
+                        var line1Ray = Ray3D_1.Ray3D.create(selectedFirstLine._2.getV1(), selectedFirstLine._2.getV2().sub(selectedFirstLine._2.getV1()));
+                        if (line1Ray.closestTimeToPoint(selectedFirstLine._3) < line1Ray.closestTimeToPoint(intersectionPoint)) {
+                            newFirstLine = Line3D_1.Line3D.create(selectedFirstLine._2.getV1(), partialCircleWithNewPoints._3);
+                        }
+                        else {
+                            newFirstLine = Line3D_1.Line3D.create(partialCircleWithNewPoints._3, selectedFirstLine._2.getV2());
+                        }
+                    }
+                    ;
+                    var newSecondLine;
+                    {
+                        var line2Ray = Ray3D_1.Ray3D.create(selectedSecondLine._2.getV1(), selectedSecondLine._2.getV2().sub(selectedSecondLine._2.getV1()));
+                        if (line2Ray.closestTimeToPoint(selectedSecondLine._3) < line2Ray.closestTimeToPoint(intersectionPoint)) {
+                            newSecondLine = Line3D_1.Line3D.create(selectedSecondLine._2.getV1(), partialCircleWithNewPoints._4);
+                        }
+                        else {
+                            newSecondLine = Line3D_1.Line3D.create(partialCircleWithNewPoints._4, selectedSecondLine._2.getV2());
+                        }
+                    }
+                    ;
+                    return Vectors_1.V2.of(newFirstLine, newSecondLine);
+                });
+            });
+            var sAskRadius = SodiumUtil.streamFilterOption(sodium.Operational
+                .updates(cCircleRadiusToCirclePositionOpOp)
+                .collect(false, function (circleRadiusToCirclePositionOpOp, wasSome) {
+                var result;
+                var isSome = circleRadiusToCirclePositionOpOp.isSome;
+                if (isSome != wasSome) {
+                    result = Option_1.Option.some(isSome);
+                }
+                else {
+                    result = Option_1.Option.none();
+                }
+                return new sodium.Tuple2(result, isSome);
+            }));
+            var cMessage = cSelectedFirstLineOp.lift3(cSelectedSecondLineOp, cSelectedLinesAreParallel, function (selectedFirstLineOp, selectedSecondLineOp, selectedLinesAreParallel) {
+                if (selectedFirstLineOp.isNone) {
+                    return "Select the first line that will form the fillet.";
+                }
+                else if (selectedSecondLineOp.isNone) {
+                    return "Select the second line that will form the fillet.";
+                }
+                else if (selectedLinesAreParallel) {
+                    return "Select the side to place the fillet on.";
+                }
+                else {
+                    return "Enter the radius of the fillet.";
+                }
+            });
+            var cWorldSpaceOverlay = cPartialCircleOp.lift(cNewFirstLineNewSecondLineOp, function (partialCircleOp, newFirstLineNewSecondLineOp) {
+                return function (canvasCtx) {
+                    if (partialCircleOp.isSome) {
+                        var partialCircle = partialCircleOp.fromSome();
+                        var o = partialCircle._1.origin;
+                        var u = partialCircle._1.u;
+                        var v = partialCircle._1.v;
+                        var flipAngle = partialCircle._1.w.getZ() < 0.0;
+                        var partialCircle2 = void 0;
+                        var u2 = void 0;
+                        if (flipAngle) {
+                            u2 = u.scale(-1.0);
+                            partialCircle2 = new ArcComponent_1.ArcComponent(partialCircle._2.radius(), 180.0 - partialCircle._2.startAngle(), -partialCircle._2.extent());
+                        }
+                        else {
+                            u2 = u;
+                            partialCircle2 = partialCircle._2;
+                        }
+                        canvasCtx.save();
+                        canvasCtx.strokeStyle = "#0000FF";
+                        canvasCtx.translate(o.x, o.y);
+                        canvasCtx.rotate(Math.atan2(u2.y, u2.x));
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(0.0, 0.0, partialCircle2.radius(), Util_1.toRadians(partialCircle2.startAngle()), Util_1.toRadians(partialCircle2.startAngle() + partialCircle2.extent()), partialCircle2.extent() < 0.0);
+                        canvasCtx.stroke();
+                        canvasCtx.restore();
+                    }
+                    if (newFirstLineNewSecondLineOp.isSome) {
+                        canvasCtx.save();
+                        canvasCtx.strokeStyle = "#0000FF";
+                        var newFirstLineNewSecondLine = newFirstLineNewSecondLineOp.fromSome();
+                        var lines = [newFirstLineNewSecondLine._1, newFirstLineNewSecondLine._2];
+                        canvasCtx.beginPath();
+                        for (var i = 0; i < lines.length; ++i) {
+                            canvasCtx.moveTo(lines[i].v1.x, lines[i].v1.y);
+                            canvasCtx.lineTo(lines[i].v2.x, lines[i].v2.y);
+                        }
+                        canvasCtx.stroke();
+                        canvasCtx.restore();
+                    }
+                };
+            });
+            var cScreenSpaceOverlay = cMessage.lift5(cSelectableProjectedLineUnderMouseOp, cSelectedFirstLineOp, cSelectedSecondLineOp, cProjectWorldPointToScreenOp, function (message, selectableProjectedLineUnderMouseOp, selectedFirstLineOp, selectedSecondLineOp, projectWorldPointToScreenOp) {
+                return function (canvasCtx) {
+                    var projectedSelectedLines = ArrayUtil_1.arrayBind([
+                        selectedFirstLineOp,
+                        selectedSecondLineOp
+                    ], function (selectedLineOp) {
+                        return selectedLineOp
+                            .bind(function (selectedLine) {
+                            return projectWorldPointToScreenOp(selectedLine._2.v1).lift2(projectWorldPointToScreenOp(selectedLine._2.v2), function (pt1, pt2) {
+                                return Line2D_1.Line2D.create(pt1, pt2);
+                            });
+                        })
+                            .map(function (x) { return [x]; })
+                            .orSome([]);
+                    });
+                    canvasCtx.save();
+                    canvasCtx.fillStyle = "#0000FF";
+                    canvasCtx.beginPath();
+                    canvasCtx.fillText(message, 20, 20);
+                    canvasCtx.restore();
+                    if (selectableProjectedLineUnderMouseOp.get().isSome) {
+                        var selectableProjectedLineUnderMouse = selectableProjectedLineUnderMouseOp.get().fromSome();
+                        var line = selectableProjectedLineUnderMouse._3;
+                        canvasCtx.save();
+                        canvasCtx.strokeStyle = "#0000FF";
+                        canvasCtx.beginPath();
+                        canvasCtx.moveTo(line.v1.x, line.v1.y);
+                        canvasCtx.lineTo(line.v2.x, line.v2.y);
+                        canvasCtx.stroke();
+                        canvasCtx.restore();
+                    }
+                    if (projectedSelectedLines.length != 0) {
+                        canvasCtx.save();
+                        canvasCtx.strokeStyle = "#0000FF";
+                        canvasCtx.beginPath();
+                        for (var i = 0; i < projectedSelectedLines.length; ++i) {
+                            var line = projectedSelectedLines[i];
+                            canvasCtx.moveTo(line.v1.x, line.v1.y);
+                            canvasCtx.lineTo(line.v2.x, line.v2.y);
+                        }
+                        canvasCtx.stroke();
+                        canvasCtx.restore();
+                    }
+                };
+            });
+            _this.__sAskValuesAt =
+                sAskRadius
+                    .filter(function (arg0) { return true == arg0; })
+                    .map(function (unused) { /* singletonList */ return [
+                    new AskValueAtParams_1.AskValueAtParams({
+                        id: 1,
+                        cLabelOp: new sodium.Cell(Option_1.Option.some("Radius:")),
+                        cPosition: cMousePosOp.lift4(cSelectedFirstLineOp, cSelectedSecondLineOp, cProjectWorldPointToScreenOp, function (mousePosOp, selectedFirstLineOp, selectedSecondLineOp, projectWorldPointToScreenOp) {
+                            return Option_1.Option
+                                .join(selectedFirstLineOp.lift2(selectedSecondLineOp, function (selectedFirstLine, selectedSecondLine) {
+                                var pt = selectedFirstLine._2.getV1().add(selectedFirstLine._2.getV2()).scale(0.5).add(selectedSecondLine._2.getV1().add(selectedSecondLine._2.getV2()).scale(0.5)).scale(0.5);
+                                return projectWorldPointToScreenOp(pt);
+                            }))
+                                .orElse(mousePosOp.map(function (mousePos) { return mousePos.add(Vector2D_1.Vector2D.create(0.0, -20.0)); }))
+                                .orSome(Vector2D_1.Vector2D.zero);
+                        }),
+                        initialValue: 0.0,
+                        sSetValue: new sodium.Stream()
+                    })
+                ]; });
+            _this.__sHideAskValuesAt = sAskRadius.filter(function (arg0) { return false == arg0; }).mapTo(sodium.Unit.UNIT);
+            _this.__sPerformFillet =
+                SodiumUtil
+                    .streamFilterOption(sReplyValueEntered.snapshot5(cSelectedFirstLineOp, cSelectedSecondLineOp, cNewFirstLineNewSecondLineOp, cPartialCircleOp, function (replyValueEntered, selectedFirstLineOp, selectedSecondLineOp, newFirstLineSecondLineOp, partialCircleOp) {
+                    return replyValueEntered._2 === 0.0 ?
+                        selectedFirstLineOp.lift3(selectedSecondLineOp, newFirstLineSecondLineOp, function (selectedFirstLine, selectedSecondLine, newFirstLineSecondLine) {
+                            return Tuples_1.T2.of(Vectors_1.V2.of(Tuples_1.T2.of(selectedFirstLine._1, newFirstLineSecondLine._1), Tuples_1.T2.of(selectedSecondLine._1, newFirstLineSecondLine._2)), Option_1.Option.none());
+                        }) :
+                        selectedFirstLineOp.lift4(selectedSecondLineOp, newFirstLineSecondLineOp, partialCircleOp, function (selectedFirstLine, selectedSecondLine, newFirstLineSecondLine, partialCircle) {
+                            return Tuples_1.T2.of(Vectors_1.V2.of(Tuples_1.T2.of(selectedFirstLine._1, newFirstLineSecondLine._1), Tuples_1.T2.of(selectedSecondLine._1, newFirstLineSecondLine._2)), Option_1.Option.some(partialCircle));
+                        });
+                }))
+                    .orElse(SodiumUtil.streamFilterOption(sMousePressed
+                    .gate(cSelectedLinesAreParallel)
+                    .snapshot1(cSelectedFirstLineOp)
+                    .snapshot4(cSelectedSecondLineOp, cNewFirstLineNewSecondLineOp, cPartialCircleOp, function (selectedFirstLineOp, selectedSecondLineOp, newFirstLineSecondLineOp, partialCircleOp) {
+                    return selectedFirstLineOp
+                        .lift4(selectedSecondLineOp, newFirstLineSecondLineOp, partialCircleOp, function (selectedFirstLine, selectedSecondLine, newFirstLineSecondLine, partialCircle) {
+                        return Tuples_1.T2.of(Vectors_1.V2.of(Tuples_1.T2.of(selectedFirstLine._1, newFirstLineSecondLine._1), Tuples_1.T2.of(selectedSecondLine._1, newFirstLineSecondLine._2)), Option_1.Option.some(partialCircle));
+                    });
+                })));
+            slReset.loop(_this.__sPerformFillet.mapTo(sodium.Unit.UNIT));
+            _this._cWorldSpaceOverlay = cWorldSpaceOverlay;
+            _this._cScreenSpaceOverlay = cScreenSpaceOverlay;
+        });
+    }
+    Object.defineProperty(FilletLinesModel.prototype, "cWorldSpaceOverlay", {
+        get: function () {
+            return this._cWorldSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FilletLinesModel.prototype, "cScreenSpaceOverlay", {
+        get: function () {
+            return this._cScreenSpaceOverlay;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FilletLinesModel.prototype.sAskValuesAt = function () {
+        return this.__sAskValuesAt;
+    };
+    FilletLinesModel.prototype.sHideAskValuesAt = function () {
+        return this.__sHideAskValuesAt;
+    };
+    FilletLinesModel.prototype.sPerformFillet = function () {
+        return this.__sPerformFillet;
+    };
+    FilletLinesModel.SNAP_SCREEN_DIST = 15.0;
+    return FilletLinesModel;
+}());
+exports.FilletLinesModel = FilletLinesModel;
+FilletLinesModel["__class"] = "com.shedmasta.core.cadmodes.FilletLinesModel";
+//# sourceMappingURL=FilletLinesModel.js.map
+});
+___scope___.file("app/Vectors.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var V2 = /** @class */ (function () {
+    function V2(a, b) {
+        this._a = a;
+        this._b = b;
+    }
+    Object.defineProperty(V2.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(V2.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    V2.of = function (a, b) {
+        return new V2(a, b);
+    };
+    return V2;
+}());
+exports.V2 = V2;
+//# sourceMappingURL=Vectors.js.map
+});
+___scope___.file("app/ecs/components/ArcComponent.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var EcsComponent_1 = require("../EcsComponent");
+var EcsComponentType_1 = require("../EcsComponentType");
+var EcsComponentValue_1 = require("../EcsComponentValue");
+var ArcComponent = /** @class */ (function () {
+    function ArcComponent(radius, startAngle, extent) {
+        this._radius = 0;
+        this._startAngle = 0;
+        this._extent = 0;
+        this._radius = radius;
+        this._startAngle = startAngle;
+        this._extent = extent;
+    }
+    ArcComponent.prototype.radius = function () {
+        return this._radius;
+    };
+    ArcComponent.prototype.startAngle = function () {
+        return this._startAngle;
+    };
+    ArcComponent.prototype.extent = function () {
+        return this._extent;
+    };
+    /**
+     *
+     * @return {com.shedmasta.core.ecs2.EcsComponentValue}
+     */
+    ArcComponent.prototype.ecsComponentValue = function () {
+        return EcsComponentValue_1.EcsComponentValue.of(ArcComponent.ecsComponent_$LI$(), this);
+    };
+    ArcComponent.ecsComponent_$LI$ = function () { if (ArcComponent.ecsComponent == null)
+        ArcComponent.ecsComponent = EcsComponent_1.EcsComponent.of(EcsComponentType_1.EcsComponentType.of("ArcComponent")); return ArcComponent.ecsComponent; };
+    ;
+    return ArcComponent;
+}());
+exports.ArcComponent = ArcComponent;
+ArcComponent["__class"] = "ArcComponent";
+ArcComponent["__interfaces"] = ["IsEcsComponentValue"];
+ArcComponent.ecsComponent_$LI$();
+//# sourceMappingURL=ArcComponent.js.map
+});
+___scope___.file("app/math/Line2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Line2D = /** @class */ (function () {
+    function Line2D(v1, v2) {
+        this._v1 = v1;
+        this._v2 = v2;
+    }
+    Object.defineProperty(Line2D.prototype, "v1", {
+        get: function () {
+            return this._v1;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Line2D.prototype, "v2", {
+        get: function () {
+            return this._v2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Line2D.create = function (v1, v2) {
+        return new Line2D(v1, v2);
+    };
+    Line2D.prototype.length = function () {
+        return this.v1.distance(this.v2);
+    };
+    Line2D.prototype.lengthSquared = function () {
+        return this.v1.distanceSquared(this.v2);
+    };
+    return Line2D;
+}());
+exports.Line2D = Line2D;
+//# sourceMappingURL=Line2D.js.map
+});
+___scope___.file("app/math/Util.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function toRadians(degrees) {
+    return degrees * Math.PI / 180.0;
+}
+exports.toRadians = toRadians;
+//# sourceMappingURL=Util.js.map
+});
 ___scope___.file("app/modes/IdleMode.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -3124,9 +4852,9 @@ MutableEcsScene["__class"] = "MutableEcsScene";
             return this.createEntity([NameComponent_1.NameComponent.create(name)]);
         };
         MutableEcsSceneEcsSceneContext.prototype.setComponents = function (entityId, components) {
-            return this.withEntity(entityId, function (entityContext) { return function () {
-                (function (o) { return o.setComponents.apply(o, components); })(entityContext);
-            }; }).isSome;
+            return this.withEntity(entityId, function (entityContext) {
+                return entityContext.setComponents(components);
+            }).isSome;
         };
         MutableEcsSceneEcsSceneContext.prototype.findAllDecendantsOf = function (parentId) {
             var result = [];
@@ -3453,12 +5181,9 @@ MutableEcsScene["__class"] = "MutableEcsScene";
          * @return {fj.data.Option}
          */
         MutableEcsSceneEcsSceneContext.prototype.withEntity = function (entityId, k) {
-            var entity = (function (m, k) { if (m.entries == null)
-                m.entries = []; for (var i = 0; i < m.entries.length; i++)
-                if (m.entries[i].key.equals != null && m.entries[i].key.equals(k) || m.entries[i].key === k) {
-                    return m.entries[i].value;
-                } return null; })(this.scene.entities, entityId);
-            if (entity == null) {
+            //let entity : any = /* get */((m,k) => { if(m.entries==null) m.entries=[]; for(let i=0;i<m.entries.length;i++) if(m.entries[i].key.equals!=null && m.entries[i].key.equals(k) || m.entries[i].key===k) { return m.entries[i].value; } return null; })(<any>this.scene.entities, entityId);
+            var entity = this.scene.entities.get(entityId);
+            if (!entity) {
                 return Option_1.Option.none();
             }
             else {
@@ -3621,7 +5346,7 @@ MutableEcsScene["__class"] = "MutableEcsScene";
          * @return {fj.data.Option}
          */
         MutableEcsSceneContextEcsEntityContext.prototype.getComponent = function (ecsComponent) {
-            var result = this.entity[ecsComponent.type().typeName()];
+            var result = this.entity.getValue(ecsComponent.type().typeName());
             if (!result) {
                 return Option_1.Option.none();
             }
@@ -3636,7 +5361,7 @@ MutableEcsScene["__class"] = "MutableEcsScene";
                 var component = components[index172];
                 {
                     var component2 = component.ecsComponentValue();
-                    /* put */ (this.entity[component2.ecsComponent().type().typeName()] = component2);
+                    this.entity.setValue(component2.ecsComponent().type().typeName(), component2.value());
                 }
             }
         };
@@ -3647,9 +5372,7 @@ MutableEcsScene["__class"] = "MutableEcsScene";
         MutableEcsSceneContextEcsEntityContext.prototype.unsetComponents = function (componentTypes) {
             for (var index173 = 0; index173 < componentTypes.length; index173++) {
                 var componentType = componentTypes[index173];
-                {
-                    /* remove */ delete this.entity[componentType.typeName()];
-                }
+                this.entity.remove(componentType.typeName());
             }
         };
         return MutableEcsSceneContextEcsEntityContext;
@@ -3694,6 +5417,7 @@ var ChildComponent = /** @class */ (function () {
 exports.ChildComponent = ChildComponent;
 ChildComponent["__class"] = "com.shedmasta.core.ecs2.components.ChildComponent";
 ChildComponent["__interfaces"] = ["com.shedmasta.core.ecs2.IsEcsComponentValue"];
+ChildComponent.ecsComponent_$LI$();
 //# sourceMappingURL=ChildComponent.js.map
 });
 ___scope___.file("app/ecs/components/NameComponent.js", function(exports, require, module, __filename, __dirname){
@@ -3772,7 +5496,11 @@ ___scope___.file("app/model/RenderScene.js", function(exports, require, module, 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var EcsUtil = require("../ecs/EcsUtil");
+var ArcComponent_1 = require("../ecs/components/ArcComponent");
+var CircleComponent_1 = require("../ecs/components/CircleComponent");
 var Line3DComponent_1 = require("../ecs/components/Line3DComponent");
+var Util_1 = require("../math/Util");
 function renderScene(canvasCtx, sceneCtxOp) {
     canvasCtx.strokeStyle = "#000000";
     if (sceneCtxOp.isNone) {
@@ -3792,9 +5520,207 @@ function renderScene(canvasCtx, sceneCtxOp) {
         });
         canvasCtx.stroke();
     }
+    var circleIds = sceneCtx.entitiesWithAllComponents([CircleComponent_1.CircleComponent.ecsComponent.type()]);
+    if (circleIds.length != 0) {
+        circleIds.forEach(function (circleId) {
+            var circleOp = sceneCtx.getComponent(circleId, CircleComponent_1.CircleComponent.ecsComponent);
+            if (circleOp.isSome) {
+                var circle = circleOp.fromSome();
+                var axes = EcsUtil.entityAxes2D(sceneCtx, circleId);
+                canvasCtx.beginPath();
+                canvasCtx.arc(axes.origin.x, axes.origin.y, circle.radius(), 0.0, 2.0 * Math.PI);
+                canvasCtx.stroke();
+            }
+        });
+    }
+    var arcIds = sceneCtx.entitiesWithAllComponents([ArcComponent_1.ArcComponent.ecsComponent.type()]);
+    if (arcIds.length != 0) {
+        arcIds.forEach(function (arcId) {
+            var arcOp = sceneCtx.getComponent(arcId, ArcComponent_1.ArcComponent.ecsComponent);
+            if (arcOp.isSome) {
+                var arc = arcOp.fromSome();
+                var axes = EcsUtil.entityAxes2D(sceneCtx, arcId);
+                var o = axes.origin;
+                var u = axes.orientation.getU();
+                canvasCtx.save();
+                canvasCtx.translate(o.x, o.y);
+                canvasCtx.rotate(Math.atan2(u.y, u.x));
+                canvasCtx.beginPath();
+                canvasCtx.arc(0, 0, arc.radius(), Util_1.toRadians(arc.startAngle()), Util_1.toRadians(arc.startAngle() + arc.extent()), arc.extent() < 0.0);
+                canvasCtx.stroke();
+                canvasCtx.restore();
+            }
+        });
+    }
 }
 exports.renderScene = renderScene;
 //# sourceMappingURL=RenderScene.js.map
+});
+___scope___.file("app/ecs/EcsUtil.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Axes2DComponent_1 = require("./components/Axes2DComponent");
+var ChildComponent_1 = require("./components/ChildComponent");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Axes2D_1 = require("../math/Axes2D");
+function entityAxes2D(sceneCtx, entityId) {
+    var atEntityId = entityId;
+    var visitedIds = [atEntityId];
+    var currentAxes = entityLocalAxes2D(sceneCtx, entityId);
+    while (true) {
+        var parentIdOp = sceneCtx.getComponent(entityId, ChildComponent_1.ChildComponent.ecsComponent).map(function (x) { return x.parentId(); });
+        if (parentIdOp.isNone) {
+            break;
+        }
+        var parentId = parentIdOp.fromSome();
+        if (ArrayUtil_1.arrayIncludes(visitedIds, parentId)) {
+            break;
+        }
+        visitedIds.push(parentId);
+        var parentAxes = entityLocalAxes2D(sceneCtx, parentId);
+        currentAxes = parentAxes.axesFromSpace(currentAxes);
+        atEntityId = parentId;
+    }
+    return currentAxes;
+}
+exports.entityAxes2D = entityAxes2D;
+function entityLocalAxes2D(sceneCtx, entityId) {
+    return sceneCtx.getComponent(entityId, Axes2DComponent_1.Axes2DComponent.ecsComponent).map(function (x) { return x.axes2D(); }).orSome(Axes2D_1.Axes2D.identity);
+}
+exports.entityLocalAxes2D = entityLocalAxes2D;
+//# sourceMappingURL=EcsUtil.js.map
+});
+___scope___.file("app/ui/FloatingAskValuesAtHelper.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Option_1 = require("../Option");
+var Tuples_1 = require("../Tuples");
+var ArrayUtil_1 = require("../ArrayUtil");
+var FloatingAskValuesAtHelper = /** @class */ (function () {
+    function FloatingAskValuesAtHelper(parentDiv, cAskValuesAt) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cleanups = [];
+            var handles = [];
+            var ssHandlesChanged = new sodium.StreamSink();
+            cleanups.push(cAskValuesAt.listen(function (askValuesAt) {
+                handles.forEach(function (handle) {
+                    parentDiv.removeChild(handle.div);
+                    handle.disconnect();
+                });
+                handles = [];
+                var _loop_1 = function (i) {
+                    var handleCleanups = [];
+                    var askValueAt = askValuesAt[i];
+                    var div = document.createElement("div");
+                    var lblValue = document.createTextNode("");
+                    var txtValue = document.createElement("input");
+                    txtValue.type = "text";
+                    txtValue.value = '' + askValueAt.initialValue;
+                    txtValue.focus();
+                    txtValue.select();
+                    var ssValueChanged = new sodium.StreamSink();
+                    var ssValueEntered = new sodium.StreamSink();
+                    var checkSendValueEntered = function () {
+                        var value = parseFloat(txtValue.value);
+                        if (!isNaN(value)) {
+                            ssValueEntered.send(value);
+                        }
+                    };
+                    txtValue.addEventListener("input", function () {
+                        var value = parseFloat(txtValue.value);
+                        ssValueChanged.send(isNaN(value) ? Option_1.Option.none() : Option_1.Option.some(value));
+                    });
+                    txtValue.addEventListener("keydown", function (evt) {
+                        var enterKeyCode = 13;
+                        var ev = evt || window.event;
+                        if (ev.keyCode == enterKeyCode) {
+                            ev.preventDefault();
+                            checkSendValueEntered();
+                        }
+                    });
+                    div.appendChild(lblValue);
+                    div.appendChild(txtValue);
+                    div.style.position = "absolute";
+                    parentDiv.appendChild(div);
+                    handleCleanups.push(askValueAt.cLabelOp.listen(function (labelOp) {
+                        if (labelOp.isNone) {
+                            lblValue.nodeValue = "";
+                            return;
+                        }
+                        var label = labelOp.fromSome();
+                        lblValue.nodeValue = label;
+                    }));
+                    handleCleanups.push(askValueAt.cPosition.listen(function (position) {
+                        div.style.left = '' + position.x + "px";
+                        div.style.top = '' + (position.y - div.clientHeight - 10.0) + "px";
+                    }));
+                    handleCleanups.push(askValueAt.sSetValue.listen(function (value) {
+                        txtValue.value = '' + value;
+                        txtValue.focus();
+                        txtValue.select();
+                    }));
+                    handles.push(new AskValueAtHandle(askValueAt.id, div, ssValueChanged, ssValueEntered, handleCleanups));
+                };
+                for (var i = 0; i < askValuesAt.length; ++i) {
+                    _loop_1(i);
+                }
+                window.setTimeout(function () { return ssHandlesChanged.send(sodium.Unit.UNIT); });
+            }));
+            var cHandles = ssHandlesChanged.map(function (unused) { return handles; }).hold([]);
+            var sReplyValueChanged = sodium.Cell.switchS(cHandles.map(function (handles) {
+                return ArrayUtil_1.arrayReduce(handles.map(function (handle) { return handle.sValueChanged.map(function (x) { return Tuples_1.T2.of(handle.id, x); }); }), function (a, b) { return a.orElse(b); }).orSome_(function () { return new sodium.Stream(); });
+            }));
+            var sReplyValueEntered = sodium.Cell.switchS(cHandles.map(function (handles) {
+                return ArrayUtil_1.arrayReduce(handles.map(function (handle) { return handle.sValueEntered.map(function (x) { return Tuples_1.T2.of(handle.id, x); }); }), function (a, b) { return a.orElse(b); }).orSome_(function () { return new sodium.Stream(); });
+            }));
+            _this._sReplyValueChanged = sReplyValueChanged;
+            _this._sReplyValueEntered = sReplyValueEntered;
+            _this._disconnect = function () {
+                handles.forEach(function (handle) { return handle.disconnect(); });
+                cleanups.forEach(function (cleanup) { return cleanup(); });
+                handles = [];
+                cleanups = [];
+            };
+        });
+    }
+    Object.defineProperty(FloatingAskValuesAtHelper.prototype, "sReplyValueChanged", {
+        get: function () {
+            return this._sReplyValueChanged;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FloatingAskValuesAtHelper.prototype, "sReplyValueEntered", {
+        get: function () {
+            return this._sReplyValueEntered;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FloatingAskValuesAtHelper.prototype.disconnect = function () {
+        this._disconnect();
+    };
+    return FloatingAskValuesAtHelper;
+}());
+exports.FloatingAskValuesAtHelper = FloatingAskValuesAtHelper;
+var AskValueAtHandle = /** @class */ (function () {
+    function AskValueAtHandle(id, div, sValueChanged, sValueEntered, handleCleanups) {
+        this.id = id;
+        this.div = div;
+        this.sValueChanged = sValueChanged;
+        this.sValueEntered = sValueEntered;
+        this.handleCleanups = handleCleanups;
+    }
+    AskValueAtHandle.prototype.disconnect = function () {
+        this.handleCleanups.forEach(function (cleanup) { return cleanup(); });
+    };
+    return AskValueAtHandle;
+}());
+//# sourceMappingURL=FloatingAskValuesAtHelper.js.map
 });
 ___scope___.file("app/ui/FloatingLengthAngleHelper.js", function(exports, require, module, __filename, __dirname){
 
