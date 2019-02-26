@@ -188,6 +188,64 @@
                     txtPitch.addEventListener("input", function(ev) {
                         $("#pitchSlider").slider("value", txtPitch.value);
                     });
+                    //
+                    (function() {
+                        var btnAddSkylight = document.getElementById("btnAddSkylight");
+                        btnAddSkylight.addEventListener("click", function() {
+                            app.insertSkylight();
+                        });
+                    })();
+                    (function() {
+                        var btnAddWhirlybird = document.getElementById("btnAddWhirlybird");
+                        btnAddWhirlybird.addEventListener("click", function() {
+                            app.insertWhirlybird();
+                        });
+                    })();
+                    (function() {
+                        var chkAnimate = document.getElementById("chkAnimate");
+                        chkAnimate.addEventListener("input", function() {
+                            app.setAnimate(chkAnimate.checked);
+                        });
+                    })();
+                    (function() {
+                        var btnToggleLeanTo = document.getElementById("btnToggleLeanTo");
+                        btnToggleLeanTo.addEventListener("click", function() {
+                            app.toggleLeanTo();
+                        });
+                        var txtLeanToSpan = document.getElementById("txtLeanToSpan");
+                        var txtLeanToHeight = document.getElementById("txtLeanToHeight");
+                        var txtLeanToPitch = document.getElementById("txtLeanToPitch");
+                        var leanToPropertiesDiv = document.getElementById("toggleLeanToProperties");
+                        var leanToFormProperties = app.leanToFormProperties;
+                        txtLeanToSpan.value = '' + leanToFormProperties.span;
+                        txtLeanToHeight.value = '' + leanToFormProperties.height;
+                        txtLeanToPitch.value = '' + leanToFormProperties.pitch;
+                        txtLeanToSpan.addEventListener("input", function() {
+                            let value = parseFloat(txtLeanToSpan.value);
+                            if (!isNaN(value)) {
+                                app.leanToFormPropertiesSetSpan(value);
+                            }
+                        });
+                        txtLeanToHeight.addEventListener("input", function() {
+                            let value = parseFloat(txtLeanToHeight.value);
+                            if (!isNaN(value)) {
+                                app.leanToFormPropertiesSetHeight(value);
+                            }
+                        });
+                        txtLeanToPitch.addEventListener("input", function() {
+                            let value = parseFloat(txtLeanToPitch.value);
+                            if (!isNaN(value)) {
+                                app.leanToFormPropertiesSetPitch(value);
+                            }
+                        });
+                        app.cLeanToFormPropertiesVisible.listen(function(visible) {
+                            if (visible) {
+                                leanToPropertiesDiv.style.display = "block";
+                            } else {
+                                leanToPropertiesDiv.style.display = "none";
+                            }
+                        });
+                    })();
                 });
             }
         </script>
@@ -202,7 +260,7 @@
                 <button class="w3-bar-item w3-button" onclick="openProperties('windowsDoorsSkylightsProperties')">Windows, Doors & Skylights</button>
                 -->
                 <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')">Colours & Claddings</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Options</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('optionsProperties')">Options</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Save & Share</button>
             </div>
@@ -232,10 +290,18 @@
                         <button id="btnToggleBays" onclick="toggleBaysButtonClickCallback()">Toggle Bays</button>
                         <button id="btnToggleWalls" onclick="toggleWallsButtonClickCallback('toggleWalls')">Toggle Walls</button>
                         <button id="btnAddSkylight">Skylight</button>
+                        <button id="btnAddWhirlybird">Whirlybird</button>
+                        <button id="btnToggleLeanTo">Toggle Lean-To</button>
                     </div>
                     <div id="addOpeningProperties" style="display:none">
                         Opening Height: <input id="txtOpeningHeight"><br/>
                         Opening Width: <input id="txtOpeningWidth"><br/>
+                    </div>
+                    <div id="toggleLeanToProperties" style="display:block">
+                        Lean-To Properties: <br/>
+                        Span: <input id="txtLeanToSpan" type="text"><br/>
+                        Height: <input id="txtLeanToHeight" type="text"><br/>
+                        Pitch: <input id="txtLeanToPitch" type="text"><br/>
                     </div>
                 </div>
                 <div id="windowsDoorsSkylightsProperties" class="properties" style="display:none">
@@ -249,6 +315,9 @@
                     Gutter Colour: <select id="cboGutterColour" class="colours"></select><br/>
                     Barge Colour: <select id="cboBargeColour" class="colours"></select><br/>
                     Ridge Colour: <select id="cboRidgeColour" class="colours"></select><br/>
+                </div>
+                <div id="optionsProperties" class="properties" style="display:none">
+                    <input id="chkAnimate" type="checkbox"> Animate<br/>
                 </div>
                 <div id="todoProperties" class="properties" style="display:none">
                     TODO

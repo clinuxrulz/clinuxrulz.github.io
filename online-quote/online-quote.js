@@ -10,6 +10,7 @@ var sodium = require("sodiumjs");
 var Colour_1 = require("./model/Colour");
 var StandardColours_1 = require("./model/StandardColours");
 var ChangeBlocker_1 = require("./ChangeBlocker");
+var LeanToFormProperties_1 = require("./LeanToFormProperties");
 var MouseButton_1 = require("./MouseButton");
 var OpeningFormProperties_1 = require("./OpeningFormProperties");
 var OpeningType_1 = require("./model/OpeningType");
@@ -24,6 +25,13 @@ var TextureLoader_1 = require("./TextureLoader");
 var App = /** @class */ (function () {
     function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked, sToggleBaysButtonClicked, sToggleWallsButtonClicked) {
         var _this = this;
+        this._csAnimate = new sodium.CellSink(false);
+        this._ssInsertSkylight = new sodium.StreamSink();
+        this._ssInsertWhirlybird = new sodium.StreamSink();
+        this._ssToggleLeanTo = new sodium.StreamSink();
+        this._ssLeanToFormPropertiesSetSpan = new sodium.StreamSink();
+        this._ssLeanToFormPropertiesSetHeight = new sodium.StreamSink();
+        this._ssLeanToFormPropertiesSetPitch = new sodium.StreamSink();
         this._ssSetSpan = new sodium.StreamSink();
         this._ssSetLength = new sodium.StreamSink();
         this._ssSetHeight = new sodium.StreamSink();
@@ -36,13 +44,73 @@ var App = /** @class */ (function () {
         this._ssSetBargeColour = new sodium.StreamSink();
         this._ssSetRidgeColour = new sodium.StreamSink();
         sodium.Transaction.run(function () {
+            var ssTick = new sodium.StreamSink();
+            var animate = false;
+            var animateStep;
+            {
+                var lastTimestamp_1 = null;
+                animateStep = function (timestamp) {
+                    if (!animate) {
+                        return;
+                    }
+                    if (!lastTimestamp_1) {
+                        lastTimestamp_1 = timestamp;
+                    }
+                    var ms = timestamp - lastTimestamp_1;
+                    lastTimestamp_1 = timestamp;
+                    ssTick.send(ms);
+                    var forceRefreshShed = window['forceRefreshShed'];
+                    if (forceRefreshShed) {
+                        forceRefreshShed();
+                    }
+                    window.requestAnimationFrame(animateStep);
+                };
+                if (animate) {
+                    window.requestAnimationFrame(animateStep);
+                }
+            }
+            _this._csAnimate.listen(function (animate2) {
+                animate = animate2;
+                if (animate) {
+                    window.requestAnimationFrame(animateStep);
+                }
+            });
             _this._cAddOpeningPropertiesVisible =
                 sAddOpeningButtonClicked
                     .mapTo(true)
+                    .orElse(_this._ssToggleLeanTo.mapTo(false))
                     .orElse(sPropertiesNameButtonClicked.mapTo(false))
                     .orElse(sToggleBaysButtonClicked.mapTo(false))
                     .orElse(sToggleWallsButtonClicked.mapTo(false))
                     .hold(false);
+            _this._cLeanToFormPropertiesVisible =
+                _this._ssToggleLeanTo
+                    .mapTo(true)
+                    .orElse(sAddOpeningButtonClicked.mapTo(false))
+                    .orElse(sPropertiesNameButtonClicked.mapTo(false))
+                    .orElse(sToggleBaysButtonClicked.mapTo(false))
+                    .orElse(sToggleWallsButtonClicked.mapTo(false))
+                    .hold(false);
+            var slLeanToFormProperties = new sodium.StreamLoop();
+            _this._cLeanToFormProperties =
+                slLeanToFormProperties
+                    .hold(LeanToFormProperties_1.LeanToFormProperties.create({
+                    span: 3000.0,
+                    height: 1500.0,
+                    pitch: 10.0
+                }));
+            slLeanToFormProperties.loop(_this._ssLeanToFormPropertiesSetSpan
+                .snapshot(_this._cLeanToFormProperties, function (span, leanToFormProperties) {
+                return leanToFormProperties.from({ span: span });
+            })
+                .orElse(_this._ssLeanToFormPropertiesSetHeight
+                .snapshot(_this._cLeanToFormProperties, function (height, leanToFormProperties) {
+                return leanToFormProperties.from({ height: height });
+            }))
+                .orElse(_this._ssLeanToFormPropertiesSetPitch
+                .snapshot(_this._cLeanToFormProperties, function (pitch, leanToFormProperties) {
+                return leanToFormProperties.from({ pitch: pitch });
+            })));
             var scene = new THREE.Scene();
             var canvas = document.getElementById("canvas");
             var camera = new THREE.PerspectiveCamera(75, 800.0 / 600.0, 500.0, 100000.0);
@@ -370,9 +438,12 @@ var App = /** @class */ (function () {
             }))
                 .orElse(sAddOpeningButtonClicked.map(function (openingType) { return Operation_1.Operation.insertOpening(openingType); }))
                 .orElse(sToggleBaysButtonClicked.mapTo(Operation_1.Operation.toggleBays()))
-                .orElse(sToggleWallsButtonClicked.mapTo(Operation_1.Operation.toggleWalls()));
+                .orElse(sToggleWallsButtonClicked.mapTo(Operation_1.Operation.toggleWalls()))
+                .orElse(_this._ssInsertSkylight.mapTo(Operation_1.Operation.insertSkylight()))
+                .orElse(_this._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()));
             // model
             var appModel = new AppModel_1.AppModel({
+                sTick: ssTick,
                 cMousePosOp: csMousePosOp,
                 sMousePressed: ssMousePressed,
                 cScreenPointToWorldRayOp: cScreenPosToWorldRayOp,
@@ -414,9 +485,20 @@ var App = /** @class */ (function () {
             _this._appModel = appModel;
         });
     }
+    App.prototype.setAnimate = function (animate) {
+        var _this = this;
+        window.setTimeout(function () { return _this._csAnimate.send(animate); });
+    };
     Object.defineProperty(App.prototype, "cAddOpeningPropertiesVisible", {
         get: function () {
             return this._cAddOpeningPropertiesVisible;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(App.prototype, "cLeanToFormPropertiesVisible", {
+        get: function () {
+            return this._cLeanToFormPropertiesVisible;
         },
         enumerable: true,
         configurable: true
@@ -465,6 +547,18 @@ var App = /** @class */ (function () {
         var _this = this;
         window.setTimeout(function () { return _this._ssSetRidgeColour.send(ridgeColour); });
     };
+    App.prototype.insertSkylight = function () {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssInsertSkylight.send(sodium.Unit.UNIT); });
+    };
+    App.prototype.insertWhirlybird = function () {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssInsertWhirlybird.send(sodium.Unit.UNIT); });
+    };
+    App.prototype.toggleLeanTo = function () {
+        var _this = this;
+        window.setTimeout(function () { return _this._ssToggleLeanTo.send(sodium.Unit.UNIT); });
+    };
     Object.defineProperty(App.prototype, "buildingData", {
         get: function () {
             return this._appModel.cBuildingData.sample();
@@ -479,6 +573,31 @@ var App = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(App.prototype, "leanToFormProperties", {
+        get: function () {
+            return this._cLeanToFormProperties.sample();
+        },
+        enumerable: true,
+        configurable: true
+    });
+    App.prototype.leanToFormPropertiesSetSpan = function (span) {
+        var _this = this;
+        window.setTimeout(function () {
+            _this._ssLeanToFormPropertiesSetSpan.send(span);
+        });
+    };
+    App.prototype.leanToFormPropertiesSetHeight = function (height) {
+        var _this = this;
+        window.setTimeout(function () {
+            _this._ssLeanToFormPropertiesSetHeight.send(height);
+        });
+    };
+    App.prototype.leanToFormPropertiesSetPitch = function (pitch) {
+        var _this = this;
+        window.setTimeout(function () {
+            _this._ssLeanToFormPropertiesSetPitch.send(pitch);
+        });
+    };
     App.debug = false;
     return App;
 }());
@@ -1622,6 +1741,186 @@ var T2 = /** @class */ (function () {
     return T2;
 }());
 exports.T2 = T2;
+var T3 = /** @class */ (function () {
+    function T3(a, b, c) {
+        this._a = a;
+        this._b = b;
+        this._c = c;
+    }
+    T3.of = function (a, b, c) {
+        return new T3(a, b, c);
+    };
+    Object.defineProperty(T3.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T3.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T3.prototype, "_3", {
+        get: function () {
+            return this._c;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return T3;
+}());
+exports.T3 = T3;
+var T4 = /** @class */ (function () {
+    function T4(a, b, c, d) {
+        this._a = a;
+        this._b = b;
+        this._c = c;
+        this._d = d;
+    }
+    T4.of = function (a, b, c, d) {
+        return new T4(a, b, c, d);
+    };
+    Object.defineProperty(T4.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T4.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T4.prototype, "_3", {
+        get: function () {
+            return this._c;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T4.prototype, "_4", {
+        get: function () {
+            return this._d;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return T4;
+}());
+exports.T4 = T4;
+var T5 = /** @class */ (function () {
+    function T5(a, b, c, d, e) {
+        this._a = a;
+        this._b = b;
+        this._c = c;
+        this._d = d;
+        this._e = e;
+    }
+    T5.of = function (a, b, c, d, e) {
+        return new T5(a, b, c, d, e);
+    };
+    Object.defineProperty(T5.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T5.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T5.prototype, "_3", {
+        get: function () {
+            return this._c;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T5.prototype, "_4", {
+        get: function () {
+            return this._d;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T5.prototype, "_5", {
+        get: function () {
+            return this._e;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return T5;
+}());
+exports.T5 = T5;
+var T6 = /** @class */ (function () {
+    function T6(a, b, c, d, e, f) {
+        this._a = a;
+        this._b = b;
+        this._c = c;
+        this._d = d;
+        this._e = e;
+        this._f = f;
+    }
+    T6.of = function (a, b, c, d, e, f) {
+        return new T6(a, b, c, d, e, f);
+    };
+    Object.defineProperty(T6.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T6.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T6.prototype, "_3", {
+        get: function () {
+            return this._c;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T6.prototype, "_4", {
+        get: function () {
+            return this._d;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T6.prototype, "_5", {
+        get: function () {
+            return this._e;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(T6.prototype, "_6", {
+        get: function () {
+            return this._f;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return T6;
+}());
+exports.T6 = T6;
 //# sourceMappingURL=Tuples.js.map
 });
 ___scope___.file("app/ChangeBlocker.js", function(exports, require, module, __filename, __dirname){
@@ -1651,6 +1950,46 @@ var ChangeBlocker = /** @class */ (function () {
 }());
 exports.ChangeBlocker = ChangeBlocker;
 //# sourceMappingURL=ChangeBlocker.js.map
+});
+___scope___.file("app/LeanToFormProperties.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var LeanToFormProperties = /** @class */ (function () {
+    function LeanToFormProperties(params) {
+        this._params = params;
+    }
+    Object.defineProperty(LeanToFormProperties.prototype, "span", {
+        get: function () {
+            return this._params.span;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToFormProperties.prototype, "height", {
+        get: function () {
+            return this._params.height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToFormProperties.prototype, "pitch", {
+        get: function () {
+            return this._params.pitch;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    LeanToFormProperties.create = function (params) {
+        return new LeanToFormProperties(params);
+    };
+    LeanToFormProperties.prototype.from = function (params) {
+        return LeanToFormProperties.create(Object.assign({}, this._params, params));
+    };
+    return LeanToFormProperties;
+}());
+exports.LeanToFormProperties = LeanToFormProperties;
+//# sourceMappingURL=LeanToFormProperties.js.map
 });
 ___scope___.file("app/MouseButton.js", function(exports, require, module, __filename, __dirname){
 
@@ -2238,8 +2577,11 @@ var OpeningType_1 = require("./OpeningType");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
 var TextureLoader_1 = require("../TextureLoader");
+var Ranges1D_1 = require("../math/Ranges1D");
 var IdleMode_1 = require("../modes/IdleMode");
 var InsertOpeningMode_1 = require("../modes/InsertOpeningMode");
+var InsertSkylightMode_1 = require("../modes/InsertSkylightMode");
+var InsertWhirlybirdMode_1 = require("../modes/InsertWhirlybirdMode");
 var ToggleBaysMode_1 = require("../modes/ToggleBaysMode");
 var ToggleWallsMode_1 = require("../modes/ToggleWallsMode");
 var OpeningFormProperties_1 = require("../OpeningFormProperties");
@@ -2273,7 +2615,9 @@ var AppModel = /** @class */ (function () {
                 end2WallData: WallData_1.WallData.default_,
                 internalWallDatas: [],
                 side1RoofData: RoofData_1.RoofData.default_,
-                side2RoofData: RoofData_1.RoofData.default_
+                side2RoofData: RoofData_1.RoofData.default_,
+                side1LeanToOp: Option_1.Option.none(),
+                side2LeanToOp: Option_1.Option.none()
             }));
             cBuildingData.listen(function (buildingData) { return console.log(buildingData); });
             var clHighlightedStableNames = new sodium.CellLoop();
@@ -2281,6 +2625,7 @@ var AppModel = /** @class */ (function () {
             var slBuildingEffect = new sodium.StreamLoop();
             var building = new Building_1.Building({
                 cBuildingData: cBuildingData,
+                sTick: params.sTick,
                 cHighlightedStableNames: clHighlightedStableNames,
                 cRoofVisible: clRoofVisible,
                 sBuildingEffect: slBuildingEffect
@@ -2292,6 +2637,7 @@ var AppModel = /** @class */ (function () {
                     .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
             }));
             cBays.listen(function () { });
+            var cRoofs = building.cRoofs;
             var cWallBays = sodium.Cell.switchC(building.cWalls
                 .lift(building.cInternalWalls, function (walls, internalWalls) {
                 return SodiumUtil.cellLiftArray(walls
@@ -2324,6 +2670,18 @@ var AppModel = /** @class */ (function () {
                         sMouseLeftPressed: sMouseLeftPressed,
                         cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
                         cBays: cWallBays
+                    }); },
+                    insertSkylight: function () { return new InsertSkylightMode_1.InsertSkylightMode({
+                        cMousePosOp: params.cMousePosOp,
+                        sMouseLeftPressed: sMouseLeftPressed,
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        cRoofs: cRoofs
+                    }); },
+                    insertWhirlybird: function () { return new InsertWhirlybirdMode_1.InsertWhirlybirdMode({
+                        cMousePosOp: params.cMousePosOp,
+                        sMouseLeftPressed: sMouseLeftPressed,
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        cRoofs: cRoofs
                     }); }
                 });
             }, [
@@ -2331,6 +2689,7 @@ var AppModel = /** @class */ (function () {
                 sMouseLeftPressed,
                 params.cScreenPointToWorldRayOp,
                 cWallBays,
+                cRoofs,
                 params.cOpeningFormPropertiesOp,
                 building.cPhantomInternalWalls
             ]))
@@ -2548,6 +2907,30 @@ function performEffectOnBuilding(buildingData, buildingEffect) {
                 }
             }
             return buildingData;
+        },
+        insertSkylight: function (roofStableName, skylightArea) {
+            var roofLenses = BuildingUtil.roofLensesFromBuildingData(buildingData);
+            for (var i = 0; i < roofLenses.length; ++i) {
+                var roofLens = roofLenses[i];
+                if (roofLens._1 == roofStableName) {
+                    var roof = roofLens._2.get(buildingData);
+                    var roof2 = roof.from({ skylightRanges: Ranges1D_1.Ranges1D.create(roof.skylightRanges.ranges.concat([skylightArea])) });
+                    return roofLens._2.set(roof2, buildingData);
+                }
+            }
+            return buildingData;
+        },
+        insertWhirlybird: function (roofStableName, whirlybirdPos) {
+            var roofLenses = BuildingUtil.roofLensesFromBuildingData(buildingData);
+            for (var i = 0; i < roofLenses.length; ++i) {
+                var roofLens = roofLenses[i];
+                if (roofLens._1 == roofStableName) {
+                    var roof = roofLens._2.get(buildingData);
+                    var roof2 = roof.from({ whirlybirds: roof.whirlybirds.concat([whirlybirdPos]) });
+                    return roofLens._2.set(roof2, buildingData);
+                }
+            }
+            return buildingData;
         }
     });
 }
@@ -2558,6 +2941,10 @@ ___scope___.file("app/ArrayUtil.js", function(exports, require, module, __filena
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Option_1 = require("./Option");
+function arrayBind(x, f) {
+    return arrayJoin(x.map(f));
+}
+exports.arrayBind = arrayBind;
 function arrayJoin(x) {
     return [].concat.apply([], x);
 }
@@ -2619,6 +3006,7 @@ var Util_1 = require("../math/Util");
 var Vector2D_1 = require("../math/Vector2D");
 var Vector3D_1 = require("../math/Vector3D");
 var Quaternion_1 = require("../math/Quaternion");
+var Whirlybirds_1 = require("./Whirlybirds");
 var Building = /** @class */ (function () {
     function Building(params) {
         var _this = this;
@@ -2634,6 +3022,8 @@ var Building = /** @class */ (function () {
             var cEnd1WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.end1WallData; }));
             var cEnd2WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.end2WallData; }));
             var cInteralWallDatas = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.internalWallDatas; }));
+            var cSide1RoofData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side1RoofData; }));
+            var cSide2RoofData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side2RoofData; }));
             var cWallCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingProfile; }));
             var cWallCladdingTextureColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingColour; }));
             var cRoofCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.roofSheetingProfile; }));
@@ -2795,11 +3185,13 @@ var Building = /** @class */ (function () {
             var cWalls = cSide2Wall.lift3(cEnd1Wall, cEnd2Wall, function (side2Wall, end1Wall, end2Wall) {
                 return [side1Wall, side2Wall, end1Wall, end2Wall];
             });
-            var cRoofs = cBuildingType.map(function (buildingType) {
+            var cRoofs = SodiumUtil.cellTrace(cBuildingType.map(sodium.lambda1(function (buildingType) {
                 switch (buildingType) {
                     default:
                     case BuildingType_1.BuildingType.GableRoofGarage:
                         return Building.mkRoofsForGableGarage({
+                            cSide1RoofData: cSide1RoofData,
+                            cSide2RoofData: cSide2RoofData,
                             cFFL: cFFL,
                             cLength: cLength,
                             cSpan: cSpan,
@@ -2814,6 +3206,7 @@ var Building = /** @class */ (function () {
                         });
                     case BuildingType_1.BuildingType.SkillionRoofGarage:
                         return Building.mkRoofsForSkillionGarage({
+                            cSide1RoofData: cSide1RoofData,
                             cFFL: cFFL,
                             cLength: cLength,
                             cSpan: cSpan,
@@ -2826,7 +3219,19 @@ var Building = /** @class */ (function () {
                             cRoofVisible: params.cRoofVisible
                         });
                 }
-            });
+            }, [
+                cFFL,
+                cLength,
+                cSpan,
+                cHeight,
+                cPitch,
+                params.cHighlightedStableNames,
+                cRoofCladdingTextureType,
+                cRoofCladdingTextureColour,
+                cSide1BayMarkers,
+                cSide2BayMarkers,
+                params.cRoofVisible
+            ])), function (roofs) { return ArrayUtil_1.arrayBind(roofs, function (roof) { return roof.trace(); }); });
             var slab = new Slab_1.Slab({
                 cAxes: cFFL.lift(cSlabThickness, function (ffl, slabThickness) {
                     return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, ffl - 0.5 * slabThickness), Quaternion_1.Quaternion.identity);
@@ -2945,6 +3350,24 @@ var Building = /** @class */ (function () {
             _this._cWalls = cWalls;
             _this._cRoofs = cRoofs;
             _this._cInternalWalls = cInternalWalls;
+            var whirlybirds = new Whirlybirds_1.Whirlybirds({
+                sTick: params.sTick,
+                cAxesList: sodium.Cell.switchC(cRoofs.map(function (roofs) {
+                    return SodiumUtil
+                        .cellLiftArray(roofs.map(function (roof) {
+                        return roof.params.cAxes.lift(roof.params.cRoofDataOp, function (axes, roofDataOp) {
+                            var whirlybirds = roofDataOp.map(function (roofData) { return roofData.whirlybirds; }).orSome([]);
+                            return whirlybirds.map(function (pt) { return axes.pointFromThisSpace(pt.toVector3D()).add(Vector3D_1.Vector3D.create(0.0, 0.0, 200.0)); });
+                        });
+                    }))
+                        .map(function (x) { return ArrayUtil_1.arrayJoin(x); })
+                        .map(function (pts) {
+                        return pts.map(function (pt) {
+                            return Axes3D_1.Axes3D.create(pt, Quaternion_1.Quaternion.identity);
+                        });
+                    });
+                }))
+            });
             _this._cModel = MkModelEffect_1.composeCListOfCModels(cWalls.lift3(cRoofs, cInternalWalls, function (walls, roofs, internalWalls) {
                 return ArrayUtil_1.arrayJoin([
                     walls.map(function (wall) { return wall.cModel; }),
@@ -2954,7 +3377,8 @@ var Building = /** @class */ (function () {
                         slab.cModel,
                         portals.cModel,
                         purlins.cModel,
-                        gutterBargeRidge.cModel
+                        gutterBargeRidge.cModel,
+                        whirlybirds.cModel
                     ]
                 ]);
             }));
@@ -3246,6 +3670,7 @@ var Building = /** @class */ (function () {
             var cSinPitch = params.cPitch.map(function (pitch) { return Math.sin(Util_1.toRadians(pitch)); });
             var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return 0.5 * span / ca; });
             var side1Roof = new Roof_1.Roof({
+                cRoofDataOp: params.cSide1RoofData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("side1Roof"),
                 cAxes: params.cFFL.lift5(params.cSpan, params.cHeight, cCosPitch, cSinPitch, function (ffl, span, height, ca, sa) {
                     return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl + height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
@@ -3265,6 +3690,7 @@ var Building = /** @class */ (function () {
                 cVisible: params.cRoofVisible
             });
             var side2Roof = new Roof_1.Roof({
+                cRoofDataOp: params.cSide2RoofData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("side2Roof"),
                 cAxes: params.cFFL.lift5(params.cSpan, params.cHeight, cCosPitch, cSinPitch, function (ffl, span, height, ca, sa) {
                     return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span, ffl + height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitX, Vector3D_1.Vector3D.create(0.0, -ca, sa)));
@@ -3292,6 +3718,7 @@ var Building = /** @class */ (function () {
             var cSinPitch = params.cPitch.map(function (pitch) { return Math.sin(Util_1.toRadians(pitch)); });
             var cRoofPlaneHeight = params.cSpan.lift(cCosPitch, function (span, ca) { return span / ca; });
             var side1Roof = new Roof_1.Roof({
+                cRoofDataOp: params.cSide1RoofData.map(function (x) { return Option_1.Option.some(x); }),
                 cStableName: new sodium.Cell("side1Roof"),
                 cAxes: params.cFFL.lift5(params.cSpan, params.cHeight, cCosPitch, cSinPitch, function (ffl, span, height, ca, sa) {
                     return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl + height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)));
@@ -5237,16 +5664,26 @@ var sodium = require("sodiumjs");
 var CSG2D = require("csg2d");
 var SodiumUtil = require("../SodiumUtil");
 var Bay_1 = require("./Bay");
+var Skylight_1 = require("./Skylight");
+var ArrayUtil_1 = require("../ArrayUtil");
 var Axes3D_1 = require("../math/Axes3D");
+var CAG_1 = require("../math/CAG");
 var MkModelEffect_1 = require("../MkModelEffect");
 var Quaternion_1 = require("../math/Quaternion");
+var Ranges1D_1 = require("../math/Ranges1D");
 var TextureSpace_1 = require("../math/TextureSpace");
 var Vector2D_1 = require("../math/Vector2D");
 var Vector3D_1 = require("../math/Vector3D");
+var Polygon2D_1 = require("../math/Polygon2D");
 var Roof = /** @class */ (function () {
     function Roof(params) {
         var _this = this;
         sodium.Transaction.run(function () {
+            var cSkylightRanges = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cRoofDataOp.map(function (roofDataOp) {
+                return roofDataOp
+                    .map(function (roofData) { return roofData.skylightRanges; })
+                    .orSome(Ranges1D_1.Ranges1D.empty);
+            }));
             var cTextureSpace = params
                 .cAxes
                 .map(function (axes) {
@@ -5320,10 +5757,75 @@ var Roof = /** @class */ (function () {
                 }
                 return bays;
             });
+            var cSkylights = SodiumUtil.cellTrace(params.cOutline.lift(cSkylightRanges, function (outline, skylightRanges) {
+                if (outline.length == 0) {
+                    return [];
+                }
+                if (skylightRanges.ranges.length == 0) {
+                    return [];
+                }
+                var outlineCAG = CAG_1.CAG.fromPolygons([
+                    Polygon2D_1.Polygon2D.create({
+                        outline: outline,
+                        holes: []
+                    })
+                ]);
+                var skylightMinY = Number.POSITIVE_INFINITY;
+                var skylightMaxY = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outline.length; ++i) {
+                    var pt = outline[i];
+                    skylightMinY = Math.min(skylightMinY, pt.y);
+                    skylightMaxY = Math.max(skylightMaxY, pt.y);
+                }
+                var skylightCAG;
+                for (var i = 0; i < skylightRanges.ranges.length; ++i) {
+                    var skylightRange = skylightRanges.ranges[i];
+                    var skylightCAG2_1 = CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: [
+                                Vector2D_1.Vector2D.create(skylightRange._1, skylightMinY),
+                                Vector2D_1.Vector2D.create(skylightRange._2, skylightMinY),
+                                Vector2D_1.Vector2D.create(skylightRange._2, skylightMaxY),
+                                Vector2D_1.Vector2D.create(skylightRange._1, skylightMaxY)
+                            ],
+                            holes: []
+                        })
+                    ]);
+                    if (i == 0) {
+                        skylightCAG = skylightCAG2_1;
+                    }
+                    else {
+                        skylightCAG = skylightCAG.union(skylightCAG2_1);
+                    }
+                }
+                var skylightCAG2 = outlineCAG.intersect(skylightCAG);
+                var skylightPolygons = skylightCAG2.toPolygons();
+                return skylightPolygons.map(function (skylightPolygon) {
+                    return new Skylight_1.Skylight({
+                        cAxes: params.cAxes,
+                        cOutlines: new sodium.Cell([skylightPolygon])
+                    });
+                });
+            }), function (skylights) {
+                return ArrayUtil_1.arrayBind(skylights, function (skylight) { return skylight.trace(); });
+            });
+            _this._params = params;
             _this._cBays = cBays;
-            _this._cModel = MkModelEffect_1.composeCListOfCModels(cBays.map(function (bays) { return bays.map(function (bay) { return bay.cModel; }); }));
+            _this._cModel = MkModelEffect_1.composeCListOfCModels(cBays.lift(cSkylights, function (bays, skylights) {
+                return ArrayUtil_1.arrayJoin([
+                    bays.map(function (bay) { return bay.cModel; }),
+                    skylights.map(function (skylight) { return skylight.cModel; })
+                ]);
+            }));
         });
     }
+    Object.defineProperty(Roof.prototype, "params", {
+        get: function () {
+            return this._params;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Roof.prototype, "cModel", {
         get: function () {
             return this._cModel;
@@ -5338,6 +5840,21 @@ var Roof = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Roof.prototype.trace = function () {
+        return [
+            this.params.cRoofDataOp,
+            this.params.cStableName,
+            this.params.cAxes,
+            this.params.cOutline,
+            this.params.cCladdingTextureType,
+            this.params.cCladdingTextureColour,
+            this.params.cBayMarkers,
+            this.params.cHighlightedStableNames,
+            this.params.cVisible,
+            this.cModel,
+            this.cBays
+        ];
+    };
     return Roof;
 }());
 exports.Roof = Roof;
@@ -5621,6 +6138,103 @@ var Plane3D = /** @class */ (function () {
 }());
 exports.Plane3D = Plane3D;
 //# sourceMappingURL=Plane3D.js.map
+});
+___scope___.file("app/model/Skylight.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var MkModelEffect_1 = require("../MkModelEffect");
+var three_1 = require("three");
+var Skylight = /** @class */ (function () {
+    function Skylight(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cModel = params.cOutlines
+                .map(sodium.lambda1(function (outlines) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var shape = new THREE.Shape();
+                    for (var i = 0; i < outlines.length; ++i) {
+                        var outline = outlines[i].outline;
+                        for (var j = 0; j < outline.length; ++j) {
+                            var pt = outline[j];
+                            if (j == 0) {
+                                shape.moveTo(pt.x, pt.y);
+                            }
+                            else {
+                                shape.lineTo(pt.x, pt.y);
+                            }
+                        }
+                        shape.closePath();
+                    }
+                    var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                        depth: 60.0
+                    });
+                    var material = new THREE.MeshStandardMaterial({ color: "#808080", transparent: true, opacity: 0.5 });
+                    var mesh = new three_1.Mesh(geometry, material);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                        var cleanups = [];
+                        cleanups.push(params.cAxes.listen(function (axes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
+                        }));
+                        return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                    }, mesh));
+                });
+            }, [params.cAxes]));
+            _this._params = params;
+            _this._cModel = cModel;
+        });
+    }
+    Object.defineProperty(Skylight.prototype, "params", {
+        get: function () {
+            return this._params;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Skylight.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Skylight.prototype.trace = function () {
+        return [
+            this.params.cAxes,
+            this.params.cOutlines,
+            this.cModel
+        ];
+    };
+    return Skylight;
+}());
+exports.Skylight = Skylight;
+//# sourceMappingURL=Skylight.js.map
+});
+___scope___.file("app/math/Ranges1D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Ranges1D = /** @class */ (function () {
+    function Ranges1D(ranges) {
+        this._ranges = ranges;
+    }
+    Object.defineProperty(Ranges1D.prototype, "ranges", {
+        get: function () {
+            return this._ranges;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Ranges1D.create = function (ranges) {
+        return new Ranges1D(ranges);
+    };
+    Ranges1D.empty = Ranges1D.create([]);
+    return Ranges1D;
+}());
+exports.Ranges1D = Ranges1D;
+//# sourceMappingURL=Ranges1D.js.map
 });
 ___scope___.file("app/math/TextureSpace.js", function(exports, require, module, __filename, __dirname){
 
@@ -6175,6 +6789,156 @@ var Opening = /** @class */ (function () {
 exports.Opening = Opening;
 //# sourceMappingURL=Opening.js.map
 });
+___scope___.file("app/model/Whirlybirds.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Axes3D_1 = require("../math/Axes3D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector3D_1 = require("../math/Vector3D");
+var Whirlybird_1 = require("./Whirlybird");
+var Whirlybirds = /** @class */ (function () {
+    function Whirlybirds(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var whirlybird = new Whirlybird_1.Whirlybird({
+                cAxes: new sodium.Cell(Axes3D_1.Axes3D.identity)
+            });
+            var slRotation = new sodium.StreamLoop();
+            var cRotation = slRotation.hold(0.0);
+            slRotation.loop(params.sTick.snapshot(cRotation, function (tick, rotation) { return (rotation + tick * 0.1) % 360.0; }));
+            var cAxesList2 = params.cAxesList.lift(cRotation, function (axesList, rotation) {
+                return axesList.map(function (axes) { return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.zero, Quaternion_1.Quaternion.fromAxisAngle(Vector3D_1.Vector3D.unitZ, rotation))); });
+            });
+            var cModel = whirlybird.cModel.map(sodium.lambda1(function (whirlybirdModel) {
+                return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    return whirlybirdModel.mkModel(textureLoader)
+                        .then(function (whirlybirdModel2) {
+                        var group = new THREE.Group();
+                        var mesh = whirlybirdModel2.threeObject3D;
+                        return MkModelEffect_1.Model.create(function () {
+                            var cleanups = [];
+                            cleanups.push(whirlybirdModel2.init());
+                            cleanups.push(cAxesList2.listen(function (axesList) {
+                                while (group.children.length != 0) {
+                                    group.remove(group.children[0]);
+                                }
+                                for (var i = 0; i < axesList.length; ++i) {
+                                    var axes = axesList[i];
+                                    var mesh2 = mesh.clone();
+                                    MkModelEffect_1.THREEObject3DSetAxes(mesh2, axes);
+                                    group.add(mesh2);
+                                }
+                            }));
+                            return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                        }, group);
+                    });
+                });
+            }, [cAxesList2]));
+            _this._params = params;
+            _this._cModel = cModel;
+        });
+    }
+    Object.defineProperty(Whirlybirds.prototype, "params", {
+        get: function () {
+            return this._params;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Whirlybirds.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Whirlybirds.prototype.trace = function () {
+        return [
+            this.params.cAxesList,
+            this.cModel
+        ];
+    };
+    return Whirlybirds;
+}());
+exports.Whirlybirds = Whirlybirds;
+//# sourceMappingURL=Whirlybirds.js.map
+});
+___scope___.file("app/model/Whirlybird.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Whirlybird = /** @class */ (function () {
+    function Whirlybird(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cModel = new sodium.Cell(MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                var bladeShape = new THREE.Shape();
+                bladeShape.moveTo(0.0, -150.0);
+                bladeShape.ellipse(0.0, 150.0, 300.0, 150.0, -0.5 * Math.PI, 0.5 * Math.PI, false, 0);
+                bladeShape.closePath();
+                var bladeGeometry = new THREE.ShapeGeometry(bladeShape);
+                bladeGeometry.rotateX(0.5 * Math.PI);
+                var geometry = bladeGeometry.clone();
+                var numSteps = 20;
+                var angleStep = 2.0 * Math.PI / numSteps;
+                for (var i = 0; i < numSteps; ++i) {
+                    bladeGeometry.rotateZ(angleStep);
+                    geometry.merge(bladeGeometry);
+                }
+                var cylinderGeometry = new THREE.CylinderGeometry(75.0, 75.0, 50.0);
+                cylinderGeometry.rotateX(0.5 * Math.PI);
+                cylinderGeometry.translate(0.0, 0.0, -150.0 - 0.5 * 50.0);
+                geometry.merge(cylinderGeometry);
+                var capCylinderGeometry = new THREE.CylinderGeometry(0.0, 150.0, 10.0, 8, 1, true);
+                capCylinderGeometry.rotateX(0.5 * Math.PI);
+                capCylinderGeometry.translate(0.0, 0.0, +150.0 + 0.5 * 10.0);
+                geometry.merge(capCylinderGeometry);
+                var material = new THREE.MeshStandardMaterial({ color: "#808080", side: THREE.DoubleSide });
+                var mesh = new THREE.Mesh(new THREE.BufferGeometry().fromGeometry(geometry), material);
+                return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                    var cleanups = [];
+                    cleanups.push(params.cAxes.listen(function (axes) {
+                        MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
+                    }));
+                    return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                }, mesh));
+            })).map(sodium.lambda1(function (x) { return x; }, [params.cAxes]));
+            _this._params = params;
+            _this._cModel = cModel;
+        });
+    }
+    Object.defineProperty(Whirlybird.prototype, "params", {
+        get: function () {
+            return this._params;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Whirlybird.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Whirlybird.prototype.trace = function () {
+        return [
+            this.params.cAxes,
+            this.cModel
+        ];
+    };
+    return Whirlybird;
+}());
+exports.Whirlybird = Whirlybird;
+//# sourceMappingURL=Whirlybird.js.map
+});
 ___scope___.file("app/model/BuildingData.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -6309,6 +7073,13 @@ function wallLensesFromBuildingData(buildingData) {
     ].concat(internalWallLenses);
 }
 exports.wallLensesFromBuildingData = wallLensesFromBuildingData;
+function roofLensesFromBuildingData(buildingData) {
+    return [
+        Tuples_1.T2.of("side1Roof", side1RoofLens),
+        Tuples_1.T2.of("side2Roof", side2RoofLens)
+    ];
+}
+exports.roofLensesFromBuildingData = roofLensesFromBuildingData;
 var side1WallLens = Lens_1.Lens.create(function (buildingData) {
     return Tuples_1.T2.of(buildingData.side1WallData, function (side1WallData) { return buildingData.from({ side1WallData: side1WallData }); });
 });
@@ -6320,6 +7091,12 @@ var end1WallLens = Lens_1.Lens.create(function (buildingData) {
 });
 var end2WallLens = Lens_1.Lens.create(function (buildingData) {
     return Tuples_1.T2.of(buildingData.end2WallData, function (end2WallData) { return buildingData.from({ end2WallData: end2WallData }); });
+});
+var side1RoofLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.side1RoofData, function (side1RoofData) { return buildingData.from({ side1RoofData: side1RoofData }); });
+});
+var side2RoofLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.side2RoofData, function (side2RoofData) { return buildingData.from({ side2RoofData: side2RoofData }); });
 });
 function internalWallLens(markerIndex) {
     return Lens_1.Lens.fromGetterAndSetter(function (buildingData) {
@@ -6739,6 +7516,22 @@ var BuildingEffect = /** @class */ (function () {
                 else {
                     return default_;
                 }
+            },
+            insertSkylight: function (roofStableName, skylightRange) {
+                if (cases.insertSkylight) {
+                    return cases.insertSkylight(roofStableName, skylightRange);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertWhirlybird: function (roofStableName, whirlybirdPos) {
+                if (cases.insertWhirlybird) {
+                    return cases.insertWhirlybird(roofStableName, whirlybirdPos);
+                }
+                else {
+                    return default_;
+                }
             }
         });
     };
@@ -6750,6 +7543,12 @@ var BuildingEffect = /** @class */ (function () {
     };
     BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
         return new BuildingEffectToggleBay(wallStableName, bayIndex);
+    };
+    BuildingEffect.insertSkylight = function (roofStableName, skylightRange) {
+        return new BuildingEffectInsertSkylight(roofStableName, skylightRange);
+    };
+    BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdPos) {
+        return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdPos);
     };
     return BuildingEffect;
 }());
@@ -6790,6 +7589,32 @@ var BuildingEffectToggleBay = /** @class */ (function (_super) {
         return cases.toggleBay(this._wallStableName, this._bayIndex);
     };
     return BuildingEffectToggleBay;
+}(BuildingEffect));
+var BuildingEffectInsertSkylight = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertSkylight, _super);
+    function BuildingEffectInsertSkylight(roofStableName, skylightRange) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._skylightRange = skylightRange;
+        return _this;
+    }
+    BuildingEffectInsertSkylight.prototype.match = function (cases) {
+        return cases.insertSkylight(this._roofStableName, this._skylightRange);
+    };
+    return BuildingEffectInsertSkylight;
+}(BuildingEffect));
+var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertWhirlybird, _super);
+    function BuildingEffectInsertWhirlybird(roofStableName, whirlybirdPos) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._whirlybirdPos = whirlybirdPos;
+        return _this;
+    }
+    BuildingEffectInsertWhirlybird.prototype.match = function (cases) {
+        return cases.insertWhirlybird(this._roofStableName, this._whirlybirdPos);
+    };
+    return BuildingEffectInsertWhirlybird;
 }(BuildingEffect));
 //# sourceMappingURL=BuildingEffect.js.map
 });
@@ -6847,6 +7672,384 @@ var OpeningData = /** @class */ (function () {
 }());
 exports.OpeningData = OpeningData;
 //# sourceMappingURL=OpeningData.js.map
+});
+___scope___.file("app/modes/InsertSkylightMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var Mode_1 = require("./Mode");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Vectors_1 = require("../Vectors");
+var CAG_1 = require("../math/CAG");
+var Outline3D_1 = require("../math/Outline3D");
+var Polygon2D_1 = require("../math/Polygon2D");
+var Vector2D_1 = require("../math/Vector2D");
+var BuildingEffect_1 = require("../model/BuildingEffect");
+var Tuples_1 = require("../Tuples");
+var ArrayUtil_1 = require("../ArrayUtil");
+var InsertSkylightMode = /** @class */ (function (_super) {
+    __extends(InsertSkylightMode, _super);
+    function InsertSkylightMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
+                return mousePosOp.bind(screenPointToWorldRayOp);
+            });
+            var cRoofUnderMouseOp = sodium.Cell.switchC(params.cRoofs.map(sodium.lambda1(function (roofs) {
+                return SodiumUtil
+                    .cellLiftArray(roofs
+                    .map(function (roof) {
+                    var cAxes = roof.params.cAxes;
+                    var cOutline = roof.params.cOutline;
+                    var cOutline3d = cAxes.lift(cOutline, function (axes, outline) {
+                        return Outline3D_1.Outline3D.create({
+                            axes: axes,
+                            outline: outline
+                        });
+                    });
+                    return cMouseRayOp.lift3(cOutline3d, roof.params.cStableName, function (mouseRayOp, outline3d, roofStableName) {
+                        return mouseRayOp
+                            .map(function (mouseRay) {
+                            return outline3d
+                                .rayIntersectionTimeOp(mouseRay)
+                                .filter(function (dist) { return dist >= 0.0; })
+                                .map(function (dist) {
+                                var pt = mouseRay.positionFromTime(dist);
+                                var pt2 = outline3d.axes.pointToThisSpace(pt);
+                                return [Tuples_1.T2.of(Tuples_1.T3.of(roofStableName, outline3d, pt2.xyToVector2D()), dist)];
+                            })
+                                .orSome([]);
+                        })
+                            .orSome([]);
+                    });
+                }))
+                    .map(function (x) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayJoin(x), function (a, b) { return a._2 < b._2 ? a : b; })
+                        .map(function (x) { return x._1; });
+                });
+            }, [cMouseRayOp])));
+            var cOverlayModelOp = cRoofUnderMouseOp.map(function (roofUnderMouseOp) {
+                return roofUnderMouseOp
+                    .bind(function (roofUnderMouse) {
+                    var outline3d = roofUnderMouse._2;
+                    var outline = outline3d.outline;
+                    if (outline.length == 0) {
+                        return Option_1.Option.none();
+                    }
+                    var minY = Number.POSITIVE_INFINITY;
+                    var maxY = Number.NEGATIVE_INFINITY;
+                    for (var i = 0; i < outline.length; ++i) {
+                        var pt = outline[i];
+                        minY = Math.min(minY, pt.y);
+                        maxY = Math.max(maxY, pt.y);
+                    }
+                    var sheetWidth = 762.0;
+                    var skylightMinX = roofUnderMouse._3.x - 0.5 * sheetWidth;
+                    var skylightMaxX = roofUnderMouse._3.x + 0.5 * sheetWidth;
+                    var skylightMinY = minY - 100.0;
+                    var skylightMaxY = maxY + 100.0;
+                    var outlineCAG = CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: outline,
+                            holes: []
+                        })
+                    ]);
+                    var maxSkylightCAG = CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: [
+                                Vector2D_1.Vector2D.create(skylightMinX, skylightMinY),
+                                Vector2D_1.Vector2D.create(skylightMaxX, skylightMinY),
+                                Vector2D_1.Vector2D.create(skylightMaxX, skylightMaxY),
+                                Vector2D_1.Vector2D.create(skylightMinX, skylightMaxY)
+                            ],
+                            holes: []
+                        })
+                    ]);
+                    var skylightCAG = outlineCAG.intersect(maxSkylightCAG);
+                    var skylightPolygons = skylightCAG.toPolygons();
+                    if (skylightPolygons.length == 0) {
+                        return Option_1.Option.none();
+                    }
+                    return Option_1.Option.some(MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                        var shape = new THREE.Shape();
+                        for (var i = 0; i < skylightPolygons.length; ++i) {
+                            var skylightPolygon = skylightPolygons[i];
+                            for (var j = 0; j < skylightPolygon.outline.length; ++j) {
+                                var pt = skylightPolygon.outline[j];
+                                if (j == 0) {
+                                    shape.moveTo(pt.x, pt.y);
+                                }
+                                else {
+                                    shape.lineTo(pt.x, pt.y);
+                                }
+                            }
+                        }
+                        var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                            depth: 60.0
+                        });
+                        var material = new THREE.MeshStandardMaterial({ color: "#00FF00", transparent: true, opacity: 0.5 });
+                        var mesh = new THREE.Mesh(geometry, material);
+                        MkModelEffect_1.THREEObject3DSetAxes(mesh, outline3d.axes);
+                        return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, mesh));
+                    }));
+                });
+            });
+            var sBuildingEffect = SodiumUtil.streamFilterOption(params.sMouseLeftPressed
+                .snapshot1(cRoofUnderMouseOp)
+                .map(function (roofUnderMouseOp) {
+                return roofUnderMouseOp.bind(function (roofUnderMouse) {
+                    var outline3d = roofUnderMouse._2;
+                    var outline = outline3d.outline;
+                    if (outline.length == 0) {
+                        return Option_1.Option.none();
+                    }
+                    var minY = Number.POSITIVE_INFINITY;
+                    var maxY = Number.NEGATIVE_INFINITY;
+                    for (var i = 0; i < outline.length; ++i) {
+                        var pt = outline[i];
+                        minY = Math.min(minY, pt.y);
+                        maxY = Math.max(maxY, pt.y);
+                    }
+                    var sheetWidth = 762.0;
+                    var skylightMinX = roofUnderMouse._3.x - 0.5 * sheetWidth;
+                    var skylightMaxX = roofUnderMouse._3.x + 0.5 * sheetWidth;
+                    var skylightMinY = minY - 100.0;
+                    var skylightMaxY = maxY + 100.0;
+                    var outlineCAG = CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: outline,
+                            holes: []
+                        })
+                    ]);
+                    var maxSkylightCAG = CAG_1.CAG.fromPolygons([
+                        Polygon2D_1.Polygon2D.create({
+                            outline: [
+                                Vector2D_1.Vector2D.create(skylightMinX, skylightMinY),
+                                Vector2D_1.Vector2D.create(skylightMaxX, skylightMinY),
+                                Vector2D_1.Vector2D.create(skylightMaxX, skylightMaxY),
+                                Vector2D_1.Vector2D.create(skylightMinX, skylightMaxY)
+                            ],
+                            holes: []
+                        })
+                    ]);
+                    var skylightCAG = outlineCAG.intersect(maxSkylightCAG);
+                    var skylightPolygons = skylightCAG.toPolygons();
+                    if (skylightPolygons.length == 0) {
+                        return Option_1.Option.none();
+                    }
+                    var rectMinX = Number.POSITIVE_INFINITY;
+                    var rectMaxX = Number.NEGATIVE_INFINITY;
+                    var rectMinY = Number.POSITIVE_INFINITY;
+                    var rectMaxY = Number.NEGATIVE_INFINITY;
+                    for (var i = 0; i < skylightPolygons.length; ++i) {
+                        var skylightPolygon = skylightPolygons[i];
+                        for (var j = 0; j < skylightPolygon.outline.length; ++j) {
+                            var pt = skylightPolygon.outline[j];
+                            rectMinX = Math.min(rectMinX, pt.x);
+                            rectMaxX = Math.max(rectMaxX, pt.x);
+                            rectMinY = Math.min(rectMinY, pt.y);
+                            rectMaxY = Math.max(rectMaxY, pt.y);
+                        }
+                    }
+                    if (!isFinite(rectMinX)) {
+                        return Option_1.Option.none();
+                    }
+                    var skylightRange = Vectors_1.V2.of(rectMinX, rectMaxX);
+                    return Option_1.Option.some(BuildingEffect_1.BuildingEffect.insertSkylight(roofUnderMouse._1, skylightRange));
+                });
+            }));
+            _this._cOverlayModelOp = cOverlayModelOp;
+            _this._sBuildingEffect = sBuildingEffect;
+        });
+        return _this;
+    }
+    Object.defineProperty(InsertSkylightMode.prototype, "cOverlayModelOp", {
+        get: function () {
+            return this._cOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InsertSkylightMode.prototype, "sBuildingEffect", {
+        get: function () {
+            return this._sBuildingEffect;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return InsertSkylightMode;
+}(Mode_1.Mode));
+exports.InsertSkylightMode = InsertSkylightMode;
+//# sourceMappingURL=InsertSkylightMode.js.map
+});
+___scope___.file("app/Vectors.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var V2 = /** @class */ (function () {
+    function V2(a, b) {
+        this._a = a;
+        this._b = b;
+    }
+    Object.defineProperty(V2.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(V2.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    V2.of = function (a, b) {
+        return new V2(a, b);
+    };
+    return V2;
+}());
+exports.V2 = V2;
+//# sourceMappingURL=Vectors.js.map
+});
+___scope___.file("app/modes/InsertWhirlybirdMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Mode_1 = require("./Mode");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var Outline3D_1 = require("../math/Outline3D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector3D_1 = require("../math/Vector3D");
+var BuildingEffect_1 = require("../model/BuildingEffect");
+var Whirlybird_1 = require("../model/Whirlybird");
+var Tuples_1 = require("../Tuples");
+var ArrayUtil_1 = require("../ArrayUtil");
+var InsertWhirlybirdMode = /** @class */ (function (_super) {
+    __extends(InsertWhirlybirdMode, _super);
+    function InsertWhirlybirdMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
+                return mousePosOp.bind(screenPointToWorldRayOp);
+            });
+            var cRoofUnderMouseOp = sodium.Cell.switchC(params.cRoofs.map(sodium.lambda1(function (roofs) {
+                return SodiumUtil
+                    .cellLiftArray(roofs
+                    .map(function (roof) {
+                    var cAxes = roof.params.cAxes;
+                    var cOutline = roof.params.cOutline;
+                    var cOutline3d = cAxes.lift(cOutline, function (axes, outline) {
+                        return Outline3D_1.Outline3D.create({
+                            axes: axes,
+                            outline: outline
+                        });
+                    });
+                    return cMouseRayOp.lift3(cOutline3d, roof.params.cStableName, function (mouseRayOp, outline3d, roofStableName) {
+                        return mouseRayOp
+                            .map(function (mouseRay) {
+                            return outline3d
+                                .rayIntersectionTimeOp(mouseRay)
+                                .filter(function (dist) { return dist >= 0.0; })
+                                .map(function (dist) {
+                                var pt = mouseRay.positionFromTime(dist);
+                                var pt2 = outline3d.axes.pointToThisSpace(pt);
+                                return [Tuples_1.T2.of(Tuples_1.T3.of(roofStableName, outline3d, pt2.xyToVector2D()), dist)];
+                            })
+                                .orSome([]);
+                        })
+                            .orSome([]);
+                    });
+                }))
+                    .map(function (x) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayJoin(x), function (a, b) { return a._2 < b._2 ? a : b; })
+                        .map(function (x) { return x._1; });
+                });
+            }, [cMouseRayOp])));
+            var cRoofPtUnderMouseOp = cRoofUnderMouseOp.map(function (roofUnderMouseOp) {
+                return roofUnderMouseOp.map(function (roofUnderMouse) {
+                    return roofUnderMouse._2.axes
+                        .pointFromThisSpace(roofUnderMouse._3.toVector3D());
+                });
+            });
+            var cLastRoofPtUnderMouseOp = SodiumUtil
+                .streamFilterOption(sodium.Operational.updates(cRoofPtUnderMouseOp))
+                .map(function (x) { return Option_1.Option.some(x); })
+                .holdLazy(cRoofPtUnderMouseOp.sampleLazy());
+            var whirlybird = new Whirlybird_1.Whirlybird({
+                cAxes: cLastRoofPtUnderMouseOp.map(function (lastRoofPtUnderMouseOp) {
+                    return lastRoofPtUnderMouseOp
+                        .map(function (lastRoofPtUnderMouse) {
+                        return Axes3D_1.Axes3D.create(lastRoofPtUnderMouse.add(Vector3D_1.Vector3D.create(0.0, 0.0, 200.0)), Quaternion_1.Quaternion.identity);
+                    })
+                        .orSome(Axes3D_1.Axes3D.identity);
+                })
+            });
+            var cOverlayModelOp = sodium.Cell.switchC(cRoofUnderMouseOp.map(sodium.lambda1(function (roofUnderMouseOp) {
+                return roofUnderMouseOp
+                    .map(function (roofUnderMouse) {
+                    return whirlybird.cModel.map(function (x) { return Option_1.Option.some(x); });
+                })
+                    .orSome(new sodium.Cell(Option_1.Option.none()));
+            }, whirlybird.trace())));
+            var sBuildingEffect = SodiumUtil.streamFilterOption(params.sMouseLeftPressed
+                .snapshot1(cRoofUnderMouseOp)
+                .map(function (roofUnderMouseOp) {
+                return roofUnderMouseOp.map(function (roofUnderMouse) {
+                    return BuildingEffect_1.BuildingEffect.insertWhirlybird(roofUnderMouse._1, roofUnderMouse._3);
+                });
+            }));
+            _this._cOverlayModelOp = cOverlayModelOp;
+            _this._sBuildingEffect = sBuildingEffect;
+        });
+        return _this;
+    }
+    Object.defineProperty(InsertWhirlybirdMode.prototype, "cOverlayModelOp", {
+        get: function () {
+            return this._cOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InsertWhirlybirdMode.prototype, "sBuildingEffect", {
+        get: function () {
+            return this._sBuildingEffect;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return InsertWhirlybirdMode;
+}(Mode_1.Mode));
+exports.InsertWhirlybirdMode = InsertWhirlybirdMode;
+//# sourceMappingURL=InsertWhirlybirdMode.js.map
 });
 ___scope___.file("app/modes/ToggleBaysMode.js", function(exports, require, module, __filename, __dirname){
 
@@ -7159,13 +8362,21 @@ ___scope___.file("app/model/RoofData.js", function(exports, require, module, __f
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var Ranges1D_1 = require("../math/Ranges1D");
 var RoofData = /** @class */ (function () {
     function RoofData(params) {
         this._params = params;
     }
-    Object.defineProperty(RoofData.prototype, "skylightAreas", {
+    Object.defineProperty(RoofData.prototype, "skylightRanges", {
         get: function () {
-            return this._params.skylightAreas;
+            return this._params.skylightRanges;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(RoofData.prototype, "whirlybirds", {
+        get: function () {
+            return this._params.whirlybirds;
         },
         enumerable: true,
         configurable: true
@@ -7183,7 +8394,7 @@ var RoofData = /** @class */ (function () {
     RoofData.prototype.from = function (params) {
         return RoofData.create(Object.assign({}, this._params, params));
     };
-    RoofData._default = RoofData.create({ skylightAreas: [] });
+    RoofData._default = RoofData.create({ skylightRanges: Ranges1D_1.Ranges1D.empty, whirlybirds: [] });
     return RoofData;
 }());
 exports.RoofData = RoofData;
@@ -7239,6 +8450,22 @@ var Operation = /** @class */ (function () {
                 else {
                     return default_;
                 }
+            },
+            insertSkylight: function () {
+                if (cases.insertSkylight) {
+                    return cases.insertSkylight();
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertWhirlybird: function () {
+                if (cases.insertWhirlybird) {
+                    return cases.insertWhirlybird();
+                }
+                else {
+                    return default_;
+                }
             }
         });
     };
@@ -7253,6 +8480,12 @@ var Operation = /** @class */ (function () {
     };
     Operation.toggleBays = function () {
         return new OperationToggleBays();
+    };
+    Operation.insertSkylight = function () {
+        return new OperationInsertSkylight();
+    };
+    Operation.insertWhirlybird = function () {
+        return new OperationInsertWhirlybird();
     };
     return Operation;
 }());
@@ -7298,6 +8531,26 @@ var OperationToggleBays = /** @class */ (function (_super) {
         return cases.toggleBays();
     };
     return OperationToggleBays;
+}(Operation));
+var OperationInsertSkylight = /** @class */ (function (_super) {
+    __extends(OperationInsertSkylight, _super);
+    function OperationInsertSkylight() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationInsertSkylight.prototype.match = function (cases) {
+        return cases.insertSkylight();
+    };
+    return OperationInsertSkylight;
+}(Operation));
+var OperationInsertWhirlybird = /** @class */ (function (_super) {
+    __extends(OperationInsertWhirlybird, _super);
+    function OperationInsertWhirlybird() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationInsertWhirlybird.prototype.match = function (cases) {
+        return cases.insertWhirlybird();
+    };
+    return OperationInsertWhirlybird;
 }(Operation));
 //# sourceMappingURL=Operation.js.map
 });
