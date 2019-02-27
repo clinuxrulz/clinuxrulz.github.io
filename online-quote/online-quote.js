@@ -440,7 +440,8 @@ var App = /** @class */ (function () {
                 .orElse(sToggleBaysButtonClicked.mapTo(Operation_1.Operation.toggleBays()))
                 .orElse(sToggleWallsButtonClicked.mapTo(Operation_1.Operation.toggleWalls()))
                 .orElse(_this._ssInsertSkylight.mapTo(Operation_1.Operation.insertSkylight()))
-                .orElse(_this._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()));
+                .orElse(_this._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()))
+                .orElse(_this._ssToggleLeanTo.mapTo(Operation_1.Operation.toggleLeanTos()));
             // model
             var appModel = new AppModel_1.AppModel({
                 sTick: ssTick,
@@ -464,6 +465,7 @@ var App = /** @class */ (function () {
                     sSetPitch: sodium.Operational.updates(eliminateOp(cPitchOp)).orElse(_this._ssSetPitch)
                 },
                 cOpeningFormPropertiesOp: cOpeningFormPropertiesOp,
+                cLeanToFormPropertiesOp: _this._cLeanToFormProperties.map(function (x) { return Option_1.Option.some(x); }),
                 sPerformOperation: sPerformOperation
             });
             clModel.loop(appModel.cModel);
@@ -691,7 +693,21 @@ window.onload = function () {
             window['setAddOpeningPropertiesVisible'](addOpeningPropertiesVisible);
         });
         window['appLoaded']();
+        //
+        //cellCalmTest();
     });
+    function cellCalmTest() {
+        var cs = new sodium.CellSink(1);
+        var c = SodiumUtil.cellCalmRefEq(SodiumUtil.cellCalmRefEq(SodiumUtil.cellCalmRefEq(cs.map(function (x) { return x; }))).map(function (x) { return x; }));
+        c.listen(function (x) { return console.log("cellCalmTest: ", x); });
+        window.setTimeout(function () {
+            cs.send(2);
+            cs.send(3);
+            cs.send(2);
+            cs.send(2);
+            cs.send(4);
+        });
+    }
 };
 //# sourceMappingURL=main.js.map
 });
@@ -2240,6 +2256,10 @@ function streamFilterOption(sa) {
     return sa.filter(function (a) { return a.is_some; }).map(function (a) { return a.fromSome(); });
 }
 exports.streamFilterOption = streamFilterOption;
+function cellCalmRefEq(ca) {
+    return cellCalm(function (a, b) { return a == b; }, ca);
+}
+exports.cellCalmRefEq = cellCalmRefEq;
 function cellCalm(eqFn, ca) {
     return sodium.Transaction.run(function () {
         return streamFilterOption(sodium.Operational
@@ -2359,6 +2379,12 @@ var Ray3D = /** @class */ (function () {
     Ray3D.prototype.collisionWithPlane = function (plane) {
         var _this = this;
         return this.collisionTimeWithPlane(plane).map(function (t) { return _this.positionFromTime(t); });
+    };
+    Ray3D.prototype.fromSpace = function (axes) {
+        return Ray3D.create(axes.pointFromThisSpace(this.origin), axes.vectorFromThisSpace(this.direction));
+    };
+    Ray3D.prototype.toSpace = function (axes) {
+        return Ray3D.create(axes.pointToThisSpace(this.origin), axes.vectorToThisSpace(this.direction));
     };
     Ray3D.prototype.toString = function () {
         return "(origin: " + this.origin.toString() + ", direction: " + this.direction.toString() + ")";
@@ -2586,8 +2612,10 @@ var InsertOpeningMode_1 = require("../modes/InsertOpeningMode");
 var InsertSkylightMode_1 = require("../modes/InsertSkylightMode");
 var InsertWhirlybirdMode_1 = require("../modes/InsertWhirlybirdMode");
 var ToggleBaysMode_1 = require("../modes/ToggleBaysMode");
+var ToggleLeanTosMode_1 = require("../modes/ToggleLeanTosMode");
 var ToggleWallsMode_1 = require("../modes/ToggleWallsMode");
 var OpeningFormProperties_1 = require("../OpeningFormProperties");
+var LeanToData_1 = require("./LeanToData");
 var WallData_1 = require("./WallData");
 var CladdingData_1 = require("./CladdingData");
 var RoofData_1 = require("./RoofData");
@@ -2619,8 +2647,8 @@ var AppModel = /** @class */ (function () {
                 internalWallDatas: [],
                 side1RoofData: RoofData_1.RoofData.default_,
                 side2RoofData: RoofData_1.RoofData.default_,
-                side1LeanToOp: Option_1.Option.none(),
-                side2LeanToOp: Option_1.Option.none()
+                side1LeanToDataOp: Option_1.Option.none(),
+                side2LeanToDataOp: Option_1.Option.none()
             }));
             cBuildingData.listen(function (buildingData) { return console.log(buildingData); });
             var clHighlightedStableNames = new sodium.CellLoop();
@@ -2685,6 +2713,13 @@ var AppModel = /** @class */ (function () {
                         sMouseLeftPressed: sMouseLeftPressed,
                         cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
                         cRoofs: cRoofs
+                    }); },
+                    toggleLeanTos: function () { return new ToggleLeanTosMode_1.ToggleLeanTosMode({
+                        cMousePosOp: params.cMousePosOp,
+                        sMouseLeftPressed: sMouseLeftPressed,
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        cBuildingDataOp: cBuildingData.map(function (x) { return Option_1.Option.some(x); }),
+                        cLeanToFormPropertiesOp: params.cLeanToFormPropertiesOp
                     }); }
                 });
             }, [
@@ -2694,7 +2729,9 @@ var AppModel = /** @class */ (function () {
                 cWallBays,
                 cRoofs,
                 params.cOpeningFormPropertiesOp,
-                building.cPhantomInternalWalls
+                building.cPhantomInternalWalls,
+                cBuildingData,
+                params.cLeanToFormPropertiesOp
             ]))
                 .hold(new IdleMode_1.IdleMode());
             var sSetFormProperties = SodiumUtil.streamFilterOption(params.sPerformOperation
@@ -2934,6 +2971,36 @@ function performEffectOnBuilding(buildingData, buildingEffect) {
                 }
             }
             return buildingData;
+        },
+        insertLeanTo: function (leanToStableName, leanToFormProperties) {
+            var leanToOpLenses = BuildingUtil.leanToOpLensesFromBuildingData(buildingData);
+            for (var i = 0; i < leanToOpLenses.length; ++i) {
+                var leanToOpLens = leanToOpLenses[i];
+                if (leanToOpLens._1 == leanToStableName) {
+                    var leanToData = LeanToData_1.LeanToData.create({
+                        span: leanToFormProperties.span,
+                        height: leanToFormProperties.height,
+                        pitch: leanToFormProperties.pitch,
+                        side1WallData: WallData_1.WallData.default_,
+                        end1WallData: WallData_1.WallData.default_,
+                        end2WallData: WallData_1.WallData.default_,
+                        internalWallDatas: [],
+                        side1RoofData: RoofData_1.RoofData.default_
+                    });
+                    return leanToOpLens._2.set(Option_1.Option.some(leanToData), buildingData);
+                }
+            }
+            return buildingData;
+        },
+        removeLeanTo: function (leanToStableName) {
+            var leanToOpLenses = BuildingUtil.leanToOpLensesFromBuildingData(buildingData);
+            for (var i = 0; i < leanToOpLenses.length; ++i) {
+                var leanToOpLens = leanToOpLenses[i];
+                if (leanToOpLens._1 == leanToStableName) {
+                    return leanToOpLens._2.set(Option_1.Option.none(), buildingData);
+                }
+            }
+            return buildingData;
         }
     });
 }
@@ -3009,6 +3076,7 @@ var Util_1 = require("../math/Util");
 var Vector2D_1 = require("../math/Vector2D");
 var Vector3D_1 = require("../math/Vector3D");
 var Quaternion_1 = require("../math/Quaternion");
+var LeanTo_1 = require("./LeanTo");
 var Whirlybirds_1 = require("./Whirlybirds");
 var Building = /** @class */ (function () {
     function Building(params) {
@@ -3027,6 +3095,8 @@ var Building = /** @class */ (function () {
             var cInteralWallDatas = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.internalWallDatas; }));
             var cSide1RoofData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side1RoofData; }));
             var cSide2RoofData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side2RoofData; }));
+            var cSide1LeanToDataOp = SodiumUtil.cellCalmRefEq(params.cBuildingData.map(function (buildingData) { return buildingData.side1LeanToDataOp; }));
+            var cSide2LeanToDataOp = SodiumUtil.cellCalmRefEq(params.cBuildingData.map(function (buildingData) { return buildingData.side2LeanToDataOp; }));
             var cWallCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingProfile; }));
             var cWallCladdingTextureColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingColour; }));
             var cRoofCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.roofSheetingProfile; }));
@@ -3371,6 +3441,40 @@ var Building = /** @class */ (function () {
                     });
                 }))
             });
+            var side1LeanTo = new LeanTo_1.LeanTo({
+                cStableName: new sodium.Cell("side1LeanTo"),
+                cAxesOp: cSpan.lift(cSide1LeanToDataOp, function (span, side1LeanToDataOp) {
+                    return side1LeanToDataOp.map(function (side1LeanToData) {
+                        return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span - 0.5 * side1LeanToData.span, 0.0), Quaternion_1.Quaternion.identity);
+                    });
+                }),
+                cLengthOp: cLength.map(function (x) { return Option_1.Option.some(x); }),
+                cSlabThicknessOp: cSlabThickness.map(function (x) { return Option_1.Option.some(x); }),
+                cFFLOp: cFFL.map(function (x) { return Option_1.Option.some(x); }),
+                cLeanToDataOp: cSide1LeanToDataOp,
+                cCladdingData: cCladdingData,
+                cSideBayMarkers: cSide1BayMarkers,
+                cBattenProperties: cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                cRoofVisible: params.cRoofVisible
+            });
+            var side2LeanTo = new LeanTo_1.LeanTo({
+                cStableName: new sodium.Cell("side2LeanTo"),
+                cAxesOp: cSpan.lift(cSide2LeanToDataOp, function (span, side2LeanToDataOp) {
+                    return side2LeanToDataOp.map(function (side2LeanToData) {
+                        return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * span + 0.5 * side2LeanToData.span, 0.0), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ, Vector3D_1.Vector3D.negUnitX));
+                    });
+                }),
+                cLengthOp: cLength.map(function (x) { return Option_1.Option.some(x); }),
+                cSlabThicknessOp: cSlabThickness.map(function (x) { return Option_1.Option.some(x); }),
+                cFFLOp: cFFL.map(function (x) { return Option_1.Option.some(x); }),
+                cLeanToDataOp: cSide2LeanToDataOp,
+                cCladdingData: cCladdingData,
+                cSideBayMarkers: cSide2BayMarkers,
+                cBattenProperties: cBattenProperties,
+                cHighlightedStableNames: params.cHighlightedStableNames,
+                cRoofVisible: params.cRoofVisible
+            });
             _this._cModel = MkModelEffect_1.composeCListOfCModels(cWalls.lift3(cRoofs, cInternalWalls, function (walls, roofs, internalWalls) {
                 return ArrayUtil_1.arrayJoin([
                     walls.map(function (wall) { return wall.cModel; }),
@@ -3381,10 +3485,12 @@ var Building = /** @class */ (function () {
                         portals.cModel,
                         purlins.cModel,
                         gutterBargeRidge.cModel,
-                        whirlybirds.cModel
+                        whirlybirds.cModel,
+                        side1LeanTo.cModel,
+                        side2LeanTo.cModel
                     ]
                 ]);
-            }));
+            })).map(sodium.lambda1(function (x) { return x; }, ArrayUtil_1.arrayJoin([side1LeanTo.trace(), side2LeanTo.trace()])));
             _this._cPhantomInternalWalls = cPhantomInternalWalls;
         });
     }
@@ -6792,6 +6898,199 @@ var Opening = /** @class */ (function () {
 exports.Opening = Opening;
 //# sourceMappingURL=Opening.js.map
 });
+___scope___.file("app/model/LeanTo.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var ArrayUtil_1 = require("../ArrayUtil");
+var MkModelEffect_1 = require("../MkModelEffect");
+var SodiumUtil = require("../SodiumUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var Util_1 = require("../math/Util");
+var Roof_1 = require("./Roof");
+var Slab_1 = require("../Slab");
+var Wall_1 = require("./Wall");
+var LeanTo = /** @class */ (function () {
+    function LeanTo(params) {
+        var _this = this;
+        this._keepAlive = [];
+        sodium.Transaction.run(function () {
+            var cLeanToDataOp = params.cLeanToDataOp;
+            var cSpanOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.span; }); }));
+            var cHeightOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.height; }); }));
+            var cPitchOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.pitch; }); }));
+            var cSide1WallDataOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.side1WallData; }); }));
+            var cEnd1WallDataOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.end1WallData; }); }));
+            var cEnd2WallDataOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.end2WallData; }); }));
+            var cInternalWallDatasOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.internalWallDatas; }); }));
+            var cSide1RoofDataOp = SodiumUtil.cellCalmRefEq(cLeanToDataOp.map(function (leanToDataOp) { return leanToDataOp.map(function (leanToData) { return leanToData.side1RoofData; }); }));
+            var cWallCladdingTextureType = SodiumUtil.cellCalmRefEq(params.cCladdingData.map(function (claddingData) { return claddingData.wallSheetingProfile; }));
+            var cWallCladdingTextureColour = SodiumUtil.cellCalmRefEq(params.cCladdingData.map(function (claddingData) { return claddingData.wallSheetingColour; }));
+            var cRoofCladdingTextureType = SodiumUtil.cellCalmRefEq(params.cCladdingData.map(function (claddingData) { return claddingData.roofSheetingProfile; }));
+            var cRoofCladdingTextureColour = SodiumUtil.cellCalmRefEq(params.cCladdingData.map(function (claddingData) { return claddingData.roofSheetingColour; }));
+            _this._keepAlive.push(cLeanToDataOp, cSpanOp, cHeightOp, cPitchOp, cSide1WallDataOp, cEnd1WallDataOp, cEnd2WallDataOp, cInternalWallDatasOp, cSide1RoofDataOp, cWallCladdingTextureType, cWallCladdingTextureColour, cRoofCladdingTextureType, cRoofCladdingTextureColour);
+            var cSide1WallOp = params.cAxesOp.lift5(params.cLengthOp, cSpanOp, cHeightOp, params.cFFLOp, function (axesOp, lengthOp, spanOp, heightOp, fflOp) {
+                return axesOp.lift5(lengthOp, spanOp, heightOp, fflOp, function (axes, length, span, height, ffl) {
+                    return new Wall_1.Wall({
+                        cWallDataOp: cSide1WallDataOp,
+                        cStableName: params.cStableName.map(function (stableName) { return ".side1Wall"; }),
+                        cAxes: new sodium.Cell(axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ)))),
+                        cOutline: new sodium.Cell([
+                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, height),
+                            Vector2D_1.Vector2D.create(-0.5 * length, height)
+                        ]),
+                        cCladdingTextureType: cWallCladdingTextureType,
+                        cCladdingTextureColour: cWallCladdingTextureColour,
+                        cBayMarkers: params.cSideBayMarkers,
+                        cBattenProperties: params.cBattenProperties,
+                        cHighlightedStableNames: params.cHighlightedStableNames
+                    });
+                });
+            });
+            var cEnd1WallOp = params.cAxesOp.lift6(params.cLengthOp, cSpanOp, cHeightOp, cPitchOp, params.cFFLOp, function (axesOp, lengthOp, spanOp, heightOp, pitchOp, fflOp) {
+                return axesOp.lift6(lengthOp, spanOp, heightOp, pitchOp, fflOp, function (axes, length, span, height, pitch, ffl) {
+                    var peakHeight = height + span * Math.tan(Util_1.toRadians(pitch));
+                    return new Wall_1.Wall({
+                        cWallDataOp: cEnd1WallDataOp,
+                        cStableName: params.cStableName.map(function (stableName) { return ".end1Wall"; }),
+                        cAxes: new sodium.Cell(axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * length, 0.0, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ)))),
+                        cOutline: new sodium.Cell([
+                            Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * span, height),
+                            Vector2D_1.Vector2D.create(-0.5 * span, peakHeight)
+                        ]),
+                        cCladdingTextureType: cWallCladdingTextureType,
+                        cCladdingTextureColour: cWallCladdingTextureColour,
+                        cBayMarkers: new sodium.Cell([-0.5 * span, +0.5 * span]),
+                        cBattenProperties: params.cBattenProperties,
+                        cHighlightedStableNames: params.cHighlightedStableNames
+                    });
+                });
+            });
+            var cEnd2WallOp = params.cAxesOp.lift6(params.cLengthOp, cSpanOp, cHeightOp, cPitchOp, params.cFFLOp, function (axesOp, lengthOp, spanOp, heightOp, pitchOp, fflOp) {
+                return axesOp.lift6(lengthOp, spanOp, heightOp, pitchOp, fflOp, function (axes, length, span, height, pitch, ffl) {
+                    var peakHeight = height + span * Math.tan(Util_1.toRadians(pitch));
+                    return new Wall_1.Wall({
+                        cWallDataOp: cEnd2WallDataOp,
+                        cStableName: params.cStableName.map(function (stableName) { return ".end2Wall"; }),
+                        cAxes: new sodium.Cell(axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * length, 0.0, ffl), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ)))),
+                        cOutline: new sodium.Cell([
+                            Vector2D_1.Vector2D.create(-0.5 * span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * span, peakHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * span, height)
+                        ]),
+                        cCladdingTextureType: cWallCladdingTextureType,
+                        cCladdingTextureColour: cWallCladdingTextureColour,
+                        cBayMarkers: new sodium.Cell([-0.5 * span, +0.5 * span]),
+                        cBattenProperties: params.cBattenProperties,
+                        cHighlightedStableNames: params.cHighlightedStableNames
+                    });
+                });
+            });
+            var cSide1RoofOp = params.cAxesOp.lift6(params.cLengthOp, cSpanOp, cHeightOp, cPitchOp, params.cFFLOp, function (axesOp, lengthOp, spanOp, heightOp, pitchOp, fflOp) {
+                return axesOp.lift6(lengthOp, spanOp, heightOp, pitchOp, fflOp, function (axes, length, span, height, pitch, ffl) {
+                    var ca = Math.cos(Util_1.toRadians(pitch));
+                    var sa = Math.sin(Util_1.toRadians(pitch));
+                    var roofPlaneHeight = span / ca;
+                    return new Roof_1.Roof({
+                        cRoofDataOp: cSide1RoofDataOp,
+                        cStableName: params.cStableName.map(function (stableName) { return stableName + ".side1Roof"; }),
+                        cAxes: new sodium.Cell(axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * span, ffl + height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa))))),
+                        cOutline: new sodium.Cell([
+                            Vector2D_1.Vector2D.create(-0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length, roofPlaneHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * length, roofPlaneHeight)
+                        ]),
+                        cCladdingTextureType: cRoofCladdingTextureType,
+                        cCladdingTextureColour: cRoofCladdingTextureColour,
+                        cBayMarkers: params.cSideBayMarkers,
+                        cHighlightedStableNames: params.cHighlightedStableNames,
+                        cVisible: params.cRoofVisible
+                    });
+                });
+            });
+            /*
+        let cGutterBargeRidgeOp =
+            params.cAxesOp.lift(
+                params.cCladdingData,
+                params.cLengthOp,
+
+            )
+            new GutterBargeRidge({
+                cAxes: params.cFFLOp
+            });
+            */
+            var cSlabOp = params.cAxesOp.lift5(params.cLengthOp, cSpanOp, params.cSlabThicknessOp, params.cFFLOp, function (axesOp, lengthOp, spanOp, slabThicknessOp, fflOp) {
+                return axesOp.lift5(lengthOp, spanOp, slabThicknessOp, fflOp, function (axes, length, span, slabThickness, ffl) {
+                    return new Slab_1.Slab({
+                        cAxes: new sodium.Cell(axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, ffl - 0.5 * slabThickness), Quaternion_1.Quaternion.identity))),
+                        cOutline: new sodium.Cell([
+                            Vector2D_1.Vector2D.create(-0.5 * length - 10.0, -0.5 * span - 10.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length + 10.0, -0.5 * span - 10.0),
+                            Vector2D_1.Vector2D.create(+0.5 * length + 10.0, +0.5 * span + 10.0),
+                            Vector2D_1.Vector2D.create(-0.5 * length - 10.0, +0.5 * span + 10.0),
+                        ]),
+                        cThickness: new sodium.Cell(slabThickness)
+                    });
+                });
+            });
+            var cModel = MkModelEffect_1.composeCListOfCModels(cSide1WallOp.lift5(cEnd1WallOp, cEnd2WallOp, cSide1RoofOp, cSlabOp, function (side1WallOp, end1WallOp, end2WallOp, side1RoofOp, slabOp) {
+                return ArrayUtil_1.arrayJoin([
+                    ArrayUtil_1.arrayBind([
+                        side1WallOp,
+                        end1WallOp,
+                        end2WallOp
+                    ], function (wallOp) {
+                        return wallOp.map(function (wall) { return [wall.cModel]; }).orSome([]);
+                    }),
+                    side1RoofOp.map(function (side1Roof) { return [side1Roof.cModel]; }).orSome([]),
+                    slabOp.map(function (slab) { return [slab.cModel]; }).orSome([])
+                ]);
+            }));
+            _this._params = params;
+            _this._cModel = cModel;
+        });
+    }
+    Object.defineProperty(LeanTo.prototype, "params", {
+        get: function () {
+            return this._params;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanTo.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    LeanTo.prototype.trace = function () {
+        return [
+            this.params.cAxesOp,
+            this.params.cLengthOp,
+            this.params.cLeanToDataOp,
+            this.params.cCladdingData,
+            this.params.cSideBayMarkers,
+            this.params.cBattenProperties,
+            this.params.cHighlightedStableNames,
+            this.cModel
+        ].concat(this._keepAlive);
+    };
+    return LeanTo;
+}());
+exports.LeanTo = LeanTo;
+//# sourceMappingURL=LeanTo.js.map
+});
 ___scope___.file("app/model/Whirlybirds.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -7041,6 +7340,20 @@ var BuildingData = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(BuildingData.prototype, "side1LeanToDataOp", {
+        get: function () {
+            return this._params.side1LeanToDataOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "side2LeanToDataOp", {
+        get: function () {
+            return this._params.side2LeanToDataOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
     BuildingData.create = function (params) {
         return new BuildingData(params);
     };
@@ -7083,6 +7396,13 @@ function roofLensesFromBuildingData(buildingData) {
     ];
 }
 exports.roofLensesFromBuildingData = roofLensesFromBuildingData;
+function leanToOpLensesFromBuildingData(buildingData) {
+    return [
+        Tuples_1.T2.of("side1LeanTo", side1LeanToOpLens),
+        Tuples_1.T2.of("side2LeanTo", side2LeanToOpLens)
+    ];
+}
+exports.leanToOpLensesFromBuildingData = leanToOpLensesFromBuildingData;
 var side1WallLens = Lens_1.Lens.create(function (buildingData) {
     return Tuples_1.T2.of(buildingData.side1WallData, function (side1WallData) { return buildingData.from({ side1WallData: side1WallData }); });
 });
@@ -7100,6 +7420,12 @@ var side1RoofLens = Lens_1.Lens.create(function (buildingData) {
 });
 var side2RoofLens = Lens_1.Lens.create(function (buildingData) {
     return Tuples_1.T2.of(buildingData.side2RoofData, function (side2RoofData) { return buildingData.from({ side2RoofData: side2RoofData }); });
+});
+var side1LeanToOpLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.side1LeanToDataOp, function (side1LeanToDataOp) { return buildingData.from({ side1LeanToDataOp: side1LeanToDataOp }); });
+});
+var side2LeanToOpLens = Lens_1.Lens.create(function (buildingData) {
+    return Tuples_1.T2.of(buildingData.side2LeanToDataOp, function (side2LeanToDataOp) { return buildingData.from({ side2LeanToDataOp: side2LeanToDataOp }); });
 });
 function internalWallLens(markerIndex) {
     return Lens_1.Lens.fromGetterAndSetter(function (buildingData) {
@@ -7535,6 +7861,22 @@ var BuildingEffect = /** @class */ (function () {
                 else {
                     return default_;
                 }
+            },
+            insertLeanTo: function (leanToStableName, leanToFormProperties) {
+                if (cases.insertLeanTo) {
+                    return cases.insertLeanTo(leanToStableName, leanToFormProperties);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeLeanTo: function (leanToStableName) {
+                if (cases.removeLeanTo) {
+                    return cases.removeLeanTo(leanToStableName);
+                }
+                else {
+                    return default_;
+                }
             }
         });
     };
@@ -7552,6 +7894,12 @@ var BuildingEffect = /** @class */ (function () {
     };
     BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdPos) {
         return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdPos);
+    };
+    BuildingEffect.insertLeanTo = function (leanToStableName, leanToFormProperties) {
+        return new BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties);
+    };
+    BuildingEffect.removeLeanTo = function (leanToStableName) {
+        return new BuildingEffectRemoveLeanTo(leanToStableName);
     };
     return BuildingEffect;
 }());
@@ -7618,6 +7966,31 @@ var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
         return cases.insertWhirlybird(this._roofStableName, this._whirlybirdPos);
     };
     return BuildingEffectInsertWhirlybird;
+}(BuildingEffect));
+var BuildingEffectInsertLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertLeanTo, _super);
+    function BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        _this._leanToFormProperties = leanToFormProperties;
+        return _this;
+    }
+    BuildingEffectInsertLeanTo.prototype.match = function (cases) {
+        return cases.insertLeanTo(this._leanToStableName, this._leanToFormProperties);
+    };
+    return BuildingEffectInsertLeanTo;
+}(BuildingEffect));
+var BuildingEffectRemoveLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveLeanTo, _super);
+    function BuildingEffectRemoveLeanTo(leanToStableName) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        return _this;
+    }
+    BuildingEffectRemoveLeanTo.prototype.match = function (cases) {
+        return cases.removeLeanTo(this._leanToStableName);
+    };
+    return BuildingEffectRemoveLeanTo;
 }(BuildingEffect));
 //# sourceMappingURL=BuildingEffect.js.map
 });
@@ -8145,6 +8518,419 @@ var ToggleBaysMode = /** @class */ (function (_super) {
 exports.ToggleBaysMode = ToggleBaysMode;
 //# sourceMappingURL=ToggleBaysMode.js.map
 });
+___scope___.file("app/modes/ToggleLeanTosMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var Mode_1 = require("./Mode");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var Box3D_1 = require("../math/Box3D");
+var Outline3D_1 = require("../math/Outline3D");
+var Util_1 = require("../math/Util");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var BuildingEffect_1 = require("../model/BuildingEffect");
+var Tuples_1 = require("../Tuples");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Quaternion_1 = require("../math/Quaternion");
+var ToggleLeanTosMode = /** @class */ (function (_super) {
+    __extends(ToggleLeanTosMode, _super);
+    function ToggleLeanTosMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cMouseRayOp = params.cMousePosOp
+                .lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
+                return mousePosOp.bind(screenPointToWorldRayOp);
+            });
+            var cLeanToCollidables = params.cBuildingDataOp.lift(params.cLeanToFormPropertiesOp, function (buildingDataOp, leanToFormPropertiesOp) {
+                return buildingDataOp
+                    .lift2(leanToFormPropertiesOp, function (buildingData, leanToFormProperties) {
+                    var side1LeanToCollidable = buildingData.side1LeanToDataOp
+                        .map(function (leanToData) {
+                        return new LeanToCollidable(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * buildingData.span - 0.5 * leanToData.span, 0.0), Quaternion_1.Quaternion.identity), buildingData.length, leanToData.span, leanToData.height, leanToData.pitch);
+                    })
+                        .orSome_(function () {
+                        return new LeanToCollidable(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * buildingData.span - 0.5 * leanToFormProperties.span, 0.0), Quaternion_1.Quaternion.identity), buildingData.length, leanToFormProperties.span, leanToFormProperties.height, leanToFormProperties.pitch);
+                    });
+                    var side2LeanToCollidable = buildingData.side2LeanToDataOp
+                        .map(function (leanToData) {
+                        return new LeanToCollidable(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * buildingData.span + 0.5 * leanToData.span, 0.0), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ, Vector3D_1.Vector3D.negUnitX)), buildingData.length, leanToData.span, leanToData.height, leanToData.pitch);
+                    })
+                        .orSome_(function () {
+                        return new LeanToCollidable(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, +0.5 * buildingData.span + 0.5 * leanToFormProperties.span, 0.0), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitZ, Vector3D_1.Vector3D.negUnitX)), buildingData.length, leanToFormProperties.span, leanToFormProperties.height, leanToFormProperties.pitch);
+                    });
+                    var side1Existing = buildingData.side1LeanToDataOp.isSome;
+                    var side2Existing = buildingData.side2LeanToDataOp.isSome;
+                    return [Tuples_1.T4.of(1, "side1LeanTo", side1LeanToCollidable, side1Existing), Tuples_1.T4.of(2, "side2LeanTo", side2LeanToCollidable, side2Existing)];
+                })
+                    .orSome([]);
+            });
+            var cLeanToCollidableUnderMouseOp = cMouseRayOp.lift(cLeanToCollidables, function (mouseRayOp, leanToCollidables) {
+                return mouseRayOp.bind(function (mouseRay) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(leanToCollidables, function (leanToCollidable) {
+                        return leanToCollidable._3.rayIntersectionTimeOp(mouseRay)
+                            .map(function (t) { return [Tuples_1.T2.of(leanToCollidable, t)]; })
+                            .orSome([]);
+                    }), function (a, b) { return a._2 < b._2 ? a : b; })
+                        .map(function (x) { return x._1; });
+                });
+            });
+            var cOverlayModelOp = cLeanToCollidables.lift(cLeanToCollidableUnderMouseOp, function (leanToCollidables, leanToCollidableUnderMouseOp) {
+                return leanToCollidables.length == 0 && leanToCollidableUnderMouseOp.isNone ?
+                    Option_1.Option.none() :
+                    Option_1.Option.some(MkModelEffect_1.MkModelEffect.compose(ArrayUtil_1.arrayJoin([
+                        ArrayUtil_1.arrayBind(leanToCollidables, function (leanToCollidable) {
+                            if (leanToCollidableUnderMouseOp.isSome) {
+                                var leanToCollidableUnderMouse = leanToCollidableUnderMouseOp.fromSome();
+                                if (leanToCollidableUnderMouse._1 == leanToCollidable._1) {
+                                    return [];
+                                }
+                            }
+                            return [leanToCollidable._3.ghostModel];
+                        }),
+                        leanToCollidableUnderMouseOp
+                            .map(function (leanToCollidableUnderMouse) {
+                            return [leanToCollidableUnderMouse._3.highlightModel];
+                        })
+                            .orSome([])
+                    ])));
+            });
+            var sBuildingEffect = SodiumUtil
+                .streamFilterOption(params.sMouseLeftPressed
+                .snapshot1(cLeanToCollidableUnderMouseOp)
+                .snapshot(params.cLeanToFormPropertiesOp, function (leanToCollidableUnderMouseOp, leanToFormPropertiesOp) {
+                return leanToCollidableUnderMouseOp
+                    .bind(function (leanToCollidableUnderMouse) {
+                    var leanToStableName = leanToCollidableUnderMouse._2;
+                    var existing = leanToCollidableUnderMouse._4;
+                    if (existing) {
+                        return Option_1.Option.some(BuildingEffect_1.BuildingEffect.removeLeanTo(leanToStableName));
+                    }
+                    else {
+                        return leanToFormPropertiesOp.map(function (leanToFormProperties) {
+                            return BuildingEffect_1.BuildingEffect.insertLeanTo(leanToStableName, leanToFormProperties);
+                        });
+                    }
+                });
+            }));
+            _this._cOverlayModelOp = cOverlayModelOp;
+            _this._sBuildingEffect = sBuildingEffect;
+        });
+        return _this;
+    }
+    Object.defineProperty(ToggleLeanTosMode.prototype, "cOverlayModelOp", {
+        get: function () {
+            return this._cOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ToggleLeanTosMode.prototype, "sBuildingEffect", {
+        get: function () {
+            return this._sBuildingEffect;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return ToggleLeanTosMode;
+}(Mode_1.Mode));
+exports.ToggleLeanTosMode = ToggleLeanTosMode;
+var LeanToCollidable = /** @class */ (function () {
+    function LeanToCollidable(axes, length, span, height, pitch) {
+        this._faces = undefined;
+        this._boundingBox = undefined;
+        this._ghostModel = undefined;
+        this._highlightModel = undefined;
+        this.axes = axes;
+        this.length = length;
+        this.span = span;
+        this.height = height;
+        this.pitch = pitch;
+    }
+    LeanToCollidable.prototype.rayIntersectionTimeOp = function (ray) {
+        if (this.boundingBox.rayIntersectionTime(ray).isNone) {
+            return Option_1.Option.none();
+        }
+        return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(this.faces, function (face) {
+            return face.rayIntersectionTimeOp(ray)
+                .map(function (t) { return [t]; })
+                .orSome([]);
+        }), function (a, b) { return a < b ? a : b; });
+    };
+    Object.defineProperty(LeanToCollidable.prototype, "faces", {
+        get: function () {
+            if (!this._faces) {
+                var ca = Math.cos(Util_1.toRadians(this.pitch));
+                var sa = Math.sin(Util_1.toRadians(this.pitch));
+                var peakHeight = this.height + this.span * Math.tan(Util_1.toRadians(this.pitch));
+                var roofPlaneHeight = this.span / Math.cos(Util_1.toRadians(this.pitch));
+                this._faces = [
+                    // side 1
+                    Outline3D_1.Outline3D.create({
+                        axes: this.axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * this.span, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ))),
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * this.length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.length, this.height),
+                            Vector2D_1.Vector2D.create(-0.5 * this.length, this.height)
+                        ]
+                    }),
+                    // end 1
+                    Outline3D_1.Outline3D.create({
+                        axes: this.axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(-0.5 * this.length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.negUnitY, Vector3D_1.Vector3D.unitZ))),
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * this.span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.span, this.height),
+                            Vector2D_1.Vector2D.create(-0.5 * this.span, peakHeight)
+                        ]
+                    }),
+                    // end 2
+                    Outline3D_1.Outline3D.create({
+                        axes: this.axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(+0.5 * this.length, 0.0, 0.0), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitY, Vector3D_1.Vector3D.unitZ))),
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * this.span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.span, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.span, peakHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * this.span, this.height)
+                        ]
+                    }),
+                    // roof
+                    Outline3D_1.Outline3D.create({
+                        axes: this.axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, -0.5 * this.span, this.height), Quaternion_1.Quaternion.fromUV(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.create(0.0, ca, sa)))),
+                        outline: [
+                            Vector2D_1.Vector2D.create(-0.5 * this.length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.length, 0.0),
+                            Vector2D_1.Vector2D.create(+0.5 * this.length, roofPlaneHeight),
+                            Vector2D_1.Vector2D.create(-0.5 * this.length, roofPlaneHeight)
+                        ]
+                    })
+                ];
+            }
+            return this._faces;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToCollidable.prototype, "boundingBox", {
+        get: function () {
+            if (!this._boundingBox) {
+                var boundingHeight = this.height + this.span * Math.tan(Util_1.toRadians(this.pitch));
+                this._boundingBox = Box3D_1.Box3D.create({
+                    axes: this.axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, 0.5 * boundingHeight), Quaternion_1.Quaternion.identity)),
+                    len: Vector3D_1.Vector3D.create(this.length, this.span, boundingHeight)
+                });
+            }
+            return this._boundingBox;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToCollidable.prototype, "ghostModel", {
+        get: function () {
+            var _this = this;
+            if (!this._ghostModel) {
+                this._ghostModel = MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var shape = new THREE.Shape();
+                    shape.moveTo(-0.5 * _this.span, 0.0);
+                    shape.lineTo(+0.5 * _this.span, 0.0);
+                    shape.lineTo(+0.5 * _this.span, _this.height);
+                    shape.lineTo(-0.5 * _this.span, _this.height + _this.span * Math.tan(Util_1.toRadians(_this.pitch)));
+                    shape.closePath();
+                    var geometry = new THREE.ExtrudeGeometry(shape, {
+                        depth: _this.length
+                    });
+                    geometry.translate(0.0, 0.0, -0.5 * _this.length);
+                    geometry.rotateX(0.5 * Math.PI);
+                    geometry.rotateZ(-0.5 * Math.PI);
+                    var material = new THREE.MeshStandardMaterial({ color: "#FFFFFF", transparent: true, opacity: 0.5 });
+                    var mesh = new THREE.Mesh(geometry, material);
+                    MkModelEffect_1.THREEObject3DSetAxes(mesh, _this.axes);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, mesh));
+                });
+            }
+            return this._ghostModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToCollidable.prototype, "highlightModel", {
+        get: function () {
+            var _this = this;
+            if (!this._highlightModel) {
+                this._highlightModel = MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
+                    var shape = new THREE.Shape();
+                    shape.moveTo(-0.5 * _this.span, 0.0);
+                    shape.lineTo(+0.5 * _this.span, 0.0);
+                    shape.lineTo(+0.5 * _this.span, _this.height);
+                    shape.lineTo(-0.5 * _this.span, _this.height + _this.span * Math.tan(Util_1.toRadians(_this.pitch)));
+                    shape.closePath();
+                    var geometry = new THREE.ExtrudeGeometry(shape, {
+                        depth: _this.length
+                    });
+                    geometry.translate(0.0, 0.0, -0.5 * _this.length);
+                    geometry.rotateX(0.5 * Math.PI);
+                    geometry.rotateZ(-0.5 * Math.PI);
+                    var material = new THREE.MeshStandardMaterial({ color: "#00FF00", transparent: true, opacity: 0.5 });
+                    var mesh = new THREE.Mesh(geometry, material);
+                    MkModelEffect_1.THREEObject3DSetAxes(mesh, _this.axes);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () { return function () { }; }, mesh));
+                });
+            }
+            return this._highlightModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return LeanToCollidable;
+}());
+exports.LeanToCollidable = LeanToCollidable;
+//# sourceMappingURL=ToggleLeanTosMode.js.map
+});
+___scope___.file("app/math/Box3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option_1 = require("../Option");
+var Box3D = /** @class */ (function () {
+    function Box3D(axes, len) {
+        this._axes = axes;
+        this._len = len;
+    }
+    Object.defineProperty(Box3D.prototype, "axes", {
+        get: function () {
+            return this._axes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Box3D.prototype, "len", {
+        get: function () {
+            return this._len;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Box3D.create = function (params) {
+        return new Box3D(params.axes, params.len);
+    };
+    Box3D.prototype.rayIntersectionTime = function (ray) {
+        var ray2 = ray.toSpace(this.axes);
+        { // x faces
+            var t1 = (-0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // y faces
+            var t1 = (-0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // z faces
+            var t1 = (-0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        return Option_1.Option.none();
+    };
+    return Box3D;
+}());
+exports.Box3D = Box3D;
+//# sourceMappingURL=Box3D.js.map
+});
 ___scope___.file("app/modes/ToggleWallsMode.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -8251,6 +9037,81 @@ var ToggleWallsMode = /** @class */ (function (_super) {
 }(Mode_1.Mode));
 exports.ToggleWallsMode = ToggleWallsMode;
 //# sourceMappingURL=ToggleWallsMode.js.map
+});
+___scope___.file("app/model/LeanToData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var LeanToData = /** @class */ (function () {
+    function LeanToData(params) {
+        this._params = params;
+    }
+    Object.defineProperty(LeanToData.prototype, "span", {
+        get: function () {
+            return this._params.span;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToData.prototype, "height", {
+        get: function () {
+            return this._params.height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToData.prototype, "pitch", {
+        get: function () {
+            return this._params.pitch;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToData.prototype, "side1WallData", {
+        get: function () {
+            return this._params.side1WallData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToData.prototype, "end1WallData", {
+        get: function () {
+            return this._params.end1WallData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToData.prototype, "end2WallData", {
+        get: function () {
+            return this._params.end2WallData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToData.prototype, "internalWallDatas", {
+        get: function () {
+            return this._params.internalWallDatas;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(LeanToData.prototype, "side1RoofData", {
+        get: function () {
+            return this._params.side1RoofData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    LeanToData.create = function (params) {
+        return new LeanToData(params);
+    };
+    LeanToData.prototype.from = function (params) {
+        return LeanToData.create(Object.assign({}, this._params, params));
+    };
+    return LeanToData;
+}());
+exports.LeanToData = LeanToData;
+//# sourceMappingURL=LeanToData.js.map
 });
 ___scope___.file("app/model/WallData.js", function(exports, require, module, __filename, __dirname){
 
@@ -8469,6 +9330,14 @@ var Operation = /** @class */ (function () {
                 else {
                     return default_;
                 }
+            },
+            toggleLeanTos: function () {
+                if (cases.toggleLeanTos) {
+                    return cases.toggleLeanTos();
+                }
+                else {
+                    return default_;
+                }
             }
         });
     };
@@ -8489,6 +9358,9 @@ var Operation = /** @class */ (function () {
     };
     Operation.insertWhirlybird = function () {
         return new OperationInsertWhirlybird();
+    };
+    Operation.toggleLeanTos = function () {
+        return new OperationToggleLeanTos();
     };
     return Operation;
 }());
@@ -8554,6 +9426,16 @@ var OperationInsertWhirlybird = /** @class */ (function (_super) {
         return cases.insertWhirlybird();
     };
     return OperationInsertWhirlybird;
+}(Operation));
+var OperationToggleLeanTos = /** @class */ (function (_super) {
+    __extends(OperationToggleLeanTos, _super);
+    function OperationToggleLeanTos() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationToggleLeanTos.prototype.match = function (cases) {
+        return cases.toggleLeanTos();
+    };
+    return OperationToggleLeanTos;
 }(Operation));
 //# sourceMappingURL=Operation.js.map
 });
@@ -58191,8 +59073,8 @@ var StreamWithSend = /** @class */ (function (_super) {
         // We throw this error if we send into FRP logic that has been constructed
         // but nothing is listening to it yet. We need to do it this way because
         // it's the only way to manage memory in a language with no finalizers.
-        if (this.vertex.refCount() == 0)
-            throw new Error("send() was invoked before listeners were registered");
+        // if (this.vertex.refCount() == 0)
+        //    throw new Error("send() was invoked before listeners were registered");
         if (this.firings.length == 0)
             Transaction.currentTransaction.last(function () {
                 _this.firings = [];
