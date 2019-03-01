@@ -15,11 +15,106 @@
         <link rel="stylesheet" href="js/jquery-ui.min.css">
         <script src="js/jquery.min.js"></script>
         <script src="js/jquery-ui.min.js"></script>
+        <script src="js/w3.js"></script>
     </head>
     <body>
         <script  type="text/javascript" src="online-quote.js"></script>
 
         <script>
+            var cScriptLoader = (function () {
+                function cScriptLoader(files)
+                {
+                    var _this = this;
+                    this.log = function (t)
+                    {
+                        console.log("ScriptLoader: " + t);
+                    };
+                    this.withNoCache = function (filename)
+                    {
+                        if (filename.indexOf("?") === -1)
+                            filename += "?no_cache=" + new Date().getTime();
+                        else
+                            filename += "&no_cache=" + new Date().getTime();
+                        return filename;
+                    };
+                    this.loadStyle = function (filename)
+                    {
+                        // HTMLLinkElement
+                        var link = document.createElement("link");
+                        link.rel = "stylesheet";
+                        link.type = "text/css";
+                        link.href = _this.withNoCache(filename);
+                        _this.log('Loading style ' + filename);
+                        link.onload = function ()
+                        {
+                            _this.log('Loaded style "' + filename + '".');
+                        };
+                        link.onerror = function ()
+                        {
+                            _this.log('Error loading style "' + filename + '".');
+                        };
+                        _this.m_head.appendChild(link);
+                    };
+                    this.loadScript = function (i)
+                    {
+                        var script = document.createElement('script');
+                        script.type = 'text/javascript';
+                        script.src = _this.withNoCache(_this.m_js_files[i]);
+                        var loadNextScript = function ()
+                        {
+                            if (i + 1 < _this.m_js_files.length)
+                            {
+                                _this.loadScript(i + 1);
+                            }
+                        };
+                        script.onload = function ()
+                        {
+                            _this.log('Loaded script "' + _this.m_js_files[i] + '".');
+                            loadNextScript();
+                        };
+                        script.onerror = function ()
+                        {
+                            _this.log('Error loading script "' + _this.m_js_files[i] + '".');
+                            loadNextScript();
+                        };
+                        _this.log('Loading script "' + _this.m_js_files[i] + '".');
+                        _this.m_head.appendChild(script);
+                    };
+                    this.loadFiles = function ()
+                    {
+                        // this.log(this.m_css_files);
+                        // this.log(this.m_js_files);
+                        for (var i = 0; i < _this.m_css_files.length; ++i)
+                            _this.loadStyle(_this.m_css_files[i]);
+                        _this.loadScript(0);
+                    };
+                    this.m_js_files = [];
+                    this.m_css_files = [];
+                    this.m_head = document.getElementsByTagName("head")[0];
+                    // this.m_head = document.head; // IE9+ only
+                    function endsWith(str, suffix)
+                    {
+                        if (str === null || suffix === null)
+                            return false;
+                        return str.indexOf(suffix, str.length - suffix.length) !== -1;
+                    }
+                    for (var i = 0; i < files.length; ++i)
+                    {
+                        if (endsWith(files[i], ".css"))
+                        {
+                            this.m_css_files.push(files[i]);
+                        }
+                        else if (endsWith(files[i], ".js"))
+                        {
+                            this.m_js_files.push(files[i]);
+                        }
+                        else
+                            this.log('Error unknown filetype "' + files[i] + '".');
+                    }
+                }
+                return cScriptLoader;
+            })();
+
             var openPropertiesAppCallback = function(propertiesName) {};
             var addOpeningButtonClickCallback = function(openingType) {};
             var toggleBaysButtonClickCallback = function() {};
@@ -89,50 +184,61 @@
                 }
             }
             function appLoaded() {
-                var cboWallSheetingProfile = document.getElementById("cboWallSheetingProfile");
-                var cboRoofSheetingProfile = document.getElementById("cboRoofSheetingProfile");
-                var cboWallSheetingColour = document.getElementById("cboWallSheetingColour");
-                var cboRoofSheetingColour = document.getElementById("cboRoofSheetingColour");
-                var cboGutterColour = document.getElementById("cboGutterColour");
-                var cboBargeColour = document.getElementById("cboBargeColour");
-                var cboRidgeColour = document.getElementById("cboRidgeColour");
-                cboWallSheetingProfile.addEventListener("input", function() {
-                    app.setWallSheetingProfile(cboWallSheetingProfile.value);
+                w3.includeHTML(function() {
+                    var cboWallSheetingProfile = document.getElementById("cboWallSheetingProfile");
+                    var cboRoofSheetingProfile = document.getElementById("cboRoofSheetingProfile");
+                    var cboWallSheetingColour = document.getElementById("cboWallSheetingColour");
+                    var cboRoofSheetingColour = document.getElementById("cboRoofSheetingColour");
+                    var cboGutterColour = document.getElementById("cboGutterColour");
+                    var cboBargeColour = document.getElementById("cboBargeColour");
+                    var cboRidgeColour = document.getElementById("cboRidgeColour");
+                    cboWallSheetingProfile.addEventListener("input", function() {
+                        app.setWallSheetingProfile(cboWallSheetingProfile.value);
+                    });
+                    cboRoofSheetingProfile.addEventListener("input", function() {
+                        app.setRoofSheetingProfile(cboRoofSheetingProfile.value);
+                    });
+                    cboWallSheetingColour.addEventListener("input", function() {
+                        app.setWallSheetingColour(cboWallSheetingColour.value);
+                    });
+                    cboRoofSheetingColour.addEventListener("input", function() {
+                        app.setRoofSheetingColour(cboRoofSheetingColour.value);
+                    });
+                    cboGutterColour.addEventListener("input", function() {
+                        app.setGutterColour(cboGutterColour.value);
+                    });
+                    cboBargeColour.addEventListener("input", function() {
+                        app.setBargeColour(cboBargeColour.value);
+                    });
+                    cboRidgeColour.addEventListener("input", function() {
+                        app.setRidgeColour(cboRidgeColour.value);
+                    });
+                    cboWallSheetingProfile.value = app.claddingData.wallSheetingProfile;
+                    cboRoofSheetingProfile.value = app.claddingData.roofSheetingProfile;
+                    cboWallSheetingColour.value = app.claddingData.wallSheetingColour;
+                    cboRoofSheetingColour.value = app.claddingData.roofSheetingColour;
+                    cboGutterColour.value = app.claddingData.gutterColour;
+                    cboBargeColour.value = app.claddingData.bargeColour;
+                    cboRidgeColour.value = app.claddingData.ridgeColour;
+                    updateCboColour(cboWallSheetingColour);
+                    updateCboColour(cboRoofSheetingColour);
+                    updateCboColour(cboGutterColour);
+                    updateCboColour(cboBargeColour);
+                    updateCboColour(cboRidgeColour);
+                    initUI();
                 });
-                cboRoofSheetingProfile.addEventListener("input", function() {
-                    app.setRoofSheetingProfile(cboRoofSheetingProfile.value);
-                });
-                cboWallSheetingColour.addEventListener("input", function() {
-                    app.setWallSheetingColour(cboWallSheetingColour.value);
-                });
-                cboRoofSheetingColour.addEventListener("input", function() {
-                    app.setRoofSheetingColour(cboRoofSheetingColour.value);
-                });
-                cboGutterColour.addEventListener("input", function() {
-                    app.setGutterColour(cboGutterColour.value);
-                });
-                cboBargeColour.addEventListener("input", function() {
-                    app.setBargeColour(cboBargeColour.value);
-                });
-                cboRidgeColour.addEventListener("input", function() {
-                    app.setRidgeColour(cboRidgeColour.value);
-                });
-                cboWallSheetingProfile.value = app.claddingData.wallSheetingProfile;
-                cboRoofSheetingProfile.value = app.claddingData.roofSheetingProfile;
-                cboWallSheetingColour.value = app.claddingData.wallSheetingColour;
-                cboRoofSheetingColour.value = app.claddingData.roofSheetingColour;
-                cboGutterColour.value = app.claddingData.gutterColour;
-                cboBargeColour.value = app.claddingData.bargeColour;
-                cboRidgeColour.value = app.claddingData.ridgeColour;
-                updateCboColour(cboWallSheetingColour);
-                updateCboColour(cboRoofSheetingColour);
-                updateCboColour(cboGutterColour);
-                updateCboColour(cboBargeColour);
-                updateCboColour(cboRidgeColour);
-                initUI();
             }
             function initUI() {
                 $(function() {
+                    var cboBuildingType = document.getElementById("cboBuildingType");
+                    var divBarnProperties = document.getElementById("barnProperties");
+                    cboBuildingType.addEventListener("input", function(ev) {
+                        if (cboBuildingType.value == "barn") {
+                            divBarnProperties.style.display = "block";
+                        } else {
+                            divBarnProperties.style.display = "none";
+                        }
+                    });
                     var txtSpan = document.getElementById("txtSpan");
                     var txtLength = document.getElementById("txtLength");
                     var txtHeight = document.getElementById("txtHeight");
@@ -176,7 +282,7 @@
                         $("#heightSlider").slider("value", txtHeight.value);
                     });
                     $("#pitchSlider").slider({
-                        "min": 10,
+                        "min": 5,
                         "max": 45,
                         "step": 5,
                         "value": 15,
@@ -188,6 +294,142 @@
                     txtPitch.addEventListener("input", function(ev) {
                         $("#pitchSlider").slider("value", txtPitch.value);
                     });
+                    // barn properties
+                    (function() {
+                        var txtLeftWingSpan = document.getElementById("txtLeftWingSpan");
+                        txtLeftWingSpan.value = "3000";
+                        $("#leftWingSpanSlider").slider({
+                            "min": 2000,
+                            "max": 6000,
+                            "step": 500,
+                            "value": 3000,
+                            "slide": function(event, ui) {
+                                txtLeftWingSpan.value = ui.value;
+                                app.setLeftWingSpan(ui.value);
+                            }
+                        });
+                        txtLeftWingSpan.addEventListener("input", function(ev) {
+                            $("#leftWingSpanSlider").slider("value", txtLeftWingSpan.value);
+                            let value2 = parseFloat(txtLeftWingSpan.value);
+                            if (!isNaN(value2)) {
+                                app.setLeftWingSpan(value2);
+                            }
+                        });
+                        var txtLeftWingHeight = document.getElementById("txtLeftWingHeight");
+                        txtLeftWingHeight.value = "2000";
+                        $("#leftWingHeightSlider").slider({
+                            "min": 1500,
+                            "max": 6000,
+                            "step": 100,
+                            "value": 2000,
+                            "slide": function(event, ui) {
+                                txtLeftWingHeight.value = ui.value;
+                                app.setLeftWingHeight(ui.value);
+                            }
+                        });
+                        txtLeftWingHeight.addEventListener("input", function(ev) {
+                            $("#leftWingHeightSlider").slider("value", txtLeftWingHeight.value);
+                            let value2 = parseFloat(txtLeftWingHeight.value);
+                            if (!isNaN(value2)) {
+                                app.setLeftWingHeight(value2);
+                            }
+                        });
+                        var txtLeftWingPitch = document.getElementById("txtLeftWingPitch");
+                        txtLeftWingPitch.value = "5";
+                        $("#leftWingPitchSlider").slider({
+                            "min": 5,
+                            "max": 25,
+                            "step": 5,
+                            "value": 5,
+                            "slide": function(event, ui) {
+                                txtLeftWingPitch.value = ui.value;
+                                app.setLeftWingPitch(ui.value);
+                            }
+                        });
+                        txtLeftWingPitch.addEventListener("input", function(ev) {
+                            $("#leftWingPitchSlider").slider("value", txtLeftWingPitch.value);
+                            let value2 = parseFloat(txtLeftWingPitch.value);
+                            if (!isNaN(value2)) {
+                                app.setLeftWingPitch(value2);
+                            }
+                        });
+                        var chkRightWingSameAsLeft = document.getElementById("chkRightWingSameAsLeft");
+                        var lblLefts = document.getElementsByClassName("barnPropertiesLblLeft");
+                        var divBarnRightWingProperties = document.getElementById("barnRightWingProperties");
+                        chkRightWingSameAsLeft.addEventListener("input", function() {
+                            if (chkRightWingSameAsLeft.checked) {
+                                divBarnRightWingProperties.style.display = "none";
+                                for (var i = 0; i < lblLefts.length; ++i) {
+                                    var lblLeft = lblLefts[i];
+                                    lblLeft.style.display = "none";
+                                }
+                            } else {
+                                divBarnRightWingProperties.style.display = "block";
+                                for (var i = 0; i < lblLefts.length; ++i) {
+                                    var lblLeft = lblLefts[i];
+                                    lblLeft.style.display = "block";
+                                }
+                            }
+                            app.setLeftWingSameAsRightWing(chkRightWingSameAsLeft.checked);
+                        });
+                        var txtRightWingSpan = document.getElementById("txtRightWingSpan");
+                        txtRightWingSpan.value = "3000";
+                        $("#rightWingSpanSlider").slider({
+                            "min": 2000,
+                            "max": 6000,
+                            "step": 500,
+                            "value": 3000,
+                            "slide": function(event, ui) {
+                                txtRightWingSpan.value = ui.value;
+                                app.setRightWingSpan(ui.value);
+                            }
+                        });
+                        txtRightWingSpan.addEventListener("input", function(ev) {
+                            $("#rightWingSpanSlider").slider("value", txtRightWingSpan.value);
+                            let value2 = parseFloat(txtRightWingSpan.value);
+                            if (!isNaN(value2)) {
+                                app.setRightWingSpan(value2);
+                            }
+                        });
+                        var txtRightWingHeight = document.getElementById("txtRightWingHeight");
+                        txtRightWingHeight.value = "2000";
+                        $("#rightWingHeightSlider").slider({
+                            "min": 1500,
+                            "max": 6000,
+                            "step": 100,
+                            "value": 2000,
+                            "slide": function(event, ui) {
+                                txtRightWingHeight.value = ui.value;
+                                app.setRightWingHeight(ui.value);
+                            }
+                        });
+                        txtRightWingHeight.addEventListener("input", function(ev) {
+                            $("#rightWingHeightSlider").slider("value", txtRightWingHeight.value);
+                            let value2 = parseFloat(txtRightWingHeight.value);
+                            if (!isNaN(value2)) {
+                                app.setRightWingHeight(value2);
+                            }
+                        });
+                        var txtRightWingPitch = document.getElementById("txtRightWingPitch");
+                        txtRightWingPitch.value = "5";
+                        $("#rightWingPitchSlider").slider({
+                            "min": 5,
+                            "max": 25,
+                            "step": 5,
+                            "value": 5,
+                            "slide": function(event, ui) {
+                                txtRightWingPitch.value = ui.value;
+                                app.setLeftWingPitch(ui.value);
+                            }
+                        });
+                        txtRightWingPitch.addEventListener("input", function(ev) {
+                            $("#rightWingPitchSlider").slider("value", txtRightWingPitch.value);
+                            let value2 = parseFloat(txtRightWingPitch.value);
+                            if (!isNaN(value2)) {
+                                app.setRightWingPitch(value2);
+                            }
+                        });
+                    })();
                     //
                     (function() {
                         var btnAddSkylight = document.getElementById("btnAddSkylight");
@@ -245,8 +487,29 @@
                                 leanToPropertiesDiv.style.display = "none";
                             }
                         });
+                        doLoadFromAddressBar();
                     })();
                 });
+            }
+            function doLoadFromAddressBar() {
+                var data = window.location.search.substring(1);
+                if (data.length != 0) {
+                    app.loadBuildingFromCompressedBase64(data);
+                }
+                var scriptLoader = new cScriptLoader(["js/GLTFExporter.js"]);
+                scriptLoader.loadFiles();
+            }
+            function updateShareLink() {
+                var shareLink = document.getElementById("shareLink");
+                app.saveBuildingToCompressedBase64()
+                    .then(data => {
+                        let url = window.location.href + "?" + data;
+                        shareLink.href = url;
+                        shareLink.innerText = "link";
+                    });
+            }
+            function download() {
+                app.downloadGLTF();
             }
         </script>
 
@@ -262,7 +525,7 @@
                 <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')">Colours & Claddings</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('optionsProperties')">Options</button>
                 <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
-                <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Save & Share</button>
+                <button class="w3-bar-item w3-button" onclick="openProperties('saveAndShareProperties'); updateShareLink();">Save & Share</button>
             </div>
             <div>
                 <div id="shedTypeProperties" class="properties">
@@ -272,8 +535,7 @@
                             <option value="skillionRoofGarage">Skillion Roof Garage</option>
                             <option value="flatRoofCarport">Flat Roof Carport</option>
                             <option value="gableRoofCarport">Gable Roof Carport</option>
-                            <option value="americanBarn">American Barn</option>
-                            <option value="australianBarn">Australian Barn</option>
+                            <option value="barn">Barn</option>
                             <option value="skillionBarn">Skillion Barn</option>
                             <option value="quakerBarn">Quaker Barn</option>
                         </select><br/>
@@ -281,6 +543,8 @@
                     Length: <div id="lengthSlider"></div> <input id="txtLength" type="text" value="12000"/><br/>
                     Height: <div id="heightSlider"></div> <input id="txtHeight" type="text" value="2400"/><br/>
                     Pitch: <div id="pitchSlider"></div> <input id="txtPitch" type="text" value="15"/><br/>
+                    <div id="barnProperties" style="display:none" w3-include-html="barn_properties.html">
+                    </div>
                 </div>
                 <div id="addProperties" class="properties" style="display:none">
                     <div class="flex-container flex-vertical">
@@ -318,6 +582,10 @@
                 </div>
                 <div id="optionsProperties" class="properties" style="display:none">
                     <input id="chkAnimate" type="checkbox"> Animate<br/>
+                </div>
+                <div id="saveAndShareProperties" class="properties" style="display:none">
+                    <a id="shareLink" href="">link</a>
+                    <button id="btnDownload" type="button" onclick="download()">Download</button>
                 </div>
                 <div id="todoProperties" class="properties" style="display:none">
                     TODO
