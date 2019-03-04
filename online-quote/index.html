@@ -233,7 +233,7 @@
                     var cboBuildingType = document.getElementById("cboBuildingType");
                     var divBarnProperties = document.getElementById("barnProperties");
                     cboBuildingType.addEventListener("input", function(ev) {
-                        if (cboBuildingType.value == "barn") {
+                        if (cboBuildingType.value == "barn" || cboBuildingType.value == "skillionBarn") {
                             divBarnProperties.style.display = "block";
                         } else {
                             divBarnProperties.style.display = "none";
@@ -370,7 +370,7 @@
                                     lblLeft.style.display = "block";
                                 }
                             }
-                            app.setLeftWingSameAsRightWing(chkRightWingSameAsLeft.checked);
+                            app.setRightWingSameAsLeftWing(chkRightWingSameAsLeft.checked);
                         });
                         var txtRightWingSpan = document.getElementById("txtRightWingSpan");
                         txtRightWingSpan.value = "3000";
