@@ -26,6 +26,7 @@ var Vector2D_1 = require("./math/Vector2D");
 var Vector3D_1 = require("./math/Vector3D");
 var AppModel_1 = require("./model/AppModel");
 var Operation_1 = require("./model/Operation");
+var FloatingDeleteButtonHelper_1 = require("./ui/FloatingDeleteButtonHelper");
 var TextureLoader_1 = require("./TextureLoader");
 var App = /** @class */ (function () {
     function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked, sToggleBaysButtonClicked, sToggleWallsButtonClicked) {
@@ -128,6 +129,7 @@ var App = /** @class */ (function () {
             var canvas = document.getElementById("canvas");
             var camera = new THREE.PerspectiveCamera(75, 800.0 / 600.0, 500.0, 100000.0);
             var renderer = new THREE.WebGLRenderer({ canvas: canvas });
+            var canvasParentDiv = canvas.parentElement;
             function fixCanvasAndCamera() {
                 var canvasParent = canvas.parentElement;
                 canvas.width = canvasParent.clientWidth;
@@ -158,8 +160,18 @@ var App = /** @class */ (function () {
                 var light2 = new THREE.AmbientLight(0xbbbbbb);
                 scene.add(light2);
             }
+            var ssBounceProjectionFunctions = new sodium.StreamSink();
             controls.addEventListener("change", function () {
-                renderer.render(scene, camera);
+                var action = function () {
+                    ssBounceProjectionFunctions.send(sodium.Unit.UNIT);
+                    renderer.render(scene, camera);
+                };
+                if (sodium.Transaction.currentTransaction != null) {
+                    window.setTimeout(action);
+                }
+                else {
+                    action();
+                }
             });
             // building properties
             var cboBuildingType = document.getElementById("cboBuildingType");
@@ -371,7 +383,26 @@ var App = /** @class */ (function () {
                     return Option_1.Option.some(Ray3D_1.Ray3D.create(Vector3D_1.Vector3D.create(camera.position.x, camera.position.y, camera.position.z), Vector3D_1.Vector3D.create(vec.x, vec.y, vec.z)));
                 };
             })();
-            var cScreenPosToWorldRayOp = new sodium.Cell(screenPosToWorldRayOp);
+            var projectWorldPointToScreenOp = (function () {
+                var vec = new THREE.Vector3(); // create once and reuse
+                return function (worldPoint) {
+                    var halfWidth = canvas.width / 2.0;
+                    var halfHeight = canvas.height / 2.0;
+                    vec.set(worldPoint.x, worldPoint.y, worldPoint.z);
+                    vec.project(camera);
+                    vec.x = (vec.x * halfWidth) + halfWidth;
+                    vec.y = -(vec.y * halfHeight) + halfHeight;
+                    if (vec.x < 0.0 || vec.x >= halfWidth * 2.0) {
+                        return Option_1.Option.none();
+                    }
+                    if (vec.y < 0.0 || vec.y >= halfHeight * 2.0) {
+                        return Option_1.Option.none();
+                    }
+                    return Option_1.Option.some(Vector2D_1.Vector2D.create(vec.x, vec.y));
+                };
+            })();
+            var cScreenPosToWorldRayOp = ssBounceProjectionFunctions.mapTo(screenPosToWorldRayOp).hold(screenPosToWorldRayOp);
+            var cProjectWorldPointToScreenOp = ssBounceProjectionFunctions.mapTo(projectWorldPointToScreenOp).hold(projectWorldPointToScreenOp);
             var csMousePosOp = new sodium.CellSink(Option_1.Option.none());
             var ssMousePressed = new sodium.StreamSink();
             { // inputs
@@ -446,7 +477,7 @@ var App = /** @class */ (function () {
                 .streamFilterOption(sPropertiesNameButtonClicked.map(function (propertiesName) {
                 switch (propertiesName) {
                     default:
-                        return Option_1.Option.some(Operation_1.Operation.idle());
+                        return Option_1.Option.some(Operation_1.Operation.select());
                 }
             }))
                 .orElse(sAddOpeningButtonClicked.map(function (openingType) { return Operation_1.Operation.insertOpening(openingType); }))
@@ -455,12 +486,15 @@ var App = /** @class */ (function () {
                 .orElse(_this._ssInsertSkylight.mapTo(Operation_1.Operation.insertSkylight()))
                 .orElse(_this._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()))
                 .orElse(_this._ssToggleLeanTo.mapTo(Operation_1.Operation.toggleLeanTos()));
+            var clFloatingDeleteButtons = new sodium.CellLoop();
+            var floatingDeleteButtonHelper = new FloatingDeleteButtonHelper_1.FloatingDeleteButtonHelper(canvasParentDiv, clFloatingDeleteButtons);
             // model
             var appModel = new AppModel_1.AppModel({
                 sTick: ssTick,
                 cMousePosOp: csMousePosOp,
                 sMousePressed: ssMousePressed,
                 cScreenPointToWorldRayOp: cScreenPosToWorldRayOp,
+                cProjectWorldPointToScreenOp: cProjectWorldPointToScreenOp,
                 buildingParamsChanges: {
                     claddingParamsChanges: {
                         sSetWallSheetingProfile: _this._ssSetWallSheetingProfile,
@@ -487,11 +521,13 @@ var App = /** @class */ (function () {
                 },
                 cOpeningFormPropertiesOp: cOpeningFormPropertiesOp,
                 cLeanToFormPropertiesOp: _this._cLeanToFormProperties.map(function (x) { return Option_1.Option.some(x); }),
-                sPerformOperation: sPerformOperation
+                sPerformOperation: sPerformOperation,
+                sFloatingDeleteButtonClicked: floatingDeleteButtonHelper.sDeleteButtonClicked
             });
             clModel.loop(appModel.cModel);
             clOverlayModelOp.loop(appModel.cOverlayModelOp);
             slSetFormProperties.loop(appModel.sSetFormProperties);
+            clFloatingDeleteButtons.loop(appModel.cFloatingDeleteButtons);
             appModel.sRepaint.listen(function (unused) {
                 renderer.render(scene, camera);
             });
@@ -813,12 +849,20 @@ var CladdingData_1 = require("./CladdingData");
 var LeanToData_1 = require("./LeanToData");
 var RoofData_1 = require("./RoofData");
 var WallData_1 = require("./WallData");
+var IdGen_1 = require("../IdGen");
 var Option_1 = require("../Option");
 var Tuples_1 = require("../Tuples");
 var BuildingData = /** @class */ (function () {
     function BuildingData(params) {
         this._params = params;
     }
+    Object.defineProperty(BuildingData.prototype, "idGen", {
+        get: function () {
+            return this._params.idGen;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(BuildingData.prototype, "claddingData", {
         get: function () {
             return this._params.claddingData;
@@ -942,6 +986,7 @@ var BuildingData = /** @class */ (function () {
     };
     BuildingData.fromJSON = function (json) {
         return BuildingData.create({
+            idGen: IdGen_1.IdGen.fromJSON(json.idGen),
             claddingData: CladdingData_1.CladdingData.fromJSON(json.claddingData),
             buildingType: json.buildingType,
             length: json.length,
@@ -1231,8 +1276,8 @@ ___scope___.file("app/model/RoofData.js", function(exports, require, module, __f
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var WhirlybirdData_1 = require("./WhirlybirdData");
 var Ranges1D_1 = require("../math/Ranges1D");
-var Vector2D_1 = require("../math/Vector2D");
 var RoofData = /** @class */ (function () {
     function RoofData(params) {
         this._params = params;
@@ -1270,7 +1315,7 @@ var RoofData = /** @class */ (function () {
     RoofData.fromJSON = function (json) {
         return RoofData.create({
             skylightRanges: Ranges1D_1.Ranges1D.fromJSON(json.skylightRanges),
-            whirlybirds: json.whirlybirds.map(function (whirlybird) { return Vector2D_1.Vector2D.fromJSON(whirlybird); })
+            whirlybirds: json.whirlybirds.map(function (whirlybird) { return WhirlybirdData_1.WhirlybirdData.fromJSON(whirlybird); })
         });
     };
     RoofData._default = RoofData.create({ skylightRanges: Ranges1D_1.Ranges1D.empty, whirlybirds: [] });
@@ -1278,6 +1323,251 @@ var RoofData = /** @class */ (function () {
 }());
 exports.RoofData = RoofData;
 //# sourceMappingURL=RoofData.js.map
+});
+___scope___.file("app/model/WhirlybirdData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector2D_1 = require("../math/Vector2D");
+var WhirlybirdData = /** @class */ (function () {
+    function WhirlybirdData(params) {
+        this._params = params;
+    }
+    Object.defineProperty(WhirlybirdData.prototype, "id", {
+        get: function () {
+            return this._params.id;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WhirlybirdData.prototype, "position", {
+        get: function () {
+            return this._params.position;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    WhirlybirdData.create = function (params) {
+        return new WhirlybirdData(params);
+    };
+    WhirlybirdData.prototype.from = function (params) {
+        return WhirlybirdData.create(Object.assign({}, this._params, params));
+    };
+    WhirlybirdData.prototype.toJSON = function () {
+        return this._params;
+    };
+    WhirlybirdData.fromJSON = function (json) {
+        return this.create({
+            id: json.id,
+            position: Vector2D_1.Vector2D.fromJSON(json.position)
+        });
+    };
+    return WhirlybirdData;
+}());
+exports.WhirlybirdData = WhirlybirdData;
+//# sourceMappingURL=WhirlybirdData.js.map
+});
+___scope___.file("app/math/Vector2D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector3D_1 = require("./Vector3D");
+var Vector2D = /** @class */ (function () {
+    function Vector2D(x, y) {
+        this._x = x;
+        this._y = y;
+    }
+    Vector2D.create = function (x, y) {
+        return new Vector2D(x, y);
+    };
+    Vector2D.prototype.toVector3D = function () {
+        return Vector3D_1.Vector3D.create(this.x, this.y, 0.0);
+    };
+    Object.defineProperty(Vector2D.prototype, "x", {
+        get: function () {
+            return this._x;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Vector2D.prototype, "y", {
+        get: function () {
+            return this._y;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Vector2D.prototype.dot = function (rhs) {
+        return this.x * rhs.x + this.y * rhs.y;
+    };
+    Vector2D.prototype.add = function (rhs) {
+        return Vector2D.create(this.x + rhs.x, this.y + rhs.y);
+    };
+    Vector2D.prototype.sub = function (rhs) {
+        return Vector2D.create(this.x - rhs.x, this.y - rhs.y);
+    };
+    Vector2D.prototype.scale = function (a) {
+        return Vector2D.create(this.x * a, this.y * a);
+    };
+    Vector2D.prototype.cross = function (rhs) {
+        return this.x * rhs.y - this.y * rhs.x;
+    };
+    Vector2D.prototype.normalize = function () {
+        return this.scale(1.0 / this.length());
+    };
+    Vector2D.prototype.lengthSquared = function () {
+        return this.dot(this);
+    };
+    Vector2D.prototype.length = function () {
+        return Math.sqrt(this.lengthSquared());
+    };
+    Vector2D.prototype.distanceSquared = function (rhs) {
+        var dx = rhs.x - this.x;
+        var dy = rhs.y - this.y;
+        return dx * dx + dy * dy;
+    };
+    Vector2D.prototype.distance = function (rhs) {
+        return Math.sqrt(this.distanceSquared(rhs));
+    };
+    Vector2D.prototype.toString = function () {
+        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ")";
+    };
+    Vector2D.prototype.toJSON = function () {
+        return { x: this.x, y: this.y };
+    };
+    Vector2D.fromJSON = function (json) {
+        return Vector2D.create(json.x, json.y);
+    };
+    Vector2D.zero = Vector2D.create(0.0, 0.0);
+    Vector2D.unitX = Vector2D.create(1.0, 0.0);
+    Vector2D.unitY = Vector2D.create(0.0, 1.0);
+    Vector2D.negUnitX = Vector2D.create(-1.0, 0.0);
+    Vector2D.negUnitY = Vector2D.create(0.0, -1.0);
+    return Vector2D;
+}());
+exports.Vector2D = Vector2D;
+//# sourceMappingURL=Vector2D.js.map
+});
+___scope___.file("app/math/Vector3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vector2D_1 = require("./Vector2D");
+var Vector3D = /** @class */ (function () {
+    function Vector3D(x, y, z) {
+        this._x = x;
+        this._y = y;
+        this._z = z;
+    }
+    Vector3D.zero_$LI$ = function () { if (Vector3D.zero == null)
+        Vector3D.zero = Vector3D.create(0, 0, 0); return Vector3D.zero; };
+    ;
+    Vector3D.unitX_$LI$ = function () { if (Vector3D.unitX == null)
+        Vector3D.unitX = Vector3D.create(1, 0, 0); return Vector3D.unitX; };
+    ;
+    Vector3D.unitY_$LI$ = function () { if (Vector3D.unitY == null)
+        Vector3D.unitY = Vector3D.create(0, 1, 0); return Vector3D.unitY; };
+    ;
+    Vector3D.unitZ_$LI$ = function () { if (Vector3D.unitZ == null)
+        Vector3D.unitZ = Vector3D.create(0, 0, 1); return Vector3D.unitZ; };
+    ;
+    Vector3D.negUnitX_$LI$ = function () { if (Vector3D.negUnitX == null)
+        Vector3D.negUnitX = Vector3D.create(-1, 0, 0); return Vector3D.negUnitX; };
+    ;
+    Vector3D.negUnitY_$LI$ = function () { if (Vector3D.negUnitY == null)
+        Vector3D.negUnitY = Vector3D.create(0, -1, 0); return Vector3D.negUnitY; };
+    ;
+    Vector3D.negUnitZ_$LI$ = function () { if (Vector3D.negUnitZ == null)
+        Vector3D.negUnitZ = Vector3D.create(0, 0, -1); return Vector3D.negUnitZ; };
+    ;
+    Vector3D.create = function (x, y, z) {
+        return new Vector3D(x, y, z);
+    };
+    Vector3D.prototype.xyToVector2D = function () {
+        return Vector2D_1.Vector2D.create(this.x, this.y);
+    };
+    Object.defineProperty(Vector3D.prototype, "x", {
+        get: function () {
+            return this._x;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Vector3D.prototype, "y", {
+        get: function () {
+            return this._y;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Vector3D.prototype, "z", {
+        get: function () {
+            return this._z;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Vector3D.prototype.getX = function () {
+        return this._x;
+    };
+    Vector3D.prototype.getY = function () {
+        return this._y;
+    };
+    Vector3D.prototype.getZ = function () {
+        return this._z;
+    };
+    Vector3D.prototype.dot = function (v) {
+        return this.x * v.x + this.y * v.y + this.z * v.z;
+    };
+    Vector3D.prototype.add = function (v) {
+        return Vector3D.create(this.x + v.x, this.y + v.y, this.z + v.z);
+    };
+    Vector3D.prototype.sub = function (v) {
+        return Vector3D.create(this.x - v.x, this.y - v.y, this.z - v.z);
+    };
+    Vector3D.prototype.scale = function (a) {
+        return Vector3D.create(this.x * a, this.y * a, this.z * a);
+    };
+    Vector3D.prototype.cross = function (v) {
+        return Vector3D.create(this.y * v.z - this.z * v.y, this.z * v.x - this.x * v.z, this.x * v.y - this.y * v.x);
+    };
+    Vector3D.prototype.normalize = function () {
+        var a = this.length();
+        return Vector3D.create(this.x / a, this.y / a, this.z / a);
+    };
+    Vector3D.prototype.lengthSquared = function () {
+        return this.dot(this);
+    };
+    Vector3D.prototype.length = function () {
+        return Math.sqrt(this.lengthSquared());
+    };
+    Vector3D.prototype.distanceSquared = function (v) {
+        var dx = this.x - v.x;
+        var dy = this.y - v.y;
+        var dz = this.z - v.z;
+        return dx * dx + dy * dy + dz * dz;
+    };
+    Vector3D.prototype.distance = function (v) {
+        return Math.sqrt(this.distanceSquared(v));
+    };
+    /**
+     *
+     * @return {string}
+     */
+    Vector3D.prototype.toString = function () {
+        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ", " + /* toString */ ('' + (this.z)) + ")";
+    };
+    return Vector3D;
+}());
+exports.Vector3D = Vector3D;
+Vector3D.negUnitZ_$LI$();
+Vector3D.negUnitY_$LI$();
+Vector3D.negUnitX_$LI$();
+Vector3D.unitZ_$LI$();
+Vector3D.unitY_$LI$();
+Vector3D.unitX_$LI$();
+Vector3D.zero_$LI$();
+//# sourceMappingURL=Vector3D.js.map
 });
 ___scope___.file("app/math/Ranges1D.js", function(exports, require, module, __filename, __dirname){
 
@@ -1562,208 +1852,6 @@ var V2 = /** @class */ (function () {
 exports.V2 = V2;
 //# sourceMappingURL=Vectors.js.map
 });
-___scope___.file("app/math/Vector2D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Vector3D_1 = require("./Vector3D");
-var Vector2D = /** @class */ (function () {
-    function Vector2D(x, y) {
-        this._x = x;
-        this._y = y;
-    }
-    Vector2D.create = function (x, y) {
-        return new Vector2D(x, y);
-    };
-    Vector2D.prototype.toVector3D = function () {
-        return Vector3D_1.Vector3D.create(this.x, this.y, 0.0);
-    };
-    Object.defineProperty(Vector2D.prototype, "x", {
-        get: function () {
-            return this._x;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Vector2D.prototype, "y", {
-        get: function () {
-            return this._y;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Vector2D.prototype.dot = function (rhs) {
-        return this.x * rhs.x + this.y * rhs.y;
-    };
-    Vector2D.prototype.add = function (rhs) {
-        return Vector2D.create(this.x + rhs.x, this.y + rhs.y);
-    };
-    Vector2D.prototype.sub = function (rhs) {
-        return Vector2D.create(this.x - rhs.x, this.y - rhs.y);
-    };
-    Vector2D.prototype.scale = function (a) {
-        return Vector2D.create(this.x * a, this.y * a);
-    };
-    Vector2D.prototype.cross = function (rhs) {
-        return this.x * rhs.y - this.y * rhs.x;
-    };
-    Vector2D.prototype.normalize = function () {
-        return this.scale(1.0 / this.length());
-    };
-    Vector2D.prototype.lengthSquared = function () {
-        return this.dot(this);
-    };
-    Vector2D.prototype.length = function () {
-        return Math.sqrt(this.lengthSquared());
-    };
-    Vector2D.prototype.distanceSquared = function (rhs) {
-        var dx = rhs.x - this.x;
-        var dy = rhs.y - this.y;
-        return dx * dx + dy * dy;
-    };
-    Vector2D.prototype.distance = function (rhs) {
-        return Math.sqrt(this.distanceSquared(rhs));
-    };
-    Vector2D.prototype.toString = function () {
-        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ")";
-    };
-    Vector2D.prototype.toJSON = function () {
-        return { x: this.x, y: this.y };
-    };
-    Vector2D.fromJSON = function (json) {
-        return Vector2D.create(json.x, json.y);
-    };
-    Vector2D.zero = Vector2D.create(0.0, 0.0);
-    Vector2D.unitX = Vector2D.create(1.0, 0.0);
-    Vector2D.unitY = Vector2D.create(0.0, 1.0);
-    Vector2D.negUnitX = Vector2D.create(-1.0, 0.0);
-    Vector2D.negUnitY = Vector2D.create(0.0, -1.0);
-    return Vector2D;
-}());
-exports.Vector2D = Vector2D;
-//# sourceMappingURL=Vector2D.js.map
-});
-___scope___.file("app/math/Vector3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Vector2D_1 = require("./Vector2D");
-var Vector3D = /** @class */ (function () {
-    function Vector3D(x, y, z) {
-        this._x = x;
-        this._y = y;
-        this._z = z;
-    }
-    Vector3D.zero_$LI$ = function () { if (Vector3D.zero == null)
-        Vector3D.zero = Vector3D.create(0, 0, 0); return Vector3D.zero; };
-    ;
-    Vector3D.unitX_$LI$ = function () { if (Vector3D.unitX == null)
-        Vector3D.unitX = Vector3D.create(1, 0, 0); return Vector3D.unitX; };
-    ;
-    Vector3D.unitY_$LI$ = function () { if (Vector3D.unitY == null)
-        Vector3D.unitY = Vector3D.create(0, 1, 0); return Vector3D.unitY; };
-    ;
-    Vector3D.unitZ_$LI$ = function () { if (Vector3D.unitZ == null)
-        Vector3D.unitZ = Vector3D.create(0, 0, 1); return Vector3D.unitZ; };
-    ;
-    Vector3D.negUnitX_$LI$ = function () { if (Vector3D.negUnitX == null)
-        Vector3D.negUnitX = Vector3D.create(-1, 0, 0); return Vector3D.negUnitX; };
-    ;
-    Vector3D.negUnitY_$LI$ = function () { if (Vector3D.negUnitY == null)
-        Vector3D.negUnitY = Vector3D.create(0, -1, 0); return Vector3D.negUnitY; };
-    ;
-    Vector3D.negUnitZ_$LI$ = function () { if (Vector3D.negUnitZ == null)
-        Vector3D.negUnitZ = Vector3D.create(0, 0, -1); return Vector3D.negUnitZ; };
-    ;
-    Vector3D.create = function (x, y, z) {
-        return new Vector3D(x, y, z);
-    };
-    Vector3D.prototype.xyToVector2D = function () {
-        return Vector2D_1.Vector2D.create(this.x, this.y);
-    };
-    Object.defineProperty(Vector3D.prototype, "x", {
-        get: function () {
-            return this._x;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Vector3D.prototype, "y", {
-        get: function () {
-            return this._y;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Vector3D.prototype, "z", {
-        get: function () {
-            return this._z;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Vector3D.prototype.getX = function () {
-        return this._x;
-    };
-    Vector3D.prototype.getY = function () {
-        return this._y;
-    };
-    Vector3D.prototype.getZ = function () {
-        return this._z;
-    };
-    Vector3D.prototype.dot = function (v) {
-        return this.x * v.x + this.y * v.y + this.z * v.z;
-    };
-    Vector3D.prototype.add = function (v) {
-        return Vector3D.create(this.x + v.x, this.y + v.y, this.z + v.z);
-    };
-    Vector3D.prototype.sub = function (v) {
-        return Vector3D.create(this.x - v.x, this.y - v.y, this.z - v.z);
-    };
-    Vector3D.prototype.scale = function (a) {
-        return Vector3D.create(this.x * a, this.y * a, this.z * a);
-    };
-    Vector3D.prototype.cross = function (v) {
-        return Vector3D.create(this.y * v.z - this.z * v.y, this.z * v.x - this.x * v.z, this.x * v.y - this.y * v.x);
-    };
-    Vector3D.prototype.normalize = function () {
-        var a = this.length();
-        return Vector3D.create(this.x / a, this.y / a, this.z / a);
-    };
-    Vector3D.prototype.lengthSquared = function () {
-        return this.dot(this);
-    };
-    Vector3D.prototype.length = function () {
-        return Math.sqrt(this.lengthSquared());
-    };
-    Vector3D.prototype.distanceSquared = function (v) {
-        var dx = this.x - v.x;
-        var dy = this.y - v.y;
-        var dz = this.z - v.z;
-        return dx * dx + dy * dy + dz * dz;
-    };
-    Vector3D.prototype.distance = function (v) {
-        return Math.sqrt(this.distanceSquared(v));
-    };
-    /**
-     *
-     * @return {string}
-     */
-    Vector3D.prototype.toString = function () {
-        return "(" + /* toString */ ('' + (this.x)) + ", " + /* toString */ ('' + (this.y)) + ", " + /* toString */ ('' + (this.z)) + ")";
-    };
-    return Vector3D;
-}());
-exports.Vector3D = Vector3D;
-Vector3D.negUnitZ_$LI$();
-Vector3D.negUnitY_$LI$();
-Vector3D.negUnitX_$LI$();
-Vector3D.unitZ_$LI$();
-Vector3D.unitY_$LI$();
-Vector3D.unitX_$LI$();
-Vector3D.zero_$LI$();
-//# sourceMappingURL=Vector3D.js.map
-});
 ___scope___.file("app/model/WallData.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -1820,59 +1908,59 @@ ___scope___.file("app/model/OpeningData.js", function(exports, require, module, 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var OpeningData = /** @class */ (function () {
-    function OpeningData(type, width, height, headHeight, bayIndex) {
-        this._type = type;
-        this._width = width;
-        this._height = height;
-        this._headHeight = headHeight;
-        this._bayIndex = bayIndex;
+    function OpeningData(params) {
+        this._params = params;
     }
     OpeningData.create = function (params) {
-        return new OpeningData(params.type, params.width, params.height, params.headHeight, params.bayIndex);
+        return new OpeningData(params);
     };
+    OpeningData.prototype.from = function (params) {
+        return OpeningData.create(Object.assign({}, this._params, params));
+    };
+    Object.defineProperty(OpeningData.prototype, "id", {
+        get: function () {
+            return this._params.id;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(OpeningData.prototype, "type", {
         get: function () {
-            return this._type;
+            return this._params.type;
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(OpeningData.prototype, "width", {
         get: function () {
-            return this._width;
+            return this._params.width;
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(OpeningData.prototype, "height", {
         get: function () {
-            return this._height;
+            return this._params.height;
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(OpeningData.prototype, "headHeight", {
         get: function () {
-            return this._headHeight;
+            return this._params.headHeight;
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(OpeningData.prototype, "bayIndex", {
         get: function () {
-            return this._bayIndex;
+            return this._params.bayIndex;
         },
         enumerable: true,
         configurable: true
     });
     OpeningData.prototype.toJSON = function () {
-        return {
-            type: this.type,
-            width: this.width,
-            height: this.height,
-            headHeight: this.headHeight,
-            bayIndex: this.bayIndex
-        };
+        return this._params;
     };
     OpeningData.fromJSON = function (json) {
         return OpeningData.create(json);
@@ -1881,6 +1969,51 @@ var OpeningData = /** @class */ (function () {
 }());
 exports.OpeningData = OpeningData;
 //# sourceMappingURL=OpeningData.js.map
+});
+___scope___.file("app/IdGen.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Tuples_1 = require("./Tuples");
+var IdGen = /** @class */ (function () {
+    function IdGen(nextId, freeIds) {
+        this._nextId = nextId;
+        this._freeIds = freeIds;
+    }
+    IdGen.create = function (nextId, freeIds) {
+        return new IdGen(nextId, freeIds);
+    };
+    IdGen.prototype.allocId = function () {
+        if (this._freeIds.length == 0) {
+            var id = this._nextId;
+            var nextId2 = this._nextId + 1;
+            return Tuples_1.T2.of(id, IdGen.create(nextId2, this._freeIds));
+        }
+        else {
+            var freeIds2 = this._freeIds.slice(0);
+            var id = freeIds2.pop();
+            return Tuples_1.T2.of(id, IdGen.create(this._nextId, freeIds2));
+        }
+    };
+    IdGen.prototype.freeId = function (id) {
+        var freeIds2 = this._freeIds.slice(0);
+        freeIds2.push(id);
+        return IdGen.create(this._nextId, freeIds2);
+    };
+    IdGen.prototype.toJSON = function () {
+        return {
+            nextId: this._nextId,
+            freeIds: this._freeIds
+        };
+    };
+    IdGen.fromJSON = function (json) {
+        return IdGen.create(json.nextId, json.freeIds);
+    };
+    IdGen.empty = IdGen.create(0, []);
+    return IdGen;
+}());
+exports.IdGen = IdGen;
+//# sourceMappingURL=IdGen.js.map
 });
 ___scope___.file("app/Option.js", function(exports, require, module, __filename, __dirname){
 
@@ -3455,6 +3588,7 @@ var IdleMode_1 = require("../modes/IdleMode");
 var InsertOpeningMode_1 = require("../modes/InsertOpeningMode");
 var InsertSkylightMode_1 = require("../modes/InsertSkylightMode");
 var InsertWhirlybirdMode_1 = require("../modes/InsertWhirlybirdMode");
+var SelectionMode_1 = require("../modes/SelectionMode");
 var ToggleBaysMode_1 = require("../modes/ToggleBaysMode");
 var ToggleLeanTosMode_1 = require("../modes/ToggleLeanTosMode");
 var ToggleWallsMode_1 = require("../modes/ToggleWallsMode");
@@ -3463,6 +3597,7 @@ var LeanToData_1 = require("./LeanToData");
 var WallData_1 = require("./WallData");
 var CladdingData_1 = require("./CladdingData");
 var RoofData_1 = require("./RoofData");
+var IdGen_1 = require("../IdGen");
 var AppModel = /** @class */ (function () {
     function AppModel(params) {
         var _this = this;
@@ -3508,6 +3643,7 @@ var AppModel = /** @class */ (function () {
             var sMouseLeftPressed = params.sMousePressed.filter(function (mouseButton) { return mouseButton == MouseButton_1.MouseButton.Left; }).mapTo(sodium.Unit.UNIT);
             var slBuildingData = new sodium.StreamLoop();
             var cBuildingData = slBuildingData.hold(BuildingData_1.BuildingData.create({
+                idGen: IdGen_1.IdGen.empty,
                 claddingData: CladdingData_1.CladdingData.create({
                     wallSheetingProfile: TextureLoader_1.CladdingTextureType.Monoclad,
                     roofSheetingProfile: TextureLoader_1.CladdingTextureType.Corrugate,
@@ -3564,6 +3700,14 @@ var AppModel = /** @class */ (function () {
                 .map(sodium.lambda1(function (performOperation) {
                 return performOperation.match({
                     idle: function () { return new IdleMode_1.IdleMode(); },
+                    select: function () { return new SelectionMode_1.SelectionMode({
+                        cMousePosOp: params.cMousePosOp,
+                        sMouseLeftPressed: sMouseLeftPressed,
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        cProjectWorldPointToScreenOp: params.cProjectWorldPointToScreenOp,
+                        cSelectables: building.cSelectables,
+                        sFloatingDeleteButtonPressed: params.sFloatingDeleteButtonClicked
+                    }); },
                     insertOpening: function (openingType) { return new InsertOpeningMode_1.InsertOpeningMode({
                         cMousePosOp: params.cMousePosOp,
                         sMouseLeftPressed: sMouseLeftPressed,
@@ -3614,9 +3758,17 @@ var AppModel = /** @class */ (function () {
                 params.cOpeningFormPropertiesOp,
                 building.cPhantomInternalWalls,
                 cBuildingData,
-                params.cLeanToFormPropertiesOp
+                params.cLeanToFormPropertiesOp,
+                building.cSelectables
             ]))
-                .hold(new IdleMode_1.IdleMode());
+                .hold(new SelectionMode_1.SelectionMode({
+                cMousePosOp: params.cMousePosOp,
+                sMouseLeftPressed: sMouseLeftPressed,
+                cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                cProjectWorldPointToScreenOp: params.cProjectWorldPointToScreenOp,
+                cSelectables: building.cSelectables,
+                sFloatingDeleteButtonPressed: params.sFloatingDeleteButtonClicked
+            }));
             var sSetFormProperties = SodiumUtil.streamFilterOption(params.sPerformOperation
                 .map(function (operation) {
                 return operation.partialMatch(Option_1.Option.none(), {
@@ -3651,6 +3803,7 @@ var AppModel = /** @class */ (function () {
             clHighlightedStableNames.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cHighlightedStableNames; }))));
             clRoofVisible.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cRoofVisible; }))));
             slBuildingEffect.loop(sodium.Cell.switchS(cMode.map(function (mode) { return mode.sBuildingEffect; })));
+            var cFloatingDeleteButtons = SodiumUtil.cellPartialCalm(function (a, b) { return a.length == 0 && b.length == 0; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cFloatingDeleteButtons; })));
             slBuildingData.loop(sSetBarnDataOp
                 .snapshot(cBuildingData, function (barnDataOp) {
                 return function (buildingData) {
@@ -3756,6 +3909,7 @@ var AppModel = /** @class */ (function () {
                     .mapTo(sodium.Unit.UNIT))
                     .orElse(slBuildingData.mapTo(sodium.Unit.UNIT));
             _this._sSetFormProperties = sSetFormProperties;
+            _this._cFloatingDeleteButtons = cFloatingDeleteButtons;
         });
     }
     Object.defineProperty(AppModel.prototype, "cBuildingData", {
@@ -3800,11 +3954,32 @@ var AppModel = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(AppModel.prototype, "cFloatingDeleteButtons", {
+        get: function () {
+            return this._cFloatingDeleteButtons;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return AppModel;
 }());
 exports.AppModel = AppModel;
 function performEffectOnBuilding(buildingData, buildingEffect) {
     return buildingEffect.match({
+        seq: function (effects) {
+            var buildingData2 = buildingData;
+            for (var i = 0; i < effects.length; ++i) {
+                buildingData2 = performEffectOnBuilding(buildingData2, effects[i]);
+            }
+            return buildingData2;
+        },
+        allocId: function (k) {
+            var id_idGen = buildingData.idGen.allocId();
+            var id = id_idGen._1;
+            var idGen = id_idGen._2;
+            return performEffectOnBuilding(buildingData.from({ idGen: idGen }), k(id));
+        },
+        freeId: function (id) { return buildingData.from({ idGen: buildingData.idGen.freeId(id) }); },
         insertOpening: function (insertOpeningData) {
             var wallLenses = BuildingUtil.wallLensesFromBuildingData(buildingData);
             for (var i = 0; i < wallLenses.length; ++i) {
@@ -3815,6 +3990,19 @@ function performEffectOnBuilding(buildingData, buildingEffect) {
                         openings: wall.openings.concat([
                             insertOpeningData.openingData
                         ])
+                    }), buildingData);
+                }
+            }
+            return buildingData;
+        },
+        removeOpening: function (wallStableName, openingId) {
+            var wallLenses = BuildingUtil.wallLensesFromBuildingData(buildingData);
+            for (var i = 0; i < wallLenses.length; ++i) {
+                var wallLens = wallLenses[i];
+                if (wallLens._1 == wallStableName) {
+                    var wall = wallLens._2.get(buildingData);
+                    return wallLens._2.set(wall.from({
+                        openings: wall.openings.filter(function (opening) { return opening.id != openingId; })
                     }), buildingData);
                 }
             }
@@ -3855,13 +4043,25 @@ function performEffectOnBuilding(buildingData, buildingEffect) {
             }
             return buildingData;
         },
-        insertWhirlybird: function (roofStableName, whirlybirdPos) {
+        insertWhirlybird: function (roofStableName, whirlybirdData) {
             var roofLenses = BuildingUtil.roofLensesFromBuildingData(buildingData);
             for (var i = 0; i < roofLenses.length; ++i) {
                 var roofLens = roofLenses[i];
                 if (roofLens._1 == roofStableName) {
                     var roof = roofLens._2.get(buildingData);
-                    var roof2 = roof.from({ whirlybirds: roof.whirlybirds.concat([whirlybirdPos]) });
+                    var roof2 = roof.from({ whirlybirds: roof.whirlybirds.concat([whirlybirdData]) });
+                    return roofLens._2.set(roof2, buildingData);
+                }
+            }
+            return buildingData;
+        },
+        removeWhirlybird: function (roofStableName, whirlybirdId) {
+            var roofLenses = BuildingUtil.roofLensesFromBuildingData(buildingData);
+            for (var i = 0; i < roofLenses.length; ++i) {
+                var roofLens = roofLenses[i];
+                if (roofLens._1 == roofStableName) {
+                    var roof = roofLens._2.get(buildingData);
+                    var roof2 = roof.from({ whirlybirds: roof.whirlybirds.filter(function (whirlybird) { return whirlybird.id != whirlybirdId; }) });
                     return roofLens._2.set(roof2, buildingData);
                 }
             }
@@ -3906,6 +4106,22 @@ ___scope___.file("app/ArrayUtil.js", function(exports, require, module, __filena
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Option_1 = require("./Option");
+function arrayIntRange(fromInc, toExc) {
+    var result = [];
+    for (var i = fromInc; i < toExc; ++i) {
+        result.push(i);
+    }
+    return result;
+}
+exports.arrayIntRange = arrayIntRange;
+function arrayIntRangeClosed(fromInc, toInc) {
+    var result = [];
+    for (var i = fromInc; i <= toInc; ++i) {
+        result.push(i);
+    }
+    return result;
+}
+exports.arrayIntRangeClosed = arrayIntRangeClosed;
 function arrayBind(x, f) {
     return arrayJoin(x.map(f));
 }
@@ -4563,21 +4779,26 @@ var Building = /** @class */ (function () {
             });
             var whirlybirds = new Whirlybirds_1.Whirlybirds({
                 sTick: params.sTick,
-                cAxesList: sodium.Cell.switchC(cRoofs.map(function (roofs) {
+                cAxesRoofStableNameWhirlybirdDataList: sodium.Cell.switchC(cRoofs.map(function (roofs) {
                     return SodiumUtil
                         .cellLiftArray(roofs.map(function (roof) {
                         return roof.params.cAxes.lift(roof.params.cRoofDataOp, function (axes, roofDataOp) {
                             var whirlybirds = roofDataOp.map(function (roofData) { return roofData.whirlybirds; }).orSome([]);
-                            return whirlybirds.map(function (pt) { return axes.pointFromThisSpace(pt.toVector3D()).add(Vector3D_1.Vector3D.create(0.0, 0.0, 200.0)); });
+                            return whirlybirds.map(function (whirlybirdData) {
+                                return Tuples_1.T3.of(axes
+                                    .pointFromThisSpace(whirlybirdData.position.toVector3D())
+                                    .add(Vector3D_1.Vector3D.create(0.0, 0.0, 200.0)), roof.params.cStableName.sample(), whirlybirdData);
+                            });
                         });
                     }))
                         .map(function (x) { return ArrayUtil_1.arrayJoin(x); })
                         .map(function (pts) {
                         return pts.map(function (pt) {
-                            return Axes3D_1.Axes3D.create(pt, Quaternion_1.Quaternion.identity);
+                            return Tuples_1.T3.of(Axes3D_1.Axes3D.create(pt._1, Quaternion_1.Quaternion.identity), pt._2, pt._3);
                         });
                     });
-                }))
+                })),
+                cHighlightStableNames: params.cHighlightedStableNames
             });
             var cAdditionalInfillWalls = sodium.Cell.switchC(cBuildingType.map(function (buildingType) {
                 switch (buildingType) {
@@ -4635,6 +4856,20 @@ var Building = /** @class */ (function () {
                     side2LeanToWalls
                 ]);
             });
+            var cSelectables = SodiumUtil.cellTrace(sodium.Cell.switchC(cWalls.map(sodium.lambda1(function (walls) {
+                return SodiumUtil
+                    .cellLiftArray(walls.map(function (wall) { return wall.cSelectables; }))
+                    .lift(whirlybirds.cSelectables, function (x, whirlybirdSelectables) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayJoin([
+                        ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); }),
+                        whirlybirdSelectables.get()
+                    ]);
+                }); });
+            }, [whirlybirds.cSelectables]))), function (selectables) {
+                return ArrayUtil_1.arrayBind(selectables.get(), function (selectable) {
+                    return selectable.trace();
+                });
+            });
             _this._cModel = MkModelEffect_1.composeCListOfCModels(cMainWalls.lift3(cMainRoofs, cInternalWalls, function (walls, roofs, internalWalls) {
                 return ArrayUtil_1.arrayJoin([
                     walls.map(function (wall) { return wall.cModel; }),
@@ -4655,10 +4890,10 @@ var Building = /** @class */ (function () {
             _this._cRoofs = cRoofs;
             _this._cInternalWalls = cInternalWalls;
             _this._cPhantomInternalWalls = cPhantomInternalWalls;
+            _this._cSelectables = cSelectables;
         });
     }
     Object.defineProperty(Building.prototype, "cModel", {
-        //
         get: function () {
             return this._cModel;
         },
@@ -4689,6 +4924,13 @@ var Building = /** @class */ (function () {
     Object.defineProperty(Building.prototype, "cPhantomInternalWalls", {
         get: function () {
             return this._cPhantomInternalWalls;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Building.prototype, "cSelectables", {
+        get: function () {
+            return this._cSelectables;
         },
         enumerable: true,
         configurable: true
@@ -9931,6 +10173,7 @@ var SodiumUtil = require("../SodiumUtil");
 var BattenPlane_1 = require("./BattenPlane");
 var Bay_1 = require("./Bay");
 var Opening_1 = require("./Opening");
+var Lazy_1 = require("../Lazy");
 var Option_1 = require("../Option");
 var MkModelEffect_1 = require("../MkModelEffect");
 var Axes3D_1 = require("../math/Axes3D");
@@ -10023,10 +10266,12 @@ var Wall = /** @class */ (function () {
                         var stableIndex = i;
                         var cOpeningStableName = params.cStableName.map(function (stableName) { return stableName + ".opening[" + stableIndex + "]"; });
                         openings.push(new Opening_1.Opening({
+                            cParentStableName: params.cStableName,
                             cStableName: cOpeningStableName,
                             cAxes: params.cAxes,
                             cBayMarkers: params.cBayMarkers,
-                            cOpeningData: new sodium.Cell(openingData)
+                            cOpeningData: new sodium.Cell(openingData),
+                            cHighlightedStableNames: params.cHighlightedStableNames
                         }));
                     })();
                 }
@@ -10197,6 +10442,13 @@ var Wall = /** @class */ (function () {
                 }),
                 cBattenProperties: params.cBattenProperties
             });
+            var cSelectables = sodium.Cell.switchC(cOpenings.map(function (openings) {
+                return SodiumUtil
+                    .cellLiftArray(openings.map(function (opening) { return opening.cSelectables; }))
+                    .map(function (x) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
+                }); });
+            }));
             _this._cModel = MkModelEffect_1.composeCListOfCModels(cOpenings.lift(cBays, function (openings, bays) {
                 return openings.map(function (opening) { return opening.cModel; })
                     .concat(bays.map(function (bay) { return bay.cModel; }))
@@ -10221,6 +10473,7 @@ var Wall = /** @class */ (function () {
             _this._cIsInternal = cIsInternal;
             _this._cAxes = params.cAxes;
             _this._cOutline = params.cOutline;
+            _this._cSelectables = cSelectables;
         });
     }
     Object.defineProperty(Wall.prototype, "cModel", {
@@ -10279,6 +10532,13 @@ var Wall = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Wall.prototype, "cSelectables", {
+        get: function () {
+            return this._cSelectables;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Wall.prototype, "cGroundLineOp", {
         get: function () {
             return this.cAxes.lift(this.cOutline, function (axes, outline) {
@@ -10308,13 +10568,28 @@ exports.Wall = Wall;
 ___scope___.file("app/model/Opening.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var THREE = require("three");
-var SodiumUtil = require("../SodiumUtil");
+var BuildingEffect_1 = require("./BuildingEffect");
+var Selectable_1 = require("./Selectable");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Lazy_1 = require("../Lazy");
 var Option_1 = require("../Option");
-var Axes3D_1 = require("../math/Axes3D");
+var SodiumUtil = require("../SodiumUtil");
 var MkModelEffect_1 = require("../MkModelEffect");
+var Axes3D_1 = require("../math/Axes3D");
+var Box3D_1 = require("../math/Box3D");
 var Quaternion_1 = require("../math/Quaternion");
 var Vector3D_1 = require("../math/Vector3D");
 var Opening = /** @class */ (function () {
@@ -10333,6 +10608,9 @@ var Opening = /** @class */ (function () {
             });
             var cOpeningAxesIsValid = cOpeningAxesOp.map(function (x) { return x.isSome; });
             var cLastValidOpeningAxesOp = SodiumUtil.streamFilterOption(sodium.Operational.updates(cOpeningAxesOp)).map(function (x) { return Option_1.Option.some(x); }).hold(Option_1.Option.none());
+            var cHighlighted = SodiumUtil.cellCalmRefEq(params.cStableName.lift(params.cHighlightedStableNames, function (stableName, highlightedStableNames) {
+                return ArrayUtil_1.arrayIncludes(highlightedStableNames, stableName);
+            }));
             var cModel = params.cOpeningData.lift(cOpeningAxesIsValid, sodium.lambda2(function (openingData, openingAxesIsValid) {
                 if (!openingAxesIsValid) {
                     return MkModelEffect_1.MkModelEffect.empty;
@@ -10353,13 +10631,22 @@ var Opening = /** @class */ (function () {
                                 mesh.visible = true;
                                 MkModelEffect_1.THREEObject3DSetAxes(mesh, lastValidOpeningAxes);
                             }));
+                            cleanups.push(cHighlighted.listen(function (highlighted) {
+                                var colour = highlighted ? 0x008000 : 0x808080;
+                                var material = new THREE.MeshStandardMaterial({ color: colour });
+                                mesh.material = material;
+                            }));
                             return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
                         }, mesh));
                     });
                 }
-            }, [cOpeningAxesIsValid, cLastValidOpeningAxesOp]));
+            }, [cHighlighted, cOpeningAxesIsValid, cLastValidOpeningAxesOp]));
+            var cSelectables = new sodium.Cell(Lazy_1.Lazy.create(function () { return [
+                new OpeningSelectable(params.cParentStableName, params.cStableName, params.cOpeningData, cOpeningAxesOp)
+            ]; }));
             _this._cStableName = params.cStableName;
             _this._cModel = cModel;
+            _this._cSelectables = cSelectables;
         });
     }
     Object.defineProperty(Opening.prototype, "cStableName", {
@@ -10376,10 +10663,603 @@ var Opening = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Opening.prototype, "cSelectables", {
+        get: function () {
+            return this._cSelectables;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return Opening;
 }());
 exports.Opening = Opening;
+var OpeningSelectable = /** @class */ (function (_super) {
+    __extends(OpeningSelectable, _super);
+    function OpeningSelectable(cParentStableName, cStableName, cOpeningData, cOpeningAxesOp) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cBoxOp = cOpeningAxesOp.lift(cOpeningData, function (openingAxesOp, openingData) {
+                return openingAxesOp.map(function (openingAxes) {
+                    return Box3D_1.Box3D.create({
+                        axes: openingAxes,
+                        len: Vector3D_1.Vector3D.create(openingData.width, openingData.height, 100.0)
+                    });
+                });
+            });
+            var cMouseRayCollisionTimeOpOp = cBoxOp.map(function (boxOp) {
+                return boxOp.map(function (box) {
+                    return function (mouseRay) {
+                        return box.rayIntersectionTime(mouseRay);
+                    };
+                });
+            });
+            var cHighlightStableNames = cStableName.map(function (stableName) { return [stableName]; });
+            var cDeleteOp = cOpeningData.lift(cParentStableName, function (openingData, wallStableName) {
+                return Option_1.Option.some(Lazy_1.Lazy.pure(BuildingEffect_1.BuildingEffect.seq([
+                    BuildingEffect_1.BuildingEffect.removeOpening(wallStableName, openingData.id),
+                    BuildingEffect_1.BuildingEffect.freeId(openingData.id)
+                ])));
+            });
+            var cBoundingBoxOp = cBoxOp;
+            _this._cMouseRayCollisionTimeOpOp = cMouseRayCollisionTimeOpOp;
+            _this._cHighlightStableNames = cHighlightStableNames;
+            _this._cDeleteOp = cDeleteOp;
+            _this._cBoundingBoxOp = cBoundingBoxOp;
+        });
+        return _this;
+    }
+    Object.defineProperty(OpeningSelectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return this._cMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningSelectable.prototype, "cHighlightStableNames", {
+        get: function () {
+            return this._cHighlightStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningSelectable.prototype, "cDeleteOp", {
+        get: function () {
+            return this._cDeleteOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningSelectable.prototype, "cBoundingBoxOp", {
+        get: function () {
+            return this._cBoundingBoxOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    OpeningSelectable.prototype.trace = function () {
+        return [
+            this._cMouseRayCollisionTimeOpOp,
+            this._cHighlightStableNames,
+            this._cDeleteOp,
+            this._cBoundingBoxOp
+        ];
+    };
+    return OpeningSelectable;
+}(Selectable_1.Selectable));
 //# sourceMappingURL=Opening.js.map
+});
+___scope___.file("app/model/BuildingEffect.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var BuildingEffect = /** @class */ (function () {
+    function BuildingEffect() {
+    }
+    BuildingEffect.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            seq: function (effects) {
+                if (cases.seq) {
+                    return cases.seq(effects);
+                }
+                else {
+                    return default_;
+                }
+            },
+            allocId: function (k) {
+                if (cases.allocId) {
+                    return cases.allocId(k);
+                }
+                else {
+                    return default_;
+                }
+            },
+            freeId: function (id) {
+                if (cases.freeId) {
+                    return cases.freeId(id);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertOpening: function (insertOpeningData) {
+                if (cases.insertOpening) {
+                    return cases.insertOpening(insertOpeningData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeOpening: function (wallStableName, openingId) {
+                if (cases.removeOpening) {
+                    return cases.removeOpening(wallStableName, openingId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
+                if (cases.toggleInternalWallByBayMarkerIndex) {
+                    return cases.toggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleBay: function (wallStableName, bayIndex) {
+                if (cases.toggleBay) {
+                    return cases.toggleBay(wallStableName, bayIndex);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertSkylight: function (roofStableName, skylightRange) {
+                if (cases.insertSkylight) {
+                    return cases.insertSkylight(roofStableName, skylightRange);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertWhirlybird: function (roofStableName, whirlybirdData) {
+                if (cases.insertWhirlybird) {
+                    return cases.insertWhirlybird(roofStableName, whirlybirdData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeWhirlybird: function (roofStableName, whirlybirdId) {
+                if (cases.removeWhirlybird) {
+                    return cases.removeWhirlybird(roofStableName, whirlybirdId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertLeanTo: function (leanToStableName, leanToFormProperties) {
+                if (cases.insertLeanTo) {
+                    return cases.insertLeanTo(leanToStableName, leanToFormProperties);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeLeanTo: function (leanToStableName) {
+                if (cases.removeLeanTo) {
+                    return cases.removeLeanTo(leanToStableName);
+                }
+                else {
+                    return default_;
+                }
+            }
+        });
+    };
+    BuildingEffect.seq = function (effects) {
+        return new BuildingEffectSeq(effects);
+    };
+    BuildingEffect.allocId = function (k) {
+        return new BuildingEffectAllocId(k);
+    };
+    BuildingEffect.freeId = function (id) {
+        return new BuildingEffectFreeId(id);
+    };
+    BuildingEffect.insertOpening = function (insertOpeningData) {
+        return new BuildingEffectInsertOpening(insertOpeningData);
+    };
+    BuildingEffect.removeOpening = function (wallStableName, openingId) {
+        return new BuildingEffectRemoveOpening(wallStableName, openingId);
+    };
+    BuildingEffect.toggleInternalWallByBayMarkerIndex = function (bayMarkerIndex) {
+        return new BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+    };
+    BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
+        return new BuildingEffectToggleBay(wallStableName, bayIndex);
+    };
+    BuildingEffect.insertSkylight = function (roofStableName, skylightRange) {
+        return new BuildingEffectInsertSkylight(roofStableName, skylightRange);
+    };
+    BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdData) {
+        return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData);
+    };
+    BuildingEffect.removeWhirlybird = function (roofStableName, whirlybirdId) {
+        return new BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId);
+    };
+    BuildingEffect.insertLeanTo = function (leanToStableName, leanToFormProperties) {
+        return new BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties);
+    };
+    BuildingEffect.removeLeanTo = function (leanToStableName) {
+        return new BuildingEffectRemoveLeanTo(leanToStableName);
+    };
+    return BuildingEffect;
+}());
+exports.BuildingEffect = BuildingEffect;
+var BuildingEffectSeq = /** @class */ (function (_super) {
+    __extends(BuildingEffectSeq, _super);
+    function BuildingEffectSeq(effects) {
+        var _this = _super.call(this) || this;
+        _this._effects = effects;
+        return _this;
+    }
+    BuildingEffectSeq.prototype.match = function (cases) {
+        return cases.seq(this._effects);
+    };
+    return BuildingEffectSeq;
+}(BuildingEffect));
+var BuildingEffectAllocId = /** @class */ (function (_super) {
+    __extends(BuildingEffectAllocId, _super);
+    function BuildingEffectAllocId(k) {
+        var _this = _super.call(this) || this;
+        _this._k = k;
+        return _this;
+    }
+    BuildingEffectAllocId.prototype.match = function (cases) {
+        return cases.allocId(this._k);
+    };
+    return BuildingEffectAllocId;
+}(BuildingEffect));
+var BuildingEffectFreeId = /** @class */ (function (_super) {
+    __extends(BuildingEffectFreeId, _super);
+    function BuildingEffectFreeId(id) {
+        var _this = _super.call(this) || this;
+        _this._id = id;
+        return _this;
+    }
+    BuildingEffectFreeId.prototype.match = function (cases) {
+        return cases.freeId(this._id);
+    };
+    return BuildingEffectFreeId;
+}(BuildingEffect));
+var BuildingEffectInsertOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertOpening, _super);
+    function BuildingEffectInsertOpening(insertOpeningData) {
+        var _this = _super.call(this) || this;
+        _this._insertOpeningData = insertOpeningData;
+        return _this;
+    }
+    BuildingEffectInsertOpening.prototype.match = function (cases) {
+        return cases.insertOpening(this._insertOpeningData);
+    };
+    return BuildingEffectInsertOpening;
+}(BuildingEffect));
+var BuildingEffectRemoveOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveOpening, _super);
+    function BuildingEffectRemoveOpening(wallStableName, openingId) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._openingId = openingId;
+        return _this;
+    }
+    BuildingEffectRemoveOpening.prototype.match = function (cases) {
+        return cases.removeOpening(this._wallStableName, this._openingId);
+    };
+    return BuildingEffectRemoveOpening;
+}(BuildingEffect));
+var BuildingEffectToggleInternalWallByBayMarkerIndex = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleInternalWallByBayMarkerIndex, _super);
+    function BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex) {
+        var _this = _super.call(this) || this;
+        _this._bayMarkerIndex = bayMarkerIndex;
+        return _this;
+    }
+    BuildingEffectToggleInternalWallByBayMarkerIndex.prototype.match = function (cases) {
+        return cases.toggleInternalWallByBayMarkerIndex(this._bayMarkerIndex);
+    };
+    return BuildingEffectToggleInternalWallByBayMarkerIndex;
+}(BuildingEffect));
+var BuildingEffectToggleBay = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleBay, _super);
+    function BuildingEffectToggleBay(wallStableName, bayIndex) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._bayIndex = bayIndex;
+        return _this;
+    }
+    BuildingEffectToggleBay.prototype.match = function (cases) {
+        return cases.toggleBay(this._wallStableName, this._bayIndex);
+    };
+    return BuildingEffectToggleBay;
+}(BuildingEffect));
+var BuildingEffectInsertSkylight = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertSkylight, _super);
+    function BuildingEffectInsertSkylight(roofStableName, skylightRange) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._skylightRange = skylightRange;
+        return _this;
+    }
+    BuildingEffectInsertSkylight.prototype.match = function (cases) {
+        return cases.insertSkylight(this._roofStableName, this._skylightRange);
+    };
+    return BuildingEffectInsertSkylight;
+}(BuildingEffect));
+var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertWhirlybird, _super);
+    function BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._whirlybirdData = whirlybirdData;
+        return _this;
+    }
+    BuildingEffectInsertWhirlybird.prototype.match = function (cases) {
+        return cases.insertWhirlybird(this._roofStableName, this._whirlybirdData);
+    };
+    return BuildingEffectInsertWhirlybird;
+}(BuildingEffect));
+var BuildingEffectRemoveWhirlybird = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveWhirlybird, _super);
+    function BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._whirlybirdId = whirlybirdId;
+        return _this;
+    }
+    BuildingEffectRemoveWhirlybird.prototype.match = function (cases) {
+        return cases.removeWhirlybird(this._roofStableName, this._whirlybirdId);
+    };
+    return BuildingEffectRemoveWhirlybird;
+}(BuildingEffect));
+var BuildingEffectInsertLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertLeanTo, _super);
+    function BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        _this._leanToFormProperties = leanToFormProperties;
+        return _this;
+    }
+    BuildingEffectInsertLeanTo.prototype.match = function (cases) {
+        return cases.insertLeanTo(this._leanToStableName, this._leanToFormProperties);
+    };
+    return BuildingEffectInsertLeanTo;
+}(BuildingEffect));
+var BuildingEffectRemoveLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveLeanTo, _super);
+    function BuildingEffectRemoveLeanTo(leanToStableName) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        return _this;
+    }
+    BuildingEffectRemoveLeanTo.prototype.match = function (cases) {
+        return cases.removeLeanTo(this._leanToStableName);
+    };
+    return BuildingEffectRemoveLeanTo;
+}(BuildingEffect));
+//# sourceMappingURL=BuildingEffect.js.map
+});
+___scope___.file("app/model/Selectable.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Option_1 = require("../Option");
+var Selectable = /** @class */ (function () {
+    function Selectable() {
+    }
+    Selectable.prototype.trace = function () {
+        return [];
+    };
+    Object.defineProperty(Selectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return defaultCMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cFormPropertiesOp", {
+        get: function () {
+            return defaultCFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cSetFormPropertiesOp", {
+        get: function () {
+            return defaultCSetFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cHighlightStableNames", {
+        get: function () {
+            return defaultCHighlightStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cHighlightOverlayModelOp", {
+        get: function () {
+            return defaultCHighlightOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cDeleteOp", {
+        get: function () {
+            return defaultCDeleteOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cBoundingBoxOp", {
+        /**
+         * Used for approximating an appropriate position of a floating delete button and possibly other buttons.
+         */
+        get: function () {
+            return defaultCBoundingBoxOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Selectable;
+}());
+exports.Selectable = Selectable;
+var defaultCMouseRayCollisionTimeOpOp = new sodium.Cell(Option_1.Option.none());
+var defaultCFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
+var defaultCSetFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
+var defaultCHighlightStableNames = new sodium.Cell([]);
+var defaultCHighlightOverlayModelOp = new sodium.Cell(Option_1.Option.none());
+var defaultCDeleteOp = new sodium.Cell(Option_1.Option.none());
+var defaultCBoundingBoxOp = new sodium.Cell(Option_1.Option.none());
+//# sourceMappingURL=Selectable.js.map
+});
+___scope___.file("app/math/Box3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option_1 = require("../Option");
+var Box3D = /** @class */ (function () {
+    function Box3D(axes, len) {
+        this._axes = axes;
+        this._len = len;
+    }
+    Object.defineProperty(Box3D.prototype, "axes", {
+        get: function () {
+            return this._axes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Box3D.prototype, "len", {
+        get: function () {
+            return this._len;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Box3D.create = function (params) {
+        return new Box3D(params.axes, params.len);
+    };
+    Box3D.prototype.rayIntersectionTime = function (ray) {
+        var ray2 = ray.toSpace(this.axes);
+        { // x faces
+            var t1 = (-0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // y faces
+            var t1 = (-0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // z faces
+            var t1 = (-0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        return Option_1.Option.none();
+    };
+    return Box3D;
+}());
+exports.Box3D = Box3D;
+//# sourceMappingURL=Box3D.js.map
 });
 ___scope___.file("app/model/LeanTo.js", function(exports, require, module, __filename, __dirname){
 
@@ -10659,14 +11539,32 @@ exports.LeanTo = LeanTo;
 ___scope___.file("app/model/Whirlybirds.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var THREE = require("three");
+var BuildingEffect_1 = require("./BuildingEffect");
+var Selectable_1 = require("./Selectable");
+var Whirlybird_1 = require("./Whirlybird");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Lazy_1 = require("../Lazy");
 var MkModelEffect_1 = require("../MkModelEffect");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Tuples_1 = require("../Tuples");
 var Axes3D_1 = require("../math/Axes3D");
+var Box3D_1 = require("../math/Box3D");
 var Quaternion_1 = require("../math/Quaternion");
 var Vector3D_1 = require("../math/Vector3D");
-var Whirlybird_1 = require("./Whirlybird");
 var Whirlybirds = /** @class */ (function () {
     function Whirlybirds(params) {
         var _this = this;
@@ -10677,8 +11575,10 @@ var Whirlybirds = /** @class */ (function () {
             var slRotation = new sodium.StreamLoop();
             var cRotation = slRotation.hold(0.0);
             slRotation.loop(params.sTick.snapshot(cRotation, function (tick, rotation) { return (rotation + tick * 0.1) % 360.0; }));
-            var cAxesList2 = params.cAxesList.lift(cRotation, function (axesList, rotation) {
-                return axesList.map(function (axes) { return axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.zero, Quaternion_1.Quaternion.fromAxisAngle(Vector3D_1.Vector3D.unitZ, rotation))); });
+            var cAxesRoofStableNameWhirlybirdDataList2 = params.cAxesRoofStableNameWhirlybirdDataList.lift(cRotation, function (axesWhirlybirdDataList, rotation) {
+                return axesWhirlybirdDataList.map(function (axesWhirlybirdData) {
+                    return Tuples_1.T3.of(axesWhirlybirdData._1.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.zero, Quaternion_1.Quaternion.fromAxisAngle(Vector3D_1.Vector3D.unitZ, rotation))), axesWhirlybirdData._2, axesWhirlybirdData._3);
+                });
             });
             var cModel = whirlybird.cModel.map(sodium.lambda1(function (whirlybirdModel) {
                 return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
@@ -10689,24 +11589,64 @@ var Whirlybirds = /** @class */ (function () {
                         return MkModelEffect_1.Model.create(function () {
                             var cleanups = [];
                             cleanups.push(whirlybirdModel2.init());
-                            cleanups.push(cAxesList2.listen(function (axesList) {
-                                while (group.children.length != 0) {
+                            cleanups.push(cAxesRoofStableNameWhirlybirdDataList2.listen(function (axesList) {
+                                var highlightStableNames = params.cHighlightStableNames.sample();
+                                while (group.children.length > axesList.length) {
                                     group.remove(group.children[0]);
+                                }
+                                while (group.children.length < axesList.length) {
+                                    var mesh2 = mesh.clone(false);
+                                    group.add(mesh2);
                                 }
                                 for (var i = 0; i < axesList.length; ++i) {
                                     var axes = axesList[i];
-                                    var mesh2 = mesh.clone();
-                                    MkModelEffect_1.THREEObject3DSetAxes(mesh2, axes);
-                                    group.add(mesh2);
+                                    var mesh2 = group.children[i];
+                                    var stableName = "whirlybird_" + axes._3.id;
+                                    mesh2.userData = { stableName: stableName };
+                                    MkModelEffect_1.THREEObject3DSetAxes(mesh2, axes._1);
+                                    if (ArrayUtil_1.arrayIncludes(highlightStableNames, stableName)) {
+                                        mesh2.material = new THREE.MeshStandardMaterial({ color: "#008000", side: THREE.DoubleSide });
+                                        mesh2.userData.highlighted = true;
+                                    }
+                                    else {
+                                        mesh2.material = new THREE.MeshStandardMaterial({ color: "#808080", side: THREE.DoubleSide });
+                                        mesh2.userData.highlighted = false;
+                                    }
+                                }
+                            }));
+                            cleanups.push(params.cHighlightStableNames.listen(function (highlightStableNames) {
+                                for (var i = 0; i < group.children.length; ++i) {
+                                    var mesh2 = group.children[i];
+                                    var stableName = mesh2.userData.stableName;
+                                    if (ArrayUtil_1.arrayIncludes(highlightStableNames, stableName)) {
+                                        if (!mesh2.userData.highlighted) {
+                                            mesh2.material = new THREE.MeshStandardMaterial({ color: "#008000", side: THREE.DoubleSide });
+                                            mesh2.userData.highlighted = true;
+                                        }
+                                    }
+                                    else {
+                                        if (mesh2.userData.highlighted) {
+                                            mesh2.material = new THREE.MeshStandardMaterial({ color: "#808080", side: THREE.DoubleSide });
+                                            mesh2.userData.highlighted = false;
+                                        }
+                                    }
                                 }
                             }));
                             return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
                         }, group);
                     });
                 });
-            }, [cAxesList2]));
+            }, [params.cHighlightStableNames, cAxesRoofStableNameWhirlybirdDataList2]));
+            var cCount = SodiumUtil.cellCalmRefEq(params.cAxesRoofStableNameWhirlybirdDataList.map(function (x) { return x.length; }));
+            var cSelectables = cCount.map(sodium.lambda1(function (count) { return Lazy_1.Lazy.create(function () {
+                return ArrayUtil_1.arrayIntRange(0, count)
+                    .map(function (idx) {
+                    return new WhirlybirdSelectable(params.cAxesRoofStableNameWhirlybirdDataList, idx);
+                });
+            }); }, [params.cAxesRoofStableNameWhirlybirdDataList]));
             _this._params = params;
             _this._cModel = cModel;
+            _this._cSelectables = cSelectables;
         });
     }
     Object.defineProperty(Whirlybirds.prototype, "params", {
@@ -10723,15 +11663,107 @@ var Whirlybirds = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Whirlybirds.prototype, "cSelectables", {
+        get: function () {
+            return this._cSelectables;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Whirlybirds.prototype.trace = function () {
         return [
-            this.params.cAxesList,
+            this.params.cAxesRoofStableNameWhirlybirdDataList,
             this.cModel
         ];
     };
     return Whirlybirds;
 }());
 exports.Whirlybirds = Whirlybirds;
+var WhirlybirdSelectable = /** @class */ (function (_super) {
+    __extends(WhirlybirdSelectable, _super);
+    function WhirlybirdSelectable(cAxesRoofStableNameWhirlybirdDataList, index) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cAxesRoofStableNameWhirlybirdDataOp = cAxesRoofStableNameWhirlybirdDataList.map(function (axesWhirlybirdDataList) {
+                if (index < 0 || index >= axesWhirlybirdDataList.length) {
+                    return Option_1.Option.none();
+                }
+                return Option_1.Option.some(axesWhirlybirdDataList[index]);
+            });
+            var cBoxOp = cAxesRoofStableNameWhirlybirdDataOp.map(function (axesWhirlybirdDataOp) {
+                return axesWhirlybirdDataOp.map(function (axesWhirlybirdData) {
+                    return Box3D_1.Box3D.create({
+                        axes: axesWhirlybirdData._1,
+                        len: Vector3D_1.Vector3D.create(300, 300, 150)
+                    });
+                });
+            });
+            var cMouseRayCollisionTimeOpOp = cBoxOp.map(function (boxOp) {
+                return boxOp.map(function (box) {
+                    return function (mouseRay) {
+                        return box.rayIntersectionTime(mouseRay);
+                    };
+                });
+            });
+            var cHighlightStableNames = cAxesRoofStableNameWhirlybirdDataOp.map(function (axesWhirlybirdDataOp) {
+                return axesWhirlybirdDataOp
+                    .map(function (axesWhirlybirdData) { return ["whirlybird_" + axesWhirlybirdData._3.id]; })
+                    .orSome([]);
+            });
+            var cDeleteOp = cAxesRoofStableNameWhirlybirdDataOp.map(function (axesRoofStableNameWhirlybirdDataOp) {
+                return axesRoofStableNameWhirlybirdDataOp.map(function (axesRoofStableNameWhirlybirdData) { return Lazy_1.Lazy.create(function () {
+                    return BuildingEffect_1.BuildingEffect.seq([
+                        BuildingEffect_1.BuildingEffect.removeWhirlybird(axesRoofStableNameWhirlybirdData._2, axesRoofStableNameWhirlybirdData._3.id),
+                        BuildingEffect_1.BuildingEffect.freeId(axesRoofStableNameWhirlybirdData._3.id)
+                    ]);
+                }); });
+            });
+            var cBoundingBoxOp = cBoxOp;
+            _this._cMouseRayCollisionTimeOpOp = cMouseRayCollisionTimeOpOp;
+            _this._cHighlightStableNames = cHighlightStableNames;
+            _this._cDeleteOp = cDeleteOp;
+            _this._cBoundingBoxOp = cBoundingBoxOp;
+        });
+        return _this;
+    }
+    Object.defineProperty(WhirlybirdSelectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return this._cMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WhirlybirdSelectable.prototype, "cHighlightStableNames", {
+        get: function () {
+            return this._cHighlightStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WhirlybirdSelectable.prototype, "cDeleteOp", {
+        get: function () {
+            return this._cDeleteOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WhirlybirdSelectable.prototype, "cBoundingBoxOp", {
+        get: function () {
+            return this._cBoundingBoxOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    WhirlybirdSelectable.prototype.trace = function () {
+        return [
+            this._cMouseRayCollisionTimeOpOp,
+            this._cHighlightStableNames,
+            this._cDeleteOp,
+            this._cBoundingBoxOp
+        ];
+    };
+    return WhirlybirdSelectable;
+}(Selectable_1.Selectable));
 //# sourceMappingURL=Whirlybirds.js.map
 });
 ___scope___.file("app/model/Whirlybird.js", function(exports, require, module, __filename, __dirname){
@@ -10917,9 +11949,17 @@ var Mode = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Mode.prototype, "cFloatingDeleteButtons", {
+        get: function () {
+            return defaultCFloatingDeleteButtons;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return Mode;
 }());
 exports.Mode = Mode;
+var defaultCFloatingDeleteButtons = new sodium.Cell([]);
 //# sourceMappingURL=Mode.js.map
 });
 ___scope___.file("app/modes/InsertOpeningMode.js", function(exports, require, module, __filename, __dirname){
@@ -10992,6 +12032,7 @@ var InsertOpeningMode = /** @class */ (function (_super) {
                     return InsertOpeningData_1.InsertOpeningData.create({
                         wallStableName: bayUnderMouse.cParentStableName.sample(),
                         openingData: OpeningData_1.OpeningData.create({
+                            id: -1,
                             type: openingType,
                             width: openingFormProperties.width,
                             height: openingFormProperties.height,
@@ -11011,7 +12052,14 @@ var InsertOpeningMode = /** @class */ (function (_super) {
             _this._cRoofVisible = new sodium.Cell(false);
             _this._sBuildingEffect =
                 sInsertOpening
-                    .map(BuildingEffect_1.BuildingEffect.insertOpening);
+                    .map(function (insertOpeningData) {
+                    return BuildingEffect_1.BuildingEffect.allocId(function (id) {
+                        return BuildingEffect_1.BuildingEffect.insertOpening(InsertOpeningData_1.InsertOpeningData.create({
+                            wallStableName: insertOpeningData.wallStableName,
+                            openingData: insertOpeningData.openingData.from({ id: id })
+                        }));
+                    });
+                });
         });
         return _this;
     }
@@ -11071,197 +12119,6 @@ var InsertOpeningData = /** @class */ (function () {
 }());
 exports.InsertOpeningData = InsertOpeningData;
 //# sourceMappingURL=InsertOpeningData.js.map
-});
-___scope___.file("app/model/BuildingEffect.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var BuildingEffect = /** @class */ (function () {
-    function BuildingEffect() {
-    }
-    BuildingEffect.prototype.partialMatch = function (default_, cases) {
-        return this.match({
-            insertOpening: function (insertOpeningData) {
-                if (cases.insertOpening) {
-                    return cases.insertOpening(insertOpeningData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
-                if (cases.toggleInternalWallByBayMarkerIndex) {
-                    return cases.toggleInternalWallByBayMarkerIndex(bayMarkerIndex);
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleBay: function (wallStableName, bayIndex) {
-                if (cases.toggleBay) {
-                    return cases.toggleBay(wallStableName, bayIndex);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertSkylight: function (roofStableName, skylightRange) {
-                if (cases.insertSkylight) {
-                    return cases.insertSkylight(roofStableName, skylightRange);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertWhirlybird: function (roofStableName, whirlybirdPos) {
-                if (cases.insertWhirlybird) {
-                    return cases.insertWhirlybird(roofStableName, whirlybirdPos);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertLeanTo: function (leanToStableName, leanToFormProperties) {
-                if (cases.insertLeanTo) {
-                    return cases.insertLeanTo(leanToStableName, leanToFormProperties);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeLeanTo: function (leanToStableName) {
-                if (cases.removeLeanTo) {
-                    return cases.removeLeanTo(leanToStableName);
-                }
-                else {
-                    return default_;
-                }
-            }
-        });
-    };
-    BuildingEffect.insertOpening = function (insertOpeningData) {
-        return new BuildingEffectInsertOpening(insertOpeningData);
-    };
-    BuildingEffect.toggleInternalWallByBayMarkerIndex = function (bayMarkerIndex) {
-        return new BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex);
-    };
-    BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
-        return new BuildingEffectToggleBay(wallStableName, bayIndex);
-    };
-    BuildingEffect.insertSkylight = function (roofStableName, skylightRange) {
-        return new BuildingEffectInsertSkylight(roofStableName, skylightRange);
-    };
-    BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdPos) {
-        return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdPos);
-    };
-    BuildingEffect.insertLeanTo = function (leanToStableName, leanToFormProperties) {
-        return new BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties);
-    };
-    BuildingEffect.removeLeanTo = function (leanToStableName) {
-        return new BuildingEffectRemoveLeanTo(leanToStableName);
-    };
-    return BuildingEffect;
-}());
-exports.BuildingEffect = BuildingEffect;
-var BuildingEffectInsertOpening = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertOpening, _super);
-    function BuildingEffectInsertOpening(insertOpeningData) {
-        var _this = _super.call(this) || this;
-        _this._insertOpeningData = insertOpeningData;
-        return _this;
-    }
-    BuildingEffectInsertOpening.prototype.match = function (cases) {
-        return cases.insertOpening(this._insertOpeningData);
-    };
-    return BuildingEffectInsertOpening;
-}(BuildingEffect));
-var BuildingEffectToggleInternalWallByBayMarkerIndex = /** @class */ (function (_super) {
-    __extends(BuildingEffectToggleInternalWallByBayMarkerIndex, _super);
-    function BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex) {
-        var _this = _super.call(this) || this;
-        _this._bayMarkerIndex = bayMarkerIndex;
-        return _this;
-    }
-    BuildingEffectToggleInternalWallByBayMarkerIndex.prototype.match = function (cases) {
-        return cases.toggleInternalWallByBayMarkerIndex(this._bayMarkerIndex);
-    };
-    return BuildingEffectToggleInternalWallByBayMarkerIndex;
-}(BuildingEffect));
-var BuildingEffectToggleBay = /** @class */ (function (_super) {
-    __extends(BuildingEffectToggleBay, _super);
-    function BuildingEffectToggleBay(wallStableName, bayIndex) {
-        var _this = _super.call(this) || this;
-        _this._wallStableName = wallStableName;
-        _this._bayIndex = bayIndex;
-        return _this;
-    }
-    BuildingEffectToggleBay.prototype.match = function (cases) {
-        return cases.toggleBay(this._wallStableName, this._bayIndex);
-    };
-    return BuildingEffectToggleBay;
-}(BuildingEffect));
-var BuildingEffectInsertSkylight = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertSkylight, _super);
-    function BuildingEffectInsertSkylight(roofStableName, skylightRange) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._skylightRange = skylightRange;
-        return _this;
-    }
-    BuildingEffectInsertSkylight.prototype.match = function (cases) {
-        return cases.insertSkylight(this._roofStableName, this._skylightRange);
-    };
-    return BuildingEffectInsertSkylight;
-}(BuildingEffect));
-var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertWhirlybird, _super);
-    function BuildingEffectInsertWhirlybird(roofStableName, whirlybirdPos) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._whirlybirdPos = whirlybirdPos;
-        return _this;
-    }
-    BuildingEffectInsertWhirlybird.prototype.match = function (cases) {
-        return cases.insertWhirlybird(this._roofStableName, this._whirlybirdPos);
-    };
-    return BuildingEffectInsertWhirlybird;
-}(BuildingEffect));
-var BuildingEffectInsertLeanTo = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertLeanTo, _super);
-    function BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties) {
-        var _this = _super.call(this) || this;
-        _this._leanToStableName = leanToStableName;
-        _this._leanToFormProperties = leanToFormProperties;
-        return _this;
-    }
-    BuildingEffectInsertLeanTo.prototype.match = function (cases) {
-        return cases.insertLeanTo(this._leanToStableName, this._leanToFormProperties);
-    };
-    return BuildingEffectInsertLeanTo;
-}(BuildingEffect));
-var BuildingEffectRemoveLeanTo = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveLeanTo, _super);
-    function BuildingEffectRemoveLeanTo(leanToStableName) {
-        var _this = _super.call(this) || this;
-        _this._leanToStableName = leanToStableName;
-        return _this;
-    }
-    BuildingEffectRemoveLeanTo.prototype.match = function (cases) {
-        return cases.removeLeanTo(this._leanToStableName);
-    };
-    return BuildingEffectRemoveLeanTo;
-}(BuildingEffect));
-//# sourceMappingURL=BuildingEffect.js.map
 });
 ___scope___.file("app/modes/InsertSkylightMode.js", function(exports, require, module, __filename, __dirname){
 
@@ -11510,6 +12367,7 @@ var Quaternion_1 = require("../math/Quaternion");
 var Vector3D_1 = require("../math/Vector3D");
 var BuildingEffect_1 = require("../model/BuildingEffect");
 var Whirlybird_1 = require("../model/Whirlybird");
+var WhirlybirdData_1 = require("../model/WhirlybirdData");
 var Tuples_1 = require("../Tuples");
 var ArrayUtil_1 = require("../ArrayUtil");
 var InsertWhirlybirdMode = /** @class */ (function (_super) {
@@ -11583,7 +12441,12 @@ var InsertWhirlybirdMode = /** @class */ (function (_super) {
                 .snapshot1(cRoofUnderMouseOp)
                 .map(function (roofUnderMouseOp) {
                 return roofUnderMouseOp.map(function (roofUnderMouse) {
-                    return BuildingEffect_1.BuildingEffect.insertWhirlybird(roofUnderMouse._1, roofUnderMouse._3);
+                    return BuildingEffect_1.BuildingEffect.allocId(function (id) {
+                        return BuildingEffect_1.BuildingEffect.insertWhirlybird(roofUnderMouse._1, WhirlybirdData_1.WhirlybirdData.create({
+                            id: id,
+                            position: roofUnderMouse._3
+                        }));
+                    });
                 });
             }));
             _this._cOverlayModelOp = cOverlayModelOp;
@@ -11609,6 +12472,204 @@ var InsertWhirlybirdMode = /** @class */ (function (_super) {
 }(Mode_1.Mode));
 exports.InsertWhirlybirdMode = InsertWhirlybirdMode;
 //# sourceMappingURL=InsertWhirlybirdMode.js.map
+});
+___scope___.file("app/modes/SelectionMode.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Mode_1 = require("./Mode");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Tuples_1 = require("../Tuples");
+var Vector2D_1 = require("../math/Vector2D");
+var Vector3D_1 = require("../math/Vector3D");
+var FloatingDeleteButton_1 = require("../model/FloatingDeleteButton");
+var SelectionMode = /** @class */ (function (_super) {
+    __extends(SelectionMode, _super);
+    function SelectionMode(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
+                return mousePosOp.bind(screenPointToWorldRayOp);
+            });
+            var cSelectableUnderMouseOp = sodium.Cell.switchC(cMouseRayOp.lift(params.cSelectables, function (mouseRayOp, selectables) {
+                return mouseRayOp
+                    .map(function (mouseRay) {
+                    return SodiumUtil
+                        .cellLiftArray(selectables.get()
+                        .map(function (selectable) {
+                        return selectable.cMouseRayCollisionTimeOpOp
+                            .map(function (mouseRayCollisionTimeOpOp) {
+                            return mouseRayCollisionTimeOpOp
+                                .map(function (mouseRayCollisionTimeOp) {
+                                return mouseRayCollisionTimeOp(mouseRay)
+                                    .filter(function (dist) { return dist > 0.0; })
+                                    .map(function (dist) { return [Tuples_1.T2.of(selectable, dist)]; })
+                                    .orSome([]);
+                            })
+                                .orSome([]);
+                        });
+                    }))
+                        .map(function (x) {
+                        return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayJoin(x), function (a, b) { return a._2 < b._2 ? a : b; })
+                            .map(function (x) { return x._1; });
+                    });
+                })
+                    .orSome_(function () { return new sodium.Cell(Option_1.Option.none()); });
+            }));
+            var slDeselect = new sodium.StreamLoop();
+            var cSelectedSelectableOp = params.sMouseLeftPressed
+                .snapshot1(cSelectableUnderMouseOp)
+                .orElse(slDeselect.mapTo(Option_1.Option.none()))
+                .hold(Option_1.Option.none());
+            var cHighlightedStableNames = sodium.Cell.switchC(cSelectableUnderMouseOp.lift(cSelectedSelectableOp, function (selectableObjectUnderMouseOp, selectedSelectableOp) {
+                return selectableObjectUnderMouseOp
+                    .map(function (selectableObjectUnderMouse) {
+                    return selectableObjectUnderMouse.cHighlightStableNames;
+                })
+                    .orSome_(function () { return new sodium.Cell([]); })
+                    .lift(selectedSelectableOp
+                    .map(function (selectedSelectable) {
+                    return selectedSelectable.cHighlightStableNames;
+                })
+                    .orSome_(function () { return new sodium.Cell([]); }), function (a, b) { return a.concat(b); });
+            }));
+            var cFloatingDeleteButtonsWithIDsAndDeleteEffect = sodium.Cell
+                .switchC(cSelectedSelectableOp.map(sodium.lambda1(function (selectedSelectableOp) {
+                return selectedSelectableOp
+                    .map(function (selectedSelectable) {
+                    return selectedSelectable.cDeleteOp
+                        .map(function (deleteOp) {
+                        return deleteOp.map(function (delete_) {
+                            var cPositionOp = selectedSelectable.cBoundingBoxOp.map(function (boundingBoxOp) {
+                                return boundingBoxOp
+                                    .map(function (boundingBox) {
+                                    var pts = ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRangeClosed(-1, 1), function (xIdx) {
+                                        return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRangeClosed(-1, 1), function (yIdx) {
+                                            return ArrayUtil_1.arrayIntRangeClosed(-1, 1).map(function (zIdx) {
+                                                var pt = Vector3D_1.Vector3D.create(xIdx * 0.5 * boundingBox.len.x, yIdx * 0.5 * boundingBox.len.y, zIdx * 0.5 * boundingBox.len.z);
+                                                return boundingBox.axes.pointFromThisSpace(pt);
+                                            });
+                                        });
+                                    });
+                                    return pts;
+                                })
+                                    .orSome([]);
+                            })
+                                .lift(params.cProjectWorldPointToScreenOp, function (pts, projectWorldPointToScreenOp) {
+                                var pts2 = ArrayUtil_1.arrayBind(pts, function (pt) {
+                                    return projectWorldPointToScreenOp(pt)
+                                        .map(function (pt2) { return [pt2]; })
+                                        .orSome([]);
+                                });
+                                var maxXOp = ArrayUtil_1.arrayReduce(pts2, function (a, b) { return a.x > b.x ? a : b; }).map(function (pt) { return pt.x; });
+                                var minYOp = ArrayUtil_1.arrayReduce(pts2, function (a, b) { return a.y < b.y ? a : b; }).map(function (pt) { return pt.y; });
+                                return maxXOp.lift2(minYOp, function (maxX, minY) { return Vector2D_1.Vector2D.create(maxX, minY); });
+                            });
+                            var floatingDeleteButton = FloatingDeleteButton_1.FloatingDeleteButton.create({
+                                id: 1,
+                                cPositionOp: cPositionOp
+                            });
+                            return [Tuples_1.T3.of(1, floatingDeleteButton, delete_)];
+                        });
+                    })
+                        .map(function (x) { return x.map(function (x2) { return [x2]; }).orSome([]); });
+                })
+                    .orSome_(function () { return new sodium.Cell([]); });
+            }, [params.cProjectWorldPointToScreenOp])))
+                .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
+            var sBuildingEffect = SodiumUtil.streamFilterOption(params.sFloatingDeleteButtonPressed
+                .snapshot(cFloatingDeleteButtonsWithIDsAndDeleteEffect, function (deleteButtonId, floatingDeleteButtonsWithIDsAndDeleteEffect) {
+                for (var i = 0; i < floatingDeleteButtonsWithIDsAndDeleteEffect.length; ++i) {
+                    var floatingDeleteButtonWithIDsAndDeleteEffect = floatingDeleteButtonsWithIDsAndDeleteEffect[i];
+                    if (floatingDeleteButtonWithIDsAndDeleteEffect._1 == deleteButtonId) {
+                        return Option_1.Option.some(floatingDeleteButtonWithIDsAndDeleteEffect._3.get());
+                    }
+                }
+                return Option_1.Option.none();
+            }));
+            slDeselect.loop(sBuildingEffect.mapTo(sodium.Unit.UNIT));
+            var cFloatingDeleteButtons = cFloatingDeleteButtonsWithIDsAndDeleteEffect.map(function (floatingDeleteButtonsWithIDsAndDeleteEffect) {
+                return floatingDeleteButtonsWithIDsAndDeleteEffect
+                    .map(function (x) { return x._2; });
+            });
+            _this._cHighlightedStableNames = cHighlightedStableNames;
+            _this._sBuildingEffect = sBuildingEffect;
+            _this._cFloatingDeleteButtons = cFloatingDeleteButtons;
+        });
+        return _this;
+    }
+    Object.defineProperty(SelectionMode.prototype, "cHighlightedStableNames", {
+        get: function () {
+            return this._cHighlightedStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SelectionMode.prototype, "sBuildingEffect", {
+        get: function () {
+            return this._sBuildingEffect;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SelectionMode.prototype, "cFloatingDeleteButtons", {
+        get: function () {
+            return this._cFloatingDeleteButtons;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return SelectionMode;
+}(Mode_1.Mode));
+exports.SelectionMode = SelectionMode;
+//# sourceMappingURL=SelectionMode.js.map
+});
+___scope___.file("app/model/FloatingDeleteButton.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var FloatingDeleteButton = /** @class */ (function () {
+    function FloatingDeleteButton(id, cPositionOp) {
+        this._id = id;
+        this._cPositionOp = cPositionOp;
+    }
+    Object.defineProperty(FloatingDeleteButton.prototype, "id", {
+        get: function () {
+            return this._id;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FloatingDeleteButton.prototype, "cPositionOp", {
+        get: function () {
+            return this._cPositionOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FloatingDeleteButton.prototype.trace = function () {
+        return [this._cPositionOp];
+    };
+    FloatingDeleteButton.create = function (params) {
+        return new FloatingDeleteButton(params.id, params.cPositionOp);
+    };
+    return FloatingDeleteButton;
+}());
+exports.FloatingDeleteButton = FloatingDeleteButton;
+//# sourceMappingURL=FloatingDeleteButton.js.map
 });
 ___scope___.file("app/modes/ToggleBaysMode.js", function(exports, require, module, __filename, __dirname){
 
@@ -11985,135 +13046,6 @@ var LeanToCollidable = /** @class */ (function () {
 exports.LeanToCollidable = LeanToCollidable;
 //# sourceMappingURL=ToggleLeanTosMode.js.map
 });
-___scope___.file("app/math/Box3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Option_1 = require("../Option");
-var Box3D = /** @class */ (function () {
-    function Box3D(axes, len) {
-        this._axes = axes;
-        this._len = len;
-    }
-    Object.defineProperty(Box3D.prototype, "axes", {
-        get: function () {
-            return this._axes;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Box3D.prototype, "len", {
-        get: function () {
-            return this._len;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Box3D.create = function (params) {
-        return new Box3D(params.axes, params.len);
-    };
-    Box3D.prototype.rayIntersectionTime = function (ray) {
-        var ray2 = ray.toSpace(this.axes);
-        { // x faces
-            var t1 = (-0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        { // y faces
-            var t1 = (-0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        { // z faces
-            var t1 = (-0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        return Option_1.Option.none();
-    };
-    return Box3D;
-}());
-exports.Box3D = Box3D;
-//# sourceMappingURL=Box3D.js.map
-});
 ___scope___.file("app/modes/ToggleWallsMode.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -12248,6 +13180,14 @@ var Operation = /** @class */ (function () {
                     return default_;
                 }
             },
+            select: function () {
+                if (cases.select) {
+                    return cases.select();
+                }
+                else {
+                    return default_;
+                }
+            },
             insertOpening: function (openingType) {
                 if (cases.insertOpening) {
                     return cases.insertOpening(openingType);
@@ -12301,6 +13241,9 @@ var Operation = /** @class */ (function () {
     Operation.idle = function () {
         return new OperationIdle();
     };
+    Operation.select = function () {
+        return new OperationSelect();
+    };
     Operation.insertOpening = function (openingType) {
         return new OperationInsertOpening(openingType);
     };
@@ -12331,6 +13274,16 @@ var OperationIdle = /** @class */ (function (_super) {
         return cases.idle();
     };
     return OperationIdle;
+}(Operation));
+var OperationSelect = /** @class */ (function (_super) {
+    __extends(OperationSelect, _super);
+    function OperationSelect() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationSelect.prototype.match = function (cases) {
+        return cases.select();
+    };
+    return OperationSelect;
 }(Operation));
 var OperationInsertOpening = /** @class */ (function (_super) {
     __extends(OperationInsertOpening, _super);
@@ -12395,6 +13348,138 @@ var OperationToggleLeanTos = /** @class */ (function (_super) {
     return OperationToggleLeanTos;
 }(Operation));
 //# sourceMappingURL=Operation.js.map
+});
+___scope___.file("app/ui/FloatingDeleteButtonHelper.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var HTMLUtil = require("../HTMLUtil");
+var FloatingDeleteButtonHelper = /** @class */ (function () {
+    function FloatingDeleteButtonHelper(parentDiv, cFloatingDeleteButtons) {
+        var _this = this;
+        this._cleanups = [];
+        var ssDeleteButtonClicked = new sodium.StreamSink();
+        this._sDeleteButtonClicked = ssDeleteButtonClicked;
+        fetch("floating_delete.html")
+            .then(function (response) {
+            if (response.status === 200 || response.status === 0) {
+                return Promise.resolve(response.text());
+            }
+            else {
+                return Promise.reject(new Error(response.statusText));
+            }
+        })
+            .then(function (floatingDeleteInnerHTML) {
+            var div = document.createElement("div");
+            div.innerHTML = floatingDeleteInnerHTML;
+            _this.connect(parentDiv, cFloatingDeleteButtons, div, ssDeleteButtonClicked);
+        });
+    }
+    Object.defineProperty(FloatingDeleteButtonHelper.prototype, "sDeleteButtonClicked", {
+        get: function () {
+            return this._sDeleteButtonClicked;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FloatingDeleteButtonHelper.prototype.connect = function (parentDiv, cFloatingDeleteButtons, floatingDeleteDiv, ssDeleteButtonClicked) {
+        var _this = this;
+        // incase already connected
+        this.disconnect();
+        //
+        var handles = [];
+        sodium.Transaction.run(function () {
+            var ssHandlesChanged = new sodium.StreamSink();
+            _this._cleanups.push(cFloatingDeleteButtons.listen(function (floatingDeleteButtons) {
+                handles.forEach(function (handle) {
+                    parentDiv.removeChild(handle.div);
+                    handle.disconnect();
+                });
+                handles = [];
+                var _loop_1 = function (i) {
+                    var floatingDeleteButton = floatingDeleteButtons[i];
+                    var handleCleanups = [];
+                    var div = floatingDeleteDiv.cloneNode(true);
+                    div.style.position = "absolute";
+                    var btnDelete = HTMLUtil.findFirstChildByClass(div, "btnDelete");
+                    btnDelete.addEventListener("click", function () {
+                        window.setTimeout(function () {
+                            return ssDeleteButtonClicked.send(floatingDeleteButton.id);
+                        });
+                    });
+                    handleCleanups.push(floatingDeleteButton.cPositionOp.listen(function (positionOp) {
+                        if (positionOp.isNone) {
+                            div.style.display = "none";
+                            return;
+                        }
+                        var position = positionOp.fromSome();
+                        div.style.display = "block";
+                        div.style.left = '' + position.x + "px";
+                        div.style.top = '' + position.y + "px";
+                    }));
+                    handles.push(new FloatingDeleteButtonHandle(floatingDeleteButton.id, div, handleCleanups));
+                    parentDiv.appendChild(div);
+                };
+                for (var i = 0; i < floatingDeleteButtons.length; ++i) {
+                    _loop_1(i);
+                }
+                window.setTimeout(function () { return ssHandlesChanged.send(sodium.Unit.UNIT); });
+            }));
+            var cHandles = ssHandlesChanged
+                .map(function (unused) { return handles.slice(0); })
+                .hold(handles);
+            _this._cleanups.push(cHandles.listen(function (x) { }));
+        });
+    };
+    FloatingDeleteButtonHelper.prototype.disconnect = function () {
+        this._cleanups.forEach(function (cleanup) { return cleanup(); });
+        this._cleanups = [];
+    };
+    return FloatingDeleteButtonHelper;
+}());
+exports.FloatingDeleteButtonHelper = FloatingDeleteButtonHelper;
+var FloatingDeleteButtonHandle = /** @class */ (function () {
+    function FloatingDeleteButtonHandle(id, div, handleCleanups) {
+        this.id = id;
+        this.div = div;
+        this.handleCleanups = handleCleanups;
+    }
+    FloatingDeleteButtonHandle.prototype.disconnect = function () {
+        this.handleCleanups.forEach(function (cleanup) { return cleanup(); });
+        this.handleCleanups = [];
+    };
+    return FloatingDeleteButtonHandle;
+}());
+//# sourceMappingURL=FloatingDeleteButtonHelper.js.map
+});
+___scope___.file("app/HTMLUtil.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function findFirstChildByClass(element, className) {
+    var foundElement = null, found;
+    function recurse(element, className, found) {
+        for (var i = 0; i < element.childNodes.length && !found; i++) {
+            var el = element.childNodes[i];
+            var classes = el.className != undefined ? el.className.split(" ") : [];
+            for (var j = 0, jl = classes.length; j < jl; j++) {
+                if (classes[j] == className) {
+                    found = true;
+                    foundElement = element.childNodes[i];
+                    break;
+                }
+            }
+            if (found)
+                break;
+            recurse(element.childNodes[i], className, found);
+        }
+    }
+    recurse(element, className, false);
+    return foundElement;
+}
+exports.findFirstChildByClass = findFirstChildByClass;
+//# sourceMappingURL=HTMLUtil.js.map
 });
 return ___scope___.entry = "app/main.ts";
 });
