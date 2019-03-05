@@ -1276,15 +1276,15 @@ ___scope___.file("app/model/RoofData.js", function(exports, require, module, __f
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var SkylightData_1 = require("./SkylightData");
 var WhirlybirdData_1 = require("./WhirlybirdData");
-var Ranges1D_1 = require("../math/Ranges1D");
 var RoofData = /** @class */ (function () {
     function RoofData(params) {
         this._params = params;
     }
-    Object.defineProperty(RoofData.prototype, "skylightRanges", {
+    Object.defineProperty(RoofData.prototype, "skylights", {
         get: function () {
-            return this._params.skylightRanges;
+            return this._params.skylights;
         },
         enumerable: true,
         configurable: true
@@ -1314,15 +1314,98 @@ var RoofData = /** @class */ (function () {
     };
     RoofData.fromJSON = function (json) {
         return RoofData.create({
-            skylightRanges: Ranges1D_1.Ranges1D.fromJSON(json.skylightRanges),
+            skylights: json.skylights.map(function (skylight) { return SkylightData_1.SkylightData.fromJSON(skylight); }),
             whirlybirds: json.whirlybirds.map(function (whirlybird) { return WhirlybirdData_1.WhirlybirdData.fromJSON(whirlybird); })
         });
     };
-    RoofData._default = RoofData.create({ skylightRanges: Ranges1D_1.Ranges1D.empty, whirlybirds: [] });
+    RoofData._default = RoofData.create({ skylights: [], whirlybirds: [] });
     return RoofData;
 }());
 exports.RoofData = RoofData;
 //# sourceMappingURL=RoofData.js.map
+});
+___scope___.file("app/model/SkylightData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Vectors_1 = require("../Vectors");
+var SkylightData = /** @class */ (function () {
+    function SkylightData(params) {
+        this._params = params;
+    }
+    Object.defineProperty(SkylightData.prototype, "id", {
+        get: function () {
+            return this._params.id;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SkylightData.prototype, "range", {
+        get: function () {
+            return this._params.range;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    SkylightData.create = function (params) {
+        return new SkylightData(params);
+    };
+    SkylightData.prototype.from = function (params) {
+        return SkylightData.create(Object.assign({}, this._params, params));
+    };
+    SkylightData.prototype.toJSON = function () {
+        return this._params;
+    };
+    SkylightData.fromJSON = function (json) {
+        return SkylightData.create({
+            id: json.id,
+            range: Vectors_1.V2.fromJSON(json.range, function (x) { return x; })
+        });
+    };
+    return SkylightData;
+}());
+exports.SkylightData = SkylightData;
+//# sourceMappingURL=SkylightData.js.map
+});
+___scope___.file("app/Vectors.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var V2 = /** @class */ (function () {
+    function V2(a, b) {
+        this._a = a;
+        this._b = b;
+    }
+    Object.defineProperty(V2.prototype, "_1", {
+        get: function () {
+            return this._a;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(V2.prototype, "_2", {
+        get: function () {
+            return this._b;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    V2.of = function (a, b) {
+        return new V2(a, b);
+    };
+    V2.prototype.toJSON = function () {
+        return {
+            _1: this._1,
+            _2: this._2
+        };
+    };
+    V2.fromJSON = function (json, aFromJSON) {
+        return V2.of(aFromJSON(json._1), aFromJSON(json._2));
+    };
+    return V2;
+}());
+exports.V2 = V2;
+//# sourceMappingURL=Vectors.js.map
 });
 ___scope___.file("app/model/WhirlybirdData.js", function(exports, require, module, __filename, __dirname){
 
@@ -1569,40 +1652,123 @@ Vector3D.unitX_$LI$();
 Vector3D.zero_$LI$();
 //# sourceMappingURL=Vector3D.js.map
 });
-___scope___.file("app/math/Ranges1D.js", function(exports, require, module, __filename, __dirname){
+___scope___.file("app/model/WallData.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Tuples_1 = require("../Tuples");
-var Vectors_1 = require("../Vectors");
-var Ranges1D = /** @class */ (function () {
-    function Ranges1D(ranges) {
-        this._ranges = ranges;
+var OpeningData_1 = require("./OpeningData");
+var WallData = /** @class */ (function () {
+    function WallData(params) {
+        this._params = params;
     }
-    Object.defineProperty(Ranges1D.prototype, "ranges", {
+    Object.defineProperty(WallData.prototype, "openings", {
         get: function () {
-            return this._ranges;
+            return this._params.openings;
         },
         enumerable: true,
         configurable: true
     });
-    Ranges1D.create = function (ranges) {
-        return new Ranges1D(ranges);
+    Object.defineProperty(WallData.prototype, "openBayIndices", {
+        get: function () {
+            return this._params.openBayIndices;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WallData, "default_", {
+        get: function () {
+            return WallData._default;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    WallData.create = function (params) {
+        return new WallData(params);
     };
-    Ranges1D.prototype.toJSON = function () {
-        return this._ranges.map(function (range) { return Tuples_1.T2.of(range._1, range._2).toJSON(); });
+    WallData.prototype.from = function (params) {
+        return WallData.create(Object.assign({}, this._params, params));
     };
-    Ranges1D.fromJSON = function (json) {
-        return Ranges1D.create(json.map(function (range) {
-            var tmp = Tuples_1.T2.fromJSON(range, function (x) { return x; }, function (x) { return x; });
-            return Vectors_1.V2.of(tmp._1, tmp._2);
-        }));
+    WallData.prototype.toJSON = function () {
+        return this._params;
     };
-    Ranges1D.empty = Ranges1D.create([]);
-    return Ranges1D;
+    WallData.fromJSON = function (json) {
+        return WallData.create({
+            openings: json.openings.map(function (opening) { return OpeningData_1.OpeningData.fromJSON(opening); }),
+            openBayIndices: json.openBayIndices
+        });
+    };
+    WallData._default = WallData.create({ openings: [], openBayIndices: [] });
+    return WallData;
 }());
-exports.Ranges1D = Ranges1D;
-//# sourceMappingURL=Ranges1D.js.map
+exports.WallData = WallData;
+//# sourceMappingURL=WallData.js.map
+});
+___scope___.file("app/model/OpeningData.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var OpeningData = /** @class */ (function () {
+    function OpeningData(params) {
+        this._params = params;
+    }
+    OpeningData.create = function (params) {
+        return new OpeningData(params);
+    };
+    OpeningData.prototype.from = function (params) {
+        return OpeningData.create(Object.assign({}, this._params, params));
+    };
+    Object.defineProperty(OpeningData.prototype, "id", {
+        get: function () {
+            return this._params.id;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "type", {
+        get: function () {
+            return this._params.type;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "width", {
+        get: function () {
+            return this._params.width;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "height", {
+        get: function () {
+            return this._params.height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "headHeight", {
+        get: function () {
+            return this._params.headHeight;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(OpeningData.prototype, "bayIndex", {
+        get: function () {
+            return this._params.bayIndex;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    OpeningData.prototype.toJSON = function () {
+        return this._params;
+    };
+    OpeningData.fromJSON = function (json) {
+        return OpeningData.create(json);
+    };
+    return OpeningData;
+}());
+exports.OpeningData = OpeningData;
+//# sourceMappingURL=OpeningData.js.map
 });
 ___scope___.file("app/Tuples.js", function(exports, require, module, __filename, __dirname){
 
@@ -1820,155 +1986,6 @@ var T6 = /** @class */ (function () {
 }());
 exports.T6 = T6;
 //# sourceMappingURL=Tuples.js.map
-});
-___scope___.file("app/Vectors.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var V2 = /** @class */ (function () {
-    function V2(a, b) {
-        this._a = a;
-        this._b = b;
-    }
-    Object.defineProperty(V2.prototype, "_1", {
-        get: function () {
-            return this._a;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(V2.prototype, "_2", {
-        get: function () {
-            return this._b;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    V2.of = function (a, b) {
-        return new V2(a, b);
-    };
-    return V2;
-}());
-exports.V2 = V2;
-//# sourceMappingURL=Vectors.js.map
-});
-___scope___.file("app/model/WallData.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var OpeningData_1 = require("./OpeningData");
-var WallData = /** @class */ (function () {
-    function WallData(params) {
-        this._params = params;
-    }
-    Object.defineProperty(WallData.prototype, "openings", {
-        get: function () {
-            return this._params.openings;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(WallData.prototype, "openBayIndices", {
-        get: function () {
-            return this._params.openBayIndices;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(WallData, "default_", {
-        get: function () {
-            return WallData._default;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    WallData.create = function (params) {
-        return new WallData(params);
-    };
-    WallData.prototype.from = function (params) {
-        return WallData.create(Object.assign({}, this._params, params));
-    };
-    WallData.prototype.toJSON = function () {
-        return this._params;
-    };
-    WallData.fromJSON = function (json) {
-        return WallData.create({
-            openings: json.openings.map(function (opening) { return OpeningData_1.OpeningData.fromJSON(opening); }),
-            openBayIndices: json.openBayIndices
-        });
-    };
-    WallData._default = WallData.create({ openings: [], openBayIndices: [] });
-    return WallData;
-}());
-exports.WallData = WallData;
-//# sourceMappingURL=WallData.js.map
-});
-___scope___.file("app/model/OpeningData.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var OpeningData = /** @class */ (function () {
-    function OpeningData(params) {
-        this._params = params;
-    }
-    OpeningData.create = function (params) {
-        return new OpeningData(params);
-    };
-    OpeningData.prototype.from = function (params) {
-        return OpeningData.create(Object.assign({}, this._params, params));
-    };
-    Object.defineProperty(OpeningData.prototype, "id", {
-        get: function () {
-            return this._params.id;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(OpeningData.prototype, "type", {
-        get: function () {
-            return this._params.type;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(OpeningData.prototype, "width", {
-        get: function () {
-            return this._params.width;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(OpeningData.prototype, "height", {
-        get: function () {
-            return this._params.height;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(OpeningData.prototype, "headHeight", {
-        get: function () {
-            return this._params.headHeight;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(OpeningData.prototype, "bayIndex", {
-        get: function () {
-            return this._params.bayIndex;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    OpeningData.prototype.toJSON = function () {
-        return this._params;
-    };
-    OpeningData.fromJSON = function (json) {
-        return OpeningData.create(json);
-    };
-    return OpeningData;
-}());
-exports.OpeningData = OpeningData;
-//# sourceMappingURL=OpeningData.js.map
 });
 ___scope___.file("app/IdGen.js", function(exports, require, module, __filename, __dirname){
 
@@ -3583,7 +3600,6 @@ var OpeningType_1 = require("./OpeningType");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
 var TextureLoader_1 = require("../TextureLoader");
-var Ranges1D_1 = require("../math/Ranges1D");
 var IdleMode_1 = require("../modes/IdleMode");
 var InsertOpeningMode_1 = require("../modes/InsertOpeningMode");
 var InsertSkylightMode_1 = require("../modes/InsertSkylightMode");
@@ -4031,13 +4047,25 @@ function performEffectOnBuilding(buildingData, buildingEffect) {
             }
             return buildingData;
         },
-        insertSkylight: function (roofStableName, skylightArea) {
+        insertSkylight: function (roofStableName, skylightData) {
             var roofLenses = BuildingUtil.roofLensesFromBuildingData(buildingData);
             for (var i = 0; i < roofLenses.length; ++i) {
                 var roofLens = roofLenses[i];
                 if (roofLens._1 == roofStableName) {
                     var roof = roofLens._2.get(buildingData);
-                    var roof2 = roof.from({ skylightRanges: Ranges1D_1.Ranges1D.create(roof.skylightRanges.ranges.concat([skylightArea])) });
+                    var roof2 = roof.from({ skylights: roof.skylights.concat([skylightData]) });
+                    return roofLens._2.set(roof2, buildingData);
+                }
+            }
+            return buildingData;
+        },
+        removeSkylight: function (roofStableName, skylightId) {
+            var roofLenses = BuildingUtil.roofLensesFromBuildingData(buildingData);
+            for (var i = 0; i < roofLenses.length; ++i) {
+                var roofLens = roofLenses[i];
+                if (roofLens._1 == roofStableName) {
+                    var roof = roofLens._2.get(buildingData);
+                    var roof2 = roof.from({ skylights: roof.skylights.filter(function (skylight) { return skylight.id != skylightId; }) });
                     return roofLens._2.set(roof2, buildingData);
                 }
             }
@@ -4856,12 +4884,17 @@ var Building = /** @class */ (function () {
                     side2LeanToWalls
                 ]);
             });
-            var cSelectables = SodiumUtil.cellTrace(sodium.Cell.switchC(cWalls.map(sodium.lambda1(function (walls) {
+            var cSelectables = SodiumUtil.cellTrace(sodium.Cell.switchC(cWalls.lift(cRoofs, sodium.lambda2(function (walls, roofs) {
                 return SodiumUtil
                     .cellLiftArray(walls.map(function (wall) { return wall.cSelectables; }))
-                    .lift(whirlybirds.cSelectables, function (x, whirlybirdSelectables) { return Lazy_1.Lazy.create(function () {
+                    .lift3(SodiumUtil
+                    .cellLiftArray(roofs.map(function (roof) { return roof.cSelectables; }))
+                    .map(function (x) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
+                }); }), whirlybirds.cSelectables, function (x, roofSelectables, whirlybirdSelectables) { return Lazy_1.Lazy.create(function () {
                     return ArrayUtil_1.arrayJoin([
                         ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); }),
+                        roofSelectables.get(),
                         whirlybirdSelectables.get()
                     ]);
                 }); });
@@ -9508,11 +9541,11 @@ var SodiumUtil = require("../SodiumUtil");
 var Bay_1 = require("./Bay");
 var Skylight_1 = require("./Skylight");
 var ArrayUtil_1 = require("../ArrayUtil");
+var Lazy_1 = require("../Lazy");
 var Axes3D_1 = require("../math/Axes3D");
 var CAG_1 = require("../math/CAG");
 var MkModelEffect_1 = require("../MkModelEffect");
 var Quaternion_1 = require("../math/Quaternion");
-var Ranges1D_1 = require("../math/Ranges1D");
 var TextureSpace_1 = require("../math/TextureSpace");
 var Vector2D_1 = require("../math/Vector2D");
 var Vector3D_1 = require("../math/Vector3D");
@@ -9521,10 +9554,12 @@ var Roof = /** @class */ (function () {
     function Roof(params) {
         var _this = this;
         sodium.Transaction.run(function () {
-            var cSkylightRanges = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cRoofDataOp.map(function (roofDataOp) {
+            var cSkylightDatas = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cRoofDataOp.map(function (roofDataOp) {
                 return roofDataOp
-                    .map(function (roofData) { return roofData.skylightRanges; })
-                    .orSome(Ranges1D_1.Ranges1D.empty);
+                    .map(function (roofData) {
+                    return roofData.skylights;
+                })
+                    .orSome([]);
             }));
             var cTextureSpace = params
                 .cAxes
@@ -9599,11 +9634,11 @@ var Roof = /** @class */ (function () {
                 }
                 return bays;
             });
-            var cSkylights = SodiumUtil.cellTrace(params.cOutline.lift(cSkylightRanges, function (outline, skylightRanges) {
+            var cSkylights = SodiumUtil.cellTrace(params.cOutline.lift3(cSkylightDatas, params.cStableName, function (outline, skylightDatas, roofStableName) {
                 if (outline.length == 0) {
                     return [];
                 }
-                if (skylightRanges.ranges.length == 0) {
+                if (skylightDatas.length == 0) {
                     return [];
                 }
                 var outlineCAG = CAG_1.CAG.fromPolygons([
@@ -9619,10 +9654,11 @@ var Roof = /** @class */ (function () {
                     skylightMinY = Math.min(skylightMinY, pt.y);
                     skylightMaxY = Math.max(skylightMaxY, pt.y);
                 }
-                var skylightCAG;
-                for (var i = 0; i < skylightRanges.ranges.length; ++i) {
-                    var skylightRange = skylightRanges.ranges[i];
-                    var skylightCAG2_1 = CAG_1.CAG.fromPolygons([
+                var result = [];
+                for (var i = 0; i < skylightDatas.length; ++i) {
+                    var skylightData = skylightDatas[i];
+                    var skylightRange = skylightData.range;
+                    var skylightCAG = CAG_1.CAG.fromPolygons([
                         Polygon2D_1.Polygon2D.create({
                             outline: [
                                 Vector2D_1.Vector2D.create(skylightRange._1, skylightMinY - 100.0),
@@ -9633,24 +9669,29 @@ var Roof = /** @class */ (function () {
                             holes: []
                         })
                     ]);
-                    if (i == 0) {
-                        skylightCAG = skylightCAG2_1;
-                    }
-                    else {
-                        skylightCAG = skylightCAG.union(skylightCAG2_1);
-                    }
-                }
-                var skylightCAG2 = outlineCAG.intersect(skylightCAG);
-                var skylightPolygons = skylightCAG2.toPolygons();
-                return skylightPolygons.map(function (skylightPolygon) {
-                    return new Skylight_1.Skylight({
+                    var skylightCAG2 = skylightCAG.intersect(outlineCAG);
+                    var skylightPolygons = skylightCAG2.toPolygons();
+                    result.push(new Skylight_1.Skylight({
                         cAxes: params.cAxes,
-                        cOutlines: new sodium.Cell([skylightPolygon])
-                    });
-                });
+                        cRoofStableName: new sodium.Cell(roofStableName),
+                        cOutlines: new sodium.Cell(skylightPolygons),
+                        cSkylightData: new sodium.Cell(skylightData),
+                        cHighlightedStableNames: params.cHighlightedStableNames
+                    }));
+                }
+                return result;
             }), function (skylights) {
                 return ArrayUtil_1.arrayBind(skylights, function (skylight) { return skylight.trace(); });
             });
+            var cSelectables = sodium.Cell.switchC(cSkylights.map(function (skylights) {
+                return SodiumUtil
+                    .cellLiftArray(skylights.map(function (skylight) {
+                    return skylight.cSelectables;
+                }))
+                    .map(function (x) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
+                }); });
+            }));
             _this._params = params;
             _this._cBays = cBays;
             _this._cModel = MkModelEffect_1.composeCListOfCModels(cBays.lift(cSkylights, function (bays, skylights) {
@@ -9659,6 +9700,7 @@ var Roof = /** @class */ (function () {
                     skylights.map(function (skylight) { return skylight.cModel; })
                 ]);
             }));
+            _this._cSelectables = cSelectables;
         });
     }
     Object.defineProperty(Roof.prototype, "params", {
@@ -9682,6 +9724,13 @@ var Roof = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Roof.prototype, "cSelectables", {
+        get: function () {
+            return this._cSelectables;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Roof.prototype.trace = function () {
         return [
             this.params.cRoofDataOp,
@@ -9694,7 +9743,8 @@ var Roof = /** @class */ (function () {
             this.params.cHighlightedStableNames,
             this.params.cVisible,
             this.cModel,
-            this.cBays
+            this.cBays,
+            this.cSelectables
         ];
     };
     return Roof;
@@ -9984,15 +10034,39 @@ exports.Plane3D = Plane3D;
 ___scope___.file("app/model/Skylight.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var THREE = require("three");
+var BuildingEffect_1 = require("./BuildingEffect");
+var Selectable_1 = require("./Selectable");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Lazy_1 = require("../Lazy");
 var MkModelEffect_1 = require("../MkModelEffect");
-var three_1 = require("three");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var Box3D_1 = require("../math/Box3D");
+var Outline3D_1 = require("../math/Outline3D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector3D_1 = require("../math/Vector3D");
 var Skylight = /** @class */ (function () {
     function Skylight(params) {
         var _this = this;
         sodium.Transaction.run(function () {
+            var cHighlighted = SodiumUtil.cellCalmRefEq(params.cSkylightData.lift(params.cHighlightedStableNames, function (skylightData, highligtedStableNames) {
+                var stableName = "skylight_" + skylightData.id;
+                return ArrayUtil_1.arrayIncludes(highligtedStableNames, stableName);
+            }));
             var cModel = params.cOutlines
                 .map(sodium.lambda1(function (outlines) {
                 return MkModelEffect_1.MkModelEffect.create(function (textureLoader) {
@@ -10014,18 +10088,32 @@ var Skylight = /** @class */ (function () {
                         depth: 60.0
                     });
                     var material = new THREE.MeshStandardMaterial({ color: "#808080", transparent: true, opacity: 0.5 });
-                    var mesh = new three_1.Mesh(geometry, material);
+                    var mesh = new THREE.Mesh(geometry, material);
                     return Promise.resolve(MkModelEffect_1.Model.create(function () {
                         var cleanups = [];
                         cleanups.push(params.cAxes.listen(function (axes) {
                             MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
                         }));
+                        cleanups.push(cHighlighted.listen(function (highlighted) {
+                            if (highlighted) {
+                                var material_1 = new THREE.MeshStandardMaterial({ color: "#008000" });
+                                mesh.material = material_1;
+                            }
+                            else {
+                                var material_2 = new THREE.MeshStandardMaterial({ color: "#808080", transparent: true, opacity: 0.5 });
+                                mesh.material = material_2;
+                            }
+                        }));
                         return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
                     }, mesh));
                 });
-            }, [params.cAxes]));
+            }, [params.cAxes, cHighlighted]));
+            var cSelectables = new sodium.Cell(Lazy_1.Lazy.create(function () { return [
+                new SkylightSelectable(params.cRoofStableName, params.cSkylightData, params.cAxes, params.cOutlines)
+            ]; }));
             _this._params = params;
             _this._cModel = cModel;
+            _this._cSelectables = cSelectables;
         });
     }
     Object.defineProperty(Skylight.prototype, "params", {
@@ -10042,17 +10130,667 @@ var Skylight = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Skylight.prototype, "cSelectables", {
+        get: function () {
+            return this._cSelectables;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Skylight.prototype.trace = function () {
         return [
             this.params.cAxes,
             this.params.cOutlines,
-            this.cModel
+            this.params.cRoofStableName,
+            this.params.cSkylightData,
+            this.params.cHighlightedStableNames,
+            this.cModel,
+            this.cSelectables
         ];
     };
     return Skylight;
 }());
 exports.Skylight = Skylight;
+var SkylightSelectable = /** @class */ (function (_super) {
+    __extends(SkylightSelectable, _super);
+    function SkylightSelectable(cRoofStableName, cSkylightData, cAxes, cOutlines) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cOutlines3D = cAxes.lift(cOutlines, function (axes, outlines) {
+                return outlines.map(function (outline) {
+                    return Outline3D_1.Outline3D.create({
+                        axes: axes,
+                        outline: outline.outline
+                    });
+                });
+            });
+            var cMouseRayCollisionTimeOpOp = cOutlines3D.map(function (outlines3D) {
+                return Option_1.Option.some(function (mouseRay) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(outlines3D, function (outline3D) {
+                        return outline3D
+                            .rayIntersectionTimeOp(mouseRay)
+                            .map(function (x) { return [x]; })
+                            .orSome([]);
+                    }), function (a, b) { return a < b ? a : b; });
+                });
+            });
+            var cHighlightStableNames = cSkylightData.map(function (skylightData) { return ["skylight_" + skylightData.id]; });
+            var cDeleteOp = cRoofStableName.lift(cSkylightData, function (roofStableName, skylightData) { return Option_1.Option.some(Lazy_1.Lazy.create(function () {
+                return BuildingEffect_1.BuildingEffect.seq([
+                    BuildingEffect_1.BuildingEffect.removeSkylight(roofStableName, skylightData.id),
+                    BuildingEffect_1.BuildingEffect.freeId(skylightData.id)
+                ]);
+            })); });
+            var cBoundingBoxOp = cAxes.lift(cOutlines, function (axes, outlines) {
+                var minX = Number.POSITIVE_INFINITY;
+                var maxX = Number.NEGATIVE_INFINITY;
+                var minY = Number.POSITIVE_INFINITY;
+                var maxY = Number.NEGATIVE_INFINITY;
+                for (var i = 0; i < outlines.length; ++i) {
+                    var outline = outlines[i].outline;
+                    for (var j = 0; j < outline.length; ++j) {
+                        var pt = outline[j];
+                        minX = Math.min(minX, pt.x);
+                        maxX = Math.max(maxX, pt.x);
+                        minY = Math.min(minY, pt.y);
+                        maxY = Math.max(maxY, pt.y);
+                    }
+                }
+                if (!Number.isFinite(minX)) {
+                    return Option_1.Option.none();
+                }
+                var lenX = maxX - minX;
+                var lenY = maxY - minY;
+                var centreX = 0.5 * (minX + maxX);
+                var centreY = 0.5 * (minY + maxY);
+                return Option_1.Option.some(Box3D_1.Box3D.create({
+                    axes: axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(centreX, centreY, 0.0), Quaternion_1.Quaternion.identity)),
+                    len: Vector3D_1.Vector3D.create(lenX, lenY, 60.0)
+                }));
+            });
+            _this._cMouseRayCollisionTimeOpOp = cMouseRayCollisionTimeOpOp;
+            _this._cHighlightStableNames = cHighlightStableNames;
+            _this._cDeleteOp = cDeleteOp;
+            _this._cBoundingBoxOp = cBoundingBoxOp;
+        });
+        return _this;
+    }
+    Object.defineProperty(SkylightSelectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return this._cMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SkylightSelectable.prototype, "cHighlightStableNames", {
+        get: function () {
+            return this._cHighlightStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SkylightSelectable.prototype, "cDeleteOp", {
+        get: function () {
+            return this._cDeleteOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SkylightSelectable.prototype, "cBoundingBoxOp", {
+        get: function () {
+            return this._cBoundingBoxOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    SkylightSelectable.prototype.trace = function () {
+        return [
+            this._cMouseRayCollisionTimeOpOp,
+            this._cHighlightStableNames,
+            this._cDeleteOp,
+            this._cBoundingBoxOp
+        ];
+    };
+    return SkylightSelectable;
+}(Selectable_1.Selectable));
 //# sourceMappingURL=Skylight.js.map
+});
+___scope___.file("app/model/BuildingEffect.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var BuildingEffect = /** @class */ (function () {
+    function BuildingEffect() {
+    }
+    BuildingEffect.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            seq: function (effects) {
+                if (cases.seq) {
+                    return cases.seq(effects);
+                }
+                else {
+                    return default_;
+                }
+            },
+            allocId: function (k) {
+                if (cases.allocId) {
+                    return cases.allocId(k);
+                }
+                else {
+                    return default_;
+                }
+            },
+            freeId: function (id) {
+                if (cases.freeId) {
+                    return cases.freeId(id);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertOpening: function (insertOpeningData) {
+                if (cases.insertOpening) {
+                    return cases.insertOpening(insertOpeningData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeOpening: function (wallStableName, openingId) {
+                if (cases.removeOpening) {
+                    return cases.removeOpening(wallStableName, openingId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
+                if (cases.toggleInternalWallByBayMarkerIndex) {
+                    return cases.toggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleBay: function (wallStableName, bayIndex) {
+                if (cases.toggleBay) {
+                    return cases.toggleBay(wallStableName, bayIndex);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertSkylight: function (roofStableName, skylightData) {
+                if (cases.insertSkylight) {
+                    return cases.insertSkylight(roofStableName, skylightData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeSkylight: function (roofStableName, skylightId) {
+                if (cases.removeSkylight) {
+                    return cases.removeSkylight(roofStableName, skylightId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertWhirlybird: function (roofStableName, whirlybirdData) {
+                if (cases.insertWhirlybird) {
+                    return cases.insertWhirlybird(roofStableName, whirlybirdData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeWhirlybird: function (roofStableName, whirlybirdId) {
+                if (cases.removeWhirlybird) {
+                    return cases.removeWhirlybird(roofStableName, whirlybirdId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertLeanTo: function (leanToStableName, leanToFormProperties) {
+                if (cases.insertLeanTo) {
+                    return cases.insertLeanTo(leanToStableName, leanToFormProperties);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeLeanTo: function (leanToStableName) {
+                if (cases.removeLeanTo) {
+                    return cases.removeLeanTo(leanToStableName);
+                }
+                else {
+                    return default_;
+                }
+            }
+        });
+    };
+    BuildingEffect.seq = function (effects) {
+        return new BuildingEffectSeq(effects);
+    };
+    BuildingEffect.allocId = function (k) {
+        return new BuildingEffectAllocId(k);
+    };
+    BuildingEffect.freeId = function (id) {
+        return new BuildingEffectFreeId(id);
+    };
+    BuildingEffect.insertOpening = function (insertOpeningData) {
+        return new BuildingEffectInsertOpening(insertOpeningData);
+    };
+    BuildingEffect.removeOpening = function (wallStableName, openingId) {
+        return new BuildingEffectRemoveOpening(wallStableName, openingId);
+    };
+    BuildingEffect.toggleInternalWallByBayMarkerIndex = function (bayMarkerIndex) {
+        return new BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+    };
+    BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
+        return new BuildingEffectToggleBay(wallStableName, bayIndex);
+    };
+    BuildingEffect.insertSkylight = function (roofStableName, skylightData) {
+        return new BuildingEffectInsertSkylight(roofStableName, skylightData);
+    };
+    BuildingEffect.removeSkylight = function (roofStableName, skylightId) {
+        return new BuildingEffectRemoveSkylight(roofStableName, skylightId);
+    };
+    BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdData) {
+        return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData);
+    };
+    BuildingEffect.removeWhirlybird = function (roofStableName, whirlybirdId) {
+        return new BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId);
+    };
+    BuildingEffect.insertLeanTo = function (leanToStableName, leanToFormProperties) {
+        return new BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties);
+    };
+    BuildingEffect.removeLeanTo = function (leanToStableName) {
+        return new BuildingEffectRemoveLeanTo(leanToStableName);
+    };
+    return BuildingEffect;
+}());
+exports.BuildingEffect = BuildingEffect;
+var BuildingEffectSeq = /** @class */ (function (_super) {
+    __extends(BuildingEffectSeq, _super);
+    function BuildingEffectSeq(effects) {
+        var _this = _super.call(this) || this;
+        _this._effects = effects;
+        return _this;
+    }
+    BuildingEffectSeq.prototype.match = function (cases) {
+        return cases.seq(this._effects);
+    };
+    return BuildingEffectSeq;
+}(BuildingEffect));
+var BuildingEffectAllocId = /** @class */ (function (_super) {
+    __extends(BuildingEffectAllocId, _super);
+    function BuildingEffectAllocId(k) {
+        var _this = _super.call(this) || this;
+        _this._k = k;
+        return _this;
+    }
+    BuildingEffectAllocId.prototype.match = function (cases) {
+        return cases.allocId(this._k);
+    };
+    return BuildingEffectAllocId;
+}(BuildingEffect));
+var BuildingEffectFreeId = /** @class */ (function (_super) {
+    __extends(BuildingEffectFreeId, _super);
+    function BuildingEffectFreeId(id) {
+        var _this = _super.call(this) || this;
+        _this._id = id;
+        return _this;
+    }
+    BuildingEffectFreeId.prototype.match = function (cases) {
+        return cases.freeId(this._id);
+    };
+    return BuildingEffectFreeId;
+}(BuildingEffect));
+var BuildingEffectInsertOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertOpening, _super);
+    function BuildingEffectInsertOpening(insertOpeningData) {
+        var _this = _super.call(this) || this;
+        _this._insertOpeningData = insertOpeningData;
+        return _this;
+    }
+    BuildingEffectInsertOpening.prototype.match = function (cases) {
+        return cases.insertOpening(this._insertOpeningData);
+    };
+    return BuildingEffectInsertOpening;
+}(BuildingEffect));
+var BuildingEffectRemoveOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveOpening, _super);
+    function BuildingEffectRemoveOpening(wallStableName, openingId) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._openingId = openingId;
+        return _this;
+    }
+    BuildingEffectRemoveOpening.prototype.match = function (cases) {
+        return cases.removeOpening(this._wallStableName, this._openingId);
+    };
+    return BuildingEffectRemoveOpening;
+}(BuildingEffect));
+var BuildingEffectToggleInternalWallByBayMarkerIndex = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleInternalWallByBayMarkerIndex, _super);
+    function BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex) {
+        var _this = _super.call(this) || this;
+        _this._bayMarkerIndex = bayMarkerIndex;
+        return _this;
+    }
+    BuildingEffectToggleInternalWallByBayMarkerIndex.prototype.match = function (cases) {
+        return cases.toggleInternalWallByBayMarkerIndex(this._bayMarkerIndex);
+    };
+    return BuildingEffectToggleInternalWallByBayMarkerIndex;
+}(BuildingEffect));
+var BuildingEffectToggleBay = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleBay, _super);
+    function BuildingEffectToggleBay(wallStableName, bayIndex) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._bayIndex = bayIndex;
+        return _this;
+    }
+    BuildingEffectToggleBay.prototype.match = function (cases) {
+        return cases.toggleBay(this._wallStableName, this._bayIndex);
+    };
+    return BuildingEffectToggleBay;
+}(BuildingEffect));
+var BuildingEffectInsertSkylight = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertSkylight, _super);
+    function BuildingEffectInsertSkylight(roofStableName, skylightData) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._skylightData = skylightData;
+        return _this;
+    }
+    BuildingEffectInsertSkylight.prototype.match = function (cases) {
+        return cases.insertSkylight(this._roofStableName, this._skylightData);
+    };
+    return BuildingEffectInsertSkylight;
+}(BuildingEffect));
+var BuildingEffectRemoveSkylight = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveSkylight, _super);
+    function BuildingEffectRemoveSkylight(roofStableName, skylightId) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._skylightId = skylightId;
+        return _this;
+    }
+    BuildingEffectRemoveSkylight.prototype.match = function (cases) {
+        return cases.removeSkylight(this._roofStableName, this._skylightId);
+    };
+    return BuildingEffectRemoveSkylight;
+}(BuildingEffect));
+var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertWhirlybird, _super);
+    function BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._whirlybirdData = whirlybirdData;
+        return _this;
+    }
+    BuildingEffectInsertWhirlybird.prototype.match = function (cases) {
+        return cases.insertWhirlybird(this._roofStableName, this._whirlybirdData);
+    };
+    return BuildingEffectInsertWhirlybird;
+}(BuildingEffect));
+var BuildingEffectRemoveWhirlybird = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveWhirlybird, _super);
+    function BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._whirlybirdId = whirlybirdId;
+        return _this;
+    }
+    BuildingEffectRemoveWhirlybird.prototype.match = function (cases) {
+        return cases.removeWhirlybird(this._roofStableName, this._whirlybirdId);
+    };
+    return BuildingEffectRemoveWhirlybird;
+}(BuildingEffect));
+var BuildingEffectInsertLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertLeanTo, _super);
+    function BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        _this._leanToFormProperties = leanToFormProperties;
+        return _this;
+    }
+    BuildingEffectInsertLeanTo.prototype.match = function (cases) {
+        return cases.insertLeanTo(this._leanToStableName, this._leanToFormProperties);
+    };
+    return BuildingEffectInsertLeanTo;
+}(BuildingEffect));
+var BuildingEffectRemoveLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveLeanTo, _super);
+    function BuildingEffectRemoveLeanTo(leanToStableName) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        return _this;
+    }
+    BuildingEffectRemoveLeanTo.prototype.match = function (cases) {
+        return cases.removeLeanTo(this._leanToStableName);
+    };
+    return BuildingEffectRemoveLeanTo;
+}(BuildingEffect));
+//# sourceMappingURL=BuildingEffect.js.map
+});
+___scope___.file("app/model/Selectable.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Option_1 = require("../Option");
+var Selectable = /** @class */ (function () {
+    function Selectable() {
+    }
+    Selectable.prototype.trace = function () {
+        return [];
+    };
+    Object.defineProperty(Selectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return defaultCMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cFormPropertiesOp", {
+        get: function () {
+            return defaultCFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cSetFormPropertiesOp", {
+        get: function () {
+            return defaultCSetFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cHighlightStableNames", {
+        get: function () {
+            return defaultCHighlightStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cHighlightOverlayModelOp", {
+        get: function () {
+            return defaultCHighlightOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cDeleteOp", {
+        get: function () {
+            return defaultCDeleteOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cBoundingBoxOp", {
+        /**
+         * Used for approximating an appropriate position of a floating delete button and possibly other buttons.
+         */
+        get: function () {
+            return defaultCBoundingBoxOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Selectable;
+}());
+exports.Selectable = Selectable;
+var defaultCMouseRayCollisionTimeOpOp = new sodium.Cell(Option_1.Option.none());
+var defaultCFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
+var defaultCSetFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
+var defaultCHighlightStableNames = new sodium.Cell([]);
+var defaultCHighlightOverlayModelOp = new sodium.Cell(Option_1.Option.none());
+var defaultCDeleteOp = new sodium.Cell(Option_1.Option.none());
+var defaultCBoundingBoxOp = new sodium.Cell(Option_1.Option.none());
+//# sourceMappingURL=Selectable.js.map
+});
+___scope___.file("app/math/Box3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option_1 = require("../Option");
+var Box3D = /** @class */ (function () {
+    function Box3D(axes, len) {
+        this._axes = axes;
+        this._len = len;
+    }
+    Object.defineProperty(Box3D.prototype, "axes", {
+        get: function () {
+            return this._axes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Box3D.prototype, "len", {
+        get: function () {
+            return this._len;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Box3D.create = function (params) {
+        return new Box3D(params.axes, params.len);
+    };
+    Box3D.prototype.rayIntersectionTime = function (ray) {
+        var ray2 = ray.toSpace(this.axes);
+        { // x faces
+            var t1 = (-0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // y faces
+            var t1 = (-0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // z faces
+            var t1 = (-0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        return Option_1.Option.none();
+    };
+    return Box3D;
+}());
+exports.Box3D = Box3D;
+//# sourceMappingURL=Box3D.js.map
 });
 ___scope___.file("app/math/TextureSpace.js", function(exports, require, module, __filename, __dirname){
 
@@ -10747,519 +11485,6 @@ var OpeningSelectable = /** @class */ (function (_super) {
     return OpeningSelectable;
 }(Selectable_1.Selectable));
 //# sourceMappingURL=Opening.js.map
-});
-___scope___.file("app/model/BuildingEffect.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var BuildingEffect = /** @class */ (function () {
-    function BuildingEffect() {
-    }
-    BuildingEffect.prototype.partialMatch = function (default_, cases) {
-        return this.match({
-            seq: function (effects) {
-                if (cases.seq) {
-                    return cases.seq(effects);
-                }
-                else {
-                    return default_;
-                }
-            },
-            allocId: function (k) {
-                if (cases.allocId) {
-                    return cases.allocId(k);
-                }
-                else {
-                    return default_;
-                }
-            },
-            freeId: function (id) {
-                if (cases.freeId) {
-                    return cases.freeId(id);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertOpening: function (insertOpeningData) {
-                if (cases.insertOpening) {
-                    return cases.insertOpening(insertOpeningData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeOpening: function (wallStableName, openingId) {
-                if (cases.removeOpening) {
-                    return cases.removeOpening(wallStableName, openingId);
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
-                if (cases.toggleInternalWallByBayMarkerIndex) {
-                    return cases.toggleInternalWallByBayMarkerIndex(bayMarkerIndex);
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleBay: function (wallStableName, bayIndex) {
-                if (cases.toggleBay) {
-                    return cases.toggleBay(wallStableName, bayIndex);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertSkylight: function (roofStableName, skylightRange) {
-                if (cases.insertSkylight) {
-                    return cases.insertSkylight(roofStableName, skylightRange);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertWhirlybird: function (roofStableName, whirlybirdData) {
-                if (cases.insertWhirlybird) {
-                    return cases.insertWhirlybird(roofStableName, whirlybirdData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeWhirlybird: function (roofStableName, whirlybirdId) {
-                if (cases.removeWhirlybird) {
-                    return cases.removeWhirlybird(roofStableName, whirlybirdId);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertLeanTo: function (leanToStableName, leanToFormProperties) {
-                if (cases.insertLeanTo) {
-                    return cases.insertLeanTo(leanToStableName, leanToFormProperties);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeLeanTo: function (leanToStableName) {
-                if (cases.removeLeanTo) {
-                    return cases.removeLeanTo(leanToStableName);
-                }
-                else {
-                    return default_;
-                }
-            }
-        });
-    };
-    BuildingEffect.seq = function (effects) {
-        return new BuildingEffectSeq(effects);
-    };
-    BuildingEffect.allocId = function (k) {
-        return new BuildingEffectAllocId(k);
-    };
-    BuildingEffect.freeId = function (id) {
-        return new BuildingEffectFreeId(id);
-    };
-    BuildingEffect.insertOpening = function (insertOpeningData) {
-        return new BuildingEffectInsertOpening(insertOpeningData);
-    };
-    BuildingEffect.removeOpening = function (wallStableName, openingId) {
-        return new BuildingEffectRemoveOpening(wallStableName, openingId);
-    };
-    BuildingEffect.toggleInternalWallByBayMarkerIndex = function (bayMarkerIndex) {
-        return new BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex);
-    };
-    BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
-        return new BuildingEffectToggleBay(wallStableName, bayIndex);
-    };
-    BuildingEffect.insertSkylight = function (roofStableName, skylightRange) {
-        return new BuildingEffectInsertSkylight(roofStableName, skylightRange);
-    };
-    BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdData) {
-        return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData);
-    };
-    BuildingEffect.removeWhirlybird = function (roofStableName, whirlybirdId) {
-        return new BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId);
-    };
-    BuildingEffect.insertLeanTo = function (leanToStableName, leanToFormProperties) {
-        return new BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties);
-    };
-    BuildingEffect.removeLeanTo = function (leanToStableName) {
-        return new BuildingEffectRemoveLeanTo(leanToStableName);
-    };
-    return BuildingEffect;
-}());
-exports.BuildingEffect = BuildingEffect;
-var BuildingEffectSeq = /** @class */ (function (_super) {
-    __extends(BuildingEffectSeq, _super);
-    function BuildingEffectSeq(effects) {
-        var _this = _super.call(this) || this;
-        _this._effects = effects;
-        return _this;
-    }
-    BuildingEffectSeq.prototype.match = function (cases) {
-        return cases.seq(this._effects);
-    };
-    return BuildingEffectSeq;
-}(BuildingEffect));
-var BuildingEffectAllocId = /** @class */ (function (_super) {
-    __extends(BuildingEffectAllocId, _super);
-    function BuildingEffectAllocId(k) {
-        var _this = _super.call(this) || this;
-        _this._k = k;
-        return _this;
-    }
-    BuildingEffectAllocId.prototype.match = function (cases) {
-        return cases.allocId(this._k);
-    };
-    return BuildingEffectAllocId;
-}(BuildingEffect));
-var BuildingEffectFreeId = /** @class */ (function (_super) {
-    __extends(BuildingEffectFreeId, _super);
-    function BuildingEffectFreeId(id) {
-        var _this = _super.call(this) || this;
-        _this._id = id;
-        return _this;
-    }
-    BuildingEffectFreeId.prototype.match = function (cases) {
-        return cases.freeId(this._id);
-    };
-    return BuildingEffectFreeId;
-}(BuildingEffect));
-var BuildingEffectInsertOpening = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertOpening, _super);
-    function BuildingEffectInsertOpening(insertOpeningData) {
-        var _this = _super.call(this) || this;
-        _this._insertOpeningData = insertOpeningData;
-        return _this;
-    }
-    BuildingEffectInsertOpening.prototype.match = function (cases) {
-        return cases.insertOpening(this._insertOpeningData);
-    };
-    return BuildingEffectInsertOpening;
-}(BuildingEffect));
-var BuildingEffectRemoveOpening = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveOpening, _super);
-    function BuildingEffectRemoveOpening(wallStableName, openingId) {
-        var _this = _super.call(this) || this;
-        _this._wallStableName = wallStableName;
-        _this._openingId = openingId;
-        return _this;
-    }
-    BuildingEffectRemoveOpening.prototype.match = function (cases) {
-        return cases.removeOpening(this._wallStableName, this._openingId);
-    };
-    return BuildingEffectRemoveOpening;
-}(BuildingEffect));
-var BuildingEffectToggleInternalWallByBayMarkerIndex = /** @class */ (function (_super) {
-    __extends(BuildingEffectToggleInternalWallByBayMarkerIndex, _super);
-    function BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex) {
-        var _this = _super.call(this) || this;
-        _this._bayMarkerIndex = bayMarkerIndex;
-        return _this;
-    }
-    BuildingEffectToggleInternalWallByBayMarkerIndex.prototype.match = function (cases) {
-        return cases.toggleInternalWallByBayMarkerIndex(this._bayMarkerIndex);
-    };
-    return BuildingEffectToggleInternalWallByBayMarkerIndex;
-}(BuildingEffect));
-var BuildingEffectToggleBay = /** @class */ (function (_super) {
-    __extends(BuildingEffectToggleBay, _super);
-    function BuildingEffectToggleBay(wallStableName, bayIndex) {
-        var _this = _super.call(this) || this;
-        _this._wallStableName = wallStableName;
-        _this._bayIndex = bayIndex;
-        return _this;
-    }
-    BuildingEffectToggleBay.prototype.match = function (cases) {
-        return cases.toggleBay(this._wallStableName, this._bayIndex);
-    };
-    return BuildingEffectToggleBay;
-}(BuildingEffect));
-var BuildingEffectInsertSkylight = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertSkylight, _super);
-    function BuildingEffectInsertSkylight(roofStableName, skylightRange) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._skylightRange = skylightRange;
-        return _this;
-    }
-    BuildingEffectInsertSkylight.prototype.match = function (cases) {
-        return cases.insertSkylight(this._roofStableName, this._skylightRange);
-    };
-    return BuildingEffectInsertSkylight;
-}(BuildingEffect));
-var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertWhirlybird, _super);
-    function BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._whirlybirdData = whirlybirdData;
-        return _this;
-    }
-    BuildingEffectInsertWhirlybird.prototype.match = function (cases) {
-        return cases.insertWhirlybird(this._roofStableName, this._whirlybirdData);
-    };
-    return BuildingEffectInsertWhirlybird;
-}(BuildingEffect));
-var BuildingEffectRemoveWhirlybird = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveWhirlybird, _super);
-    function BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._whirlybirdId = whirlybirdId;
-        return _this;
-    }
-    BuildingEffectRemoveWhirlybird.prototype.match = function (cases) {
-        return cases.removeWhirlybird(this._roofStableName, this._whirlybirdId);
-    };
-    return BuildingEffectRemoveWhirlybird;
-}(BuildingEffect));
-var BuildingEffectInsertLeanTo = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertLeanTo, _super);
-    function BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties) {
-        var _this = _super.call(this) || this;
-        _this._leanToStableName = leanToStableName;
-        _this._leanToFormProperties = leanToFormProperties;
-        return _this;
-    }
-    BuildingEffectInsertLeanTo.prototype.match = function (cases) {
-        return cases.insertLeanTo(this._leanToStableName, this._leanToFormProperties);
-    };
-    return BuildingEffectInsertLeanTo;
-}(BuildingEffect));
-var BuildingEffectRemoveLeanTo = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveLeanTo, _super);
-    function BuildingEffectRemoveLeanTo(leanToStableName) {
-        var _this = _super.call(this) || this;
-        _this._leanToStableName = leanToStableName;
-        return _this;
-    }
-    BuildingEffectRemoveLeanTo.prototype.match = function (cases) {
-        return cases.removeLeanTo(this._leanToStableName);
-    };
-    return BuildingEffectRemoveLeanTo;
-}(BuildingEffect));
-//# sourceMappingURL=BuildingEffect.js.map
-});
-___scope___.file("app/model/Selectable.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var sodium = require("sodiumjs");
-var Option_1 = require("../Option");
-var Selectable = /** @class */ (function () {
-    function Selectable() {
-    }
-    Selectable.prototype.trace = function () {
-        return [];
-    };
-    Object.defineProperty(Selectable.prototype, "cMouseRayCollisionTimeOpOp", {
-        get: function () {
-            return defaultCMouseRayCollisionTimeOpOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cFormPropertiesOp", {
-        get: function () {
-            return defaultCFormPropertiesOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cSetFormPropertiesOp", {
-        get: function () {
-            return defaultCSetFormPropertiesOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cHighlightStableNames", {
-        get: function () {
-            return defaultCHighlightStableNames;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cHighlightOverlayModelOp", {
-        get: function () {
-            return defaultCHighlightOverlayModelOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cDeleteOp", {
-        get: function () {
-            return defaultCDeleteOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cBoundingBoxOp", {
-        /**
-         * Used for approximating an appropriate position of a floating delete button and possibly other buttons.
-         */
-        get: function () {
-            return defaultCBoundingBoxOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Selectable;
-}());
-exports.Selectable = Selectable;
-var defaultCMouseRayCollisionTimeOpOp = new sodium.Cell(Option_1.Option.none());
-var defaultCFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
-var defaultCSetFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
-var defaultCHighlightStableNames = new sodium.Cell([]);
-var defaultCHighlightOverlayModelOp = new sodium.Cell(Option_1.Option.none());
-var defaultCDeleteOp = new sodium.Cell(Option_1.Option.none());
-var defaultCBoundingBoxOp = new sodium.Cell(Option_1.Option.none());
-//# sourceMappingURL=Selectable.js.map
-});
-___scope___.file("app/math/Box3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Option_1 = require("../Option");
-var Box3D = /** @class */ (function () {
-    function Box3D(axes, len) {
-        this._axes = axes;
-        this._len = len;
-    }
-    Object.defineProperty(Box3D.prototype, "axes", {
-        get: function () {
-            return this._axes;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Box3D.prototype, "len", {
-        get: function () {
-            return this._len;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Box3D.create = function (params) {
-        return new Box3D(params.axes, params.len);
-    };
-    Box3D.prototype.rayIntersectionTime = function (ray) {
-        var ray2 = ray.toSpace(this.axes);
-        { // x faces
-            var t1 = (-0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        { // y faces
-            var t1 = (-0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        { // z faces
-            var t1 = (-0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        return Option_1.Option.none();
-    };
-    return Box3D;
-}());
-exports.Box3D = Box3D;
-//# sourceMappingURL=Box3D.js.map
 });
 ___scope___.file("app/model/LeanTo.js", function(exports, require, module, __filename, __dirname){
 
@@ -12146,6 +12371,7 @@ var Outline3D_1 = require("../math/Outline3D");
 var Polygon2D_1 = require("../math/Polygon2D");
 var Vector2D_1 = require("../math/Vector2D");
 var BuildingEffect_1 = require("../model/BuildingEffect");
+var SkylightData_1 = require("../model/SkylightData");
 var Tuples_1 = require("../Tuples");
 var ArrayUtil_1 = require("../ArrayUtil");
 var InsertSkylightMode = /** @class */ (function (_super) {
@@ -12316,7 +12542,12 @@ var InsertSkylightMode = /** @class */ (function (_super) {
                         return Option_1.Option.none();
                     }
                     var skylightRange = Vectors_1.V2.of(rectMinX, rectMaxX);
-                    return Option_1.Option.some(BuildingEffect_1.BuildingEffect.insertSkylight(roofUnderMouse._1, skylightRange));
+                    return Option_1.Option.some(BuildingEffect_1.BuildingEffect.allocId(function (id) {
+                        return BuildingEffect_1.BuildingEffect.insertSkylight(roofUnderMouse._1, SkylightData_1.SkylightData.create({
+                            id: id,
+                            range: skylightRange
+                        }));
+                    }));
                 });
             }));
             _this._cOverlayModelOp = cOverlayModelOp;
@@ -12574,9 +12805,9 @@ var SelectionMode = /** @class */ (function (_super) {
                                         .map(function (pt2) { return [pt2]; })
                                         .orSome([]);
                                 });
-                                var maxXOp = ArrayUtil_1.arrayReduce(pts2, function (a, b) { return a.x > b.x ? a : b; }).map(function (pt) { return pt.x; });
-                                var minYOp = ArrayUtil_1.arrayReduce(pts2, function (a, b) { return a.y < b.y ? a : b; }).map(function (pt) { return pt.y; });
-                                return maxXOp.lift2(minYOp, function (maxX, minY) { return Vector2D_1.Vector2D.create(maxX, minY); });
+                                var useDir = Vector2D_1.Vector2D.create(1.0, -1.0);
+                                var usePtOp = ArrayUtil_1.arrayReduce(pts2, function (a, b) { return a.dot(useDir) > b.dot(useDir) ? a : b; });
+                                return usePtOp;
                             });
                             var floatingDeleteButton = FloatingDeleteButton_1.FloatingDeleteButton.create({
                                 id: 1,
