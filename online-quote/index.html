@@ -431,6 +431,51 @@
                             }
                         });
                     })();
+                    // opening properties
+                    (function() {
+                        var txtOpeningWidth = document.getElementById("txtOpeningWidth");
+                        var txtOpeningHeight = document.getElementById("txtOpeningHeight");
+                        app.sSetOpeningProperties.listen(openingProperties => {
+                            txtOpeningWidth.value = '' + openingProperties.width;
+                            txtOpeningHeight.value = '' + openingProperties.height;
+                            $("#openingWidthSlider").slider({ "value": openingProperties.width });
+                            $("#openingHeightSlider").slider({ "value": openingProperties.height });
+                        });
+                        $("#openingWidthSlider").slider({
+                            "min": 100,
+                            "max": 6000,
+                            "step": 100,
+                            "value": 1000,
+                            "slide": function(event, ui) {
+                                txtOpeningWidth.value = ui.value;
+                                app.setOpeningWidth(ui.value);
+                            }
+                        });
+                        $("#openingHeightSlider").slider({
+                            "min": 100,
+                            "max": 6000,
+                            "step": 100,
+                            "value": 1000,
+                            "slide": function(event, ui) {
+                                txtOpeningHeight.value = ui.value;
+                                app.setOpeningHeight(ui.value);
+                            }
+                        });
+                        txtOpeningWidth.addEventListener("input", () => {
+                            var value = parseFloat(txtOpeningWidth.value);
+                            if (!isNaN(value)) {
+                                app.setOpeningWidth(value);
+                                $("#openingWidthSlider").slider({ value: value });
+                            }
+                        });
+                        txtOpeningHeight.addEventListener("input", () => {
+                            var value = parseFloat(txtOpeningHeight.value);
+                            if (!isNaN(value)) {
+                                app.setOpeningHeight(value);
+                                $("#openingHeightSlider").slider({ value: value });
+                            }
+                        });
+                    })();
                     //
                     (function() {
                         var btnAddSkylight = document.getElementById("btnAddSkylight");
@@ -558,10 +603,6 @@
                         <button id="btnAddWhirlybird">Whirlybird</button>
                         <button id="btnToggleLeanTo">Toggle Lean-To</button>
                     </div>
-                    <div id="addOpeningProperties" style="display:none">
-                        Opening Height: <input id="txtOpeningHeight"><br/>
-                        Opening Width: <input id="txtOpeningWidth"><br/>
-                    </div>
                     <div id="toggleLeanToProperties" style="display:block">
                         Lean-To Properties: <br/>
                         Span: <input id="txtLeanToSpan" type="text"><br/>
@@ -590,6 +631,10 @@
                 </div>
                 <div id="todoProperties" class="properties" style="display:none">
                     TODO
+                </div>
+                <div>
+                    <div id="addOpeningProperties" style="display:none" w3-include-html="opening_properties.html">
+                    </div>
                 </div>
             </div>
             <div style="width:100%;position:relative">
