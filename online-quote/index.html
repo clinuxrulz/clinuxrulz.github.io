@@ -120,6 +120,7 @@
             var addOpeningButtonClickCallback = function(openingType) {};
             var toggleBaysButtonClickCallback = function() {};
             var toggleWallsButtonClickCallback = function() {};
+            var uiLoadedCallback = function() {};
             function openProperties(propertiesName) {
                 var i;
                 var x = document.getElementsByClassName("properties");
@@ -186,6 +187,7 @@
             }
             function appLoaded() {
                 w3.includeHTML(function() {
+                    uiLoadedCallback();
                     var cboWallSheetingProfile = document.getElementById("cboWallSheetingProfile");
                     var cboRoofSheetingProfile = document.getElementById("cboRoofSheetingProfile");
                     var cboWallSheetingColour = document.getElementById("cboWallSheetingColour");
@@ -295,6 +297,38 @@
                     txtPitch.addEventListener("input", function(ev) {
                         $("#pitchSlider").slider("value", txtPitch.value);
                     });
+                    // floor system properties
+                    (function() {
+                        var chkFloorSystemEnabled = document.getElementById("chkFloorSystemEnabled");
+                        var divFloorSystemProperties = document.getElementById("divFloorSystemProperties");
+                        var txtFloorSystemHeight = document.getElementById("txtFloorSystemHeight");
+                        $("#floorSystemHeightSlider").slider({
+                            "min": 500,
+                            "max": 1500,
+                            "step": 100,
+                            "value": 1000,
+                            "slide": function(event, ui) {
+                                txtFloorSystemHeight.value = ui.value;
+                                app.setFloorSystemHeight(ui.value);
+                            }
+                        });
+                        txtFloorSystemHeight.value = "1000";
+                        chkFloorSystemEnabled.addEventListener("input", function() {
+                            app.setFloorSystemEnabled(chkFloorSystemEnabled.checked);
+                            if (chkFloorSystemEnabled.checked) {
+                                divFloorSystemProperties.style.display = "block";
+                            } else {
+                                divFloorSystemProperties.style.display = "none";
+                            }
+                        });
+                        txtFloorSystemHeight.addEventListener("input", function() {
+                            var value = parseFloat(txtFloorSystemHeight.value);
+                            if (!isNaN(value)) {
+                                app.setFloorSystemHeight(value);
+                                $("#floorSystemHeightSlider").slider({"value": value});
+                            }
+                        });
+                    })();
                     // barn properties
                     (function() {
                         var txtLeftWingSpan = document.getElementById("txtLeftWingSpan");
@@ -435,11 +469,35 @@
                     (function() {
                         var txtOpeningWidth = document.getElementById("txtOpeningWidth");
                         var txtOpeningHeight = document.getElementById("txtOpeningHeight");
+                        var txtOpeningHeadHeight = document.getElementById("txtOpeningHeadHeight");
+                        var chkOpeningHeadHeightSameAsOpeningHeight = document.getElementById("chkOpeningHeadHeightSameAsHeight");
+                        var divOpeningHeadHeight = document.getElementById("divOpeningHeadHeight");
+                        chkOpeningHeadHeightSameAsOpeningHeight.addEventListener("input", function() {
+                            if (chkOpeningHeadHeightSameAsOpeningHeight.checked) {
+                                divOpeningHeadHeight.style.display = "none";
+                                var value = parseFloat(txtOpeningHeight.value);
+                                if (!isNaN(value)) {
+                                    app.setOpeningHeight(value);
+                                    $("#openingHeightSlider").slider({ value: value });
+                                    if (chkOpeningHeadHeightSameAsOpeningHeight.checked) {
+                                        app.setOpeningHeadHeight(value);
+                                        $("#openingHeadHeightSlider").slider({ value: value });
+                                    }
+                                }
+                            } else {
+                                divOpeningHeadHeight.style.display = "block";
+                            }
+                        });
                         app.sSetOpeningProperties.listen(openingProperties => {
                             txtOpeningWidth.value = '' + openingProperties.width;
                             txtOpeningHeight.value = '' + openingProperties.height;
+                            txtOpeningHeadHeight.value = '' + openingProperties.headHeight;
                             $("#openingWidthSlider").slider({ "value": openingProperties.width });
                             $("#openingHeightSlider").slider({ "value": openingProperties.height });
+                            $("#openingHeadHeightSlider").slider({ "value": openingProperties.headHeight });
+                            if (openingProperties.headHeight == openingProperties.height) {
+                                chkOpeningHeadHeightSameAsOpeningHeight.checked = true;
+                            }
                         });
                         $("#openingWidthSlider").slider({
                             "min": 100,
@@ -459,6 +517,20 @@
                             "slide": function(event, ui) {
                                 txtOpeningHeight.value = ui.value;
                                 app.setOpeningHeight(ui.value);
+                                if (chkOpeningHeadHeightSameAsOpeningHeight.checked) {
+                                    txtOpeningHeadHeight.value = ui.value;
+                                    app.setOpeningHeadHeight(ui.value);
+                                }
+                            }
+                        });
+                        $("#openingHeadHeightSlider").slider({
+                            "min": 100,
+                            "max": 6000,
+                            "step": 100,
+                            "value": 1000,
+                            "slide": function(event, ui) {
+                                txtOpeningHeadHeight.value = ui.value;
+                                app.setOpeningHeadHeight(ui.value);
                             }
                         });
                         txtOpeningWidth.addEventListener("input", () => {
@@ -473,6 +545,17 @@
                             if (!isNaN(value)) {
                                 app.setOpeningHeight(value);
                                 $("#openingHeightSlider").slider({ value: value });
+                                if (chkOpeningHeadHeightSameAsOpeningHeight.checked) {
+                                    app.setOpeningHeadHeight(value);
+                                    $("#openingHeadHeightSlider").slider({ value: value });
+                                }
+                            }
+                        });
+                        txtOpeningHeadHeight.addEventListener("input", () => {
+                            var value = parseFloat(txtOpeningHeadHeight.value);
+                            if (!isNaN(value)) {
+                                app.setOpeningHeadHeight(value);
+                                $("#openingHeadHeightSlider").slider({ value: value });
                             }
                         });
                     })();
@@ -499,6 +582,10 @@
                         var btnToggleLeanTo = document.getElementById("btnToggleLeanTo");
                         btnToggleLeanTo.addEventListener("click", function() {
                             app.toggleLeanTo();
+                        });
+                        var btnInsertMezzanine = document.getElementById("btnInsertMezzanine");
+                        btnInsertMezzanine.addEventListener("click", function() {
+                            app.insertMezzanine();
                         });
                         var txtLeanToSpan = document.getElementById("txtLeanToSpan");
                         var txtLeanToHeight = document.getElementById("txtLeanToHeight");
@@ -589,6 +676,10 @@
                     Length: <div id="lengthSlider"></div> <input id="txtLength" type="text" value="12000"/><br/>
                     Height: <div id="heightSlider"></div> <input id="txtHeight" type="text" value="2400"/><br/>
                     Pitch: <div id="pitchSlider"></div> <input id="txtPitch" type="text" value="15"/><br/>
+                    <input id="chkFloorSystemEnabled" type="checkbox">Floor System Enabled<br/>
+                    <div id="divFloorSystemProperties" style="display:none">
+                        Floor System Height: <div id="floorSystemHeightSlider"></div> <input id="txtFloorSystemHeight" type="text"/><br/>
+                    </div>
                     <div id="barnProperties" style="display:none" w3-include-html="barn_properties.html">
                     </div>
                 </div>
@@ -602,6 +693,7 @@
                         <button id="btnAddSkylight">Skylight</button>
                         <button id="btnAddWhirlybird">Whirlybird</button>
                         <button id="btnToggleLeanTo">Toggle Lean-To</button>
+                        <button id="btnInsertMezzanine">Mezzanine</button>
                     </div>
                     <div id="toggleLeanToProperties" style="display:block">
                         Lean-To Properties: <br/>
@@ -613,14 +705,7 @@
                 <div id="windowsDoorsSkylightsProperties" class="properties" style="display:none">
                     Tab a wall or a roof segment to zoom in and configure doors, windows, skylights.
                 </div>
-                <div id="coloursProperties" class="properties" style="display:none">
-                    Wall Sheeting Type: <select id="cboWallSheetingProfile" class="sheetingProfiles"></select><br/>
-                    Roof Sheeting Type: <select id="cboRoofSheetingProfile" class="sheetingProfiles"></select><br/>
-                    Wall Sheeting Colour: <select id="cboWallSheetingColour" class="colours"></select><br/>
-                    Roof Sheeting Colour: <select id="cboRoofSheetingColour" class="colours"></select><br/>
-                    Gutter Colour: <select id="cboGutterColour" class="colours"></select><br/>
-                    Barge Colour: <select id="cboBargeColour" class="colours"></select><br/>
-                    Ridge Colour: <select id="cboRidgeColour" class="colours"></select><br/>
+                <div id="coloursProperties" class="properties" style="display:none" w3-include-html="colour_properties.html">
                 </div>
                 <div id="optionsProperties" class="properties" style="display:none">
                     <input id="chkAnimate" type="checkbox"> Animate<br/>
@@ -633,6 +718,7 @@
                     TODO
                 </div>
                 <div>
+                    <hr>
                     <div id="addOpeningProperties" style="display:none" w3-include-html="opening_properties.html">
                     </div>
                 </div>
