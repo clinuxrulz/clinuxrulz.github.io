@@ -70,6 +70,7 @@ var App = /** @class */ (function () {
         this._ssSetOpeningWidth = new sodium.StreamSink();
         this._ssSetOpeningHeight = new sodium.StreamSink();
         this._ssSetOpeningHeadHeight = new sodium.StreamSink();
+        this._ssSetMezzanineHeight = new sodium.StreamSink();
         this._ssSetWallSheetingProfile = new sodium.StreamSink();
         this._ssSetRoofSheetingProfile = new sodium.StreamSink();
         this._ssSetWallSheetingColour = new sodium.StreamSink();
@@ -111,6 +112,8 @@ var App = /** @class */ (function () {
                 }
             });
             var clShowPropertiesOp = new sodium.CellLoop();
+            var slSetFormProperties = new sodium.StreamLoop();
+            _this._sSetFormProperties = slSetFormProperties;
             var cShowOpeningPropertiesOp = clShowPropertiesOp.map(function (showFormPropertiesOp) {
                 return showFormPropertiesOp.map(function (showFormProperties) {
                     return showFormProperties.partialMatch(Option_1.Option.none(), {
@@ -137,6 +140,14 @@ var App = /** @class */ (function () {
                     .orElse(sToggleBaysButtonClicked.mapTo(false))
                     .orElse(sToggleWallsButtonClicked.mapTo(false))
                     .hold(false);
+            _this._cMezzanineFormPropertiesVisible =
+                clShowPropertiesOp.map(function (formPropertiesOp) {
+                    return formPropertiesOp
+                        .map(function (formProperties) {
+                        return formProperties.partialMatch(false, { mezzanine: function (unused) { return true; } });
+                    })
+                        .orSome(false);
+                });
             var slLeanToFormProperties = new sodium.StreamLoop();
             _this._cLeanToFormProperties =
                 slLeanToFormProperties
@@ -156,6 +167,17 @@ var App = /** @class */ (function () {
                 .orElse(_this._ssLeanToFormPropertiesSetPitch
                 .snapshot(_this._cLeanToFormProperties, function (pitch, leanToFormProperties) {
                 return leanToFormProperties.from({ pitch: pitch });
+            })));
+            var slMezzanineFormPropertiesOp = new sodium.StreamLoop();
+            var cMezzanineFormPropertiesOp = slMezzanineFormPropertiesOp.hold(Option_1.Option.none());
+            slMezzanineFormPropertiesOp.loop(slSetFormProperties
+                .map(function (formProperties) {
+                return formProperties.partialMatch(Option_1.Option.none(), {
+                    mezzanine: function (mezzanineFormProperties) { return Option_1.Option.some(mezzanineFormProperties); }
+                });
+            })
+                .orElse(SodiumUtil.streamFilterOption(_this._ssSetMezzanineHeight).snapshot(cMezzanineFormPropertiesOp, function (height, mezzanineFormPropertiesOp) {
+                return mezzanineFormPropertiesOp.map(function (mezzanineFormProperties) { return mezzanineFormProperties.from({ height: height }); });
             })));
             var scene = new THREE.Scene();
             var sky = undefined;
@@ -259,7 +281,6 @@ var App = /** @class */ (function () {
             var cLengthOp = mkCValueOpFromTextField(txtLength);
             var cHeightOp = mkCValueOpFromTextField(txtHeight);
             var cPitchOp = mkCValueOpFromTextField(txtPitch);
-            var slSetFormProperties = new sodium.StreamLoop();
             // opening properties
             var sSetOpeningProperties = SodiumUtil.streamFilterOption(slSetFormProperties.map(function (formProperties) {
                 return formProperties.partialMatch(Option_1.Option.none(), {
@@ -286,14 +307,21 @@ var App = /** @class */ (function () {
                     });
                 });
             });
-            var sFormPropertiesChanged = SodiumUtil.streamFilterOption(sodium.Operational
+            var sFormPropertiesChanged = SodiumUtil
+                .streamFilterOption(sodium.Operational
                 .defer(ssOpeningWidthOpChangedByUser.mapTo(sodium.Unit.UNIT)
                 .orElse(ssOpeningHeightOpChangedByUser.mapTo(sodium.Unit.UNIT))
                 .orElse(_this._ssSetOpeningHeadHeight.mapTo(sodium.Unit.UNIT)))
                 .snapshot1(cOpeningFormPropertiesOp)
                 .map(function (openingFormPropertiesOp) {
                 return openingFormPropertiesOp.map(FormProperties_1.FormProperties.opening);
-            }));
+            }))
+                .orElse(SodiumUtil.streamFilterOption(sodium.Operational
+                .defer(_this._ssSetMezzanineHeight)
+                .snapshot1(cMezzanineFormPropertiesOp)
+                .map(function (mezzanineFormPropertiesOp) {
+                return mezzanineFormPropertiesOp.map(FormProperties_1.FormProperties.mezzanine);
+            })));
             var eliminateOp = function (ca) {
                 return ca.map(function (a) { return a === undefined ? 0.0 : a; });
             };
@@ -595,6 +623,20 @@ var App = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(App.prototype, "cMezzanineFormPropertiesVisible", {
+        get: function () {
+            return this._cMezzanineFormPropertiesVisible;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(App.prototype, "sSetFormProperties", {
+        get: function () {
+            return this._sSetFormProperties;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(App.prototype, "sSetOpeningProperties", {
         get: function () {
             return this._sSetOpeningProperties;
@@ -678,6 +720,10 @@ var App = /** @class */ (function () {
     App.prototype.setOpeningHeadHeight = function (openingHeadHeight) {
         var _this = this;
         this.deferEffect(function () { return _this._ssSetOpeningHeadHeight.send(Option_1.Option.some(openingHeadHeight)); });
+    };
+    App.prototype.setMezzanineHeight = function (mezzanineHeight) {
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetMezzanineHeight.send(Option_1.Option.some(mezzanineHeight)); });
     };
     App.prototype.setWallSheetingProfile = function (wallSheetingProfile) {
         var _this = this;
@@ -2132,14 +2178,14 @@ var MezzanineData = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(MezzanineData.prototype, "floorMarkerXIdx", {
+    Object.defineProperty(MezzanineData.prototype, "fromMarkerXIdx", {
         get: function () {
             return this._params.fromMarkerXIdx;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(MezzanineData.prototype, "floorMarkerYIdx", {
+    Object.defineProperty(MezzanineData.prototype, "fromMarkerYIdx", {
         get: function () {
             return this._params.fromMarkerYIdx;
         },
@@ -3460,11 +3506,22 @@ var FormProperties = /** @class */ (function () {
                 else {
                     return default_;
                 }
+            },
+            mezzanine: function (properties) {
+                if (cases.mezzanine) {
+                    return cases.mezzanine(properties);
+                }
+                else {
+                    return default_;
+                }
             }
         });
     };
     FormProperties.opening = function (properties) {
         return new FormPropertiesOpening(properties);
+    };
+    FormProperties.mezzanine = function (properties) {
+        return new FormPropertiesMezzanine(properties);
     };
     return FormProperties;
 }());
@@ -3480,6 +3537,18 @@ var FormPropertiesOpening = /** @class */ (function (_super) {
         return cases.opening(this._properties);
     };
     return FormPropertiesOpening;
+}(FormProperties));
+var FormPropertiesMezzanine = /** @class */ (function (_super) {
+    __extends(FormPropertiesMezzanine, _super);
+    function FormPropertiesMezzanine(properties) {
+        var _this = _super.call(this) || this;
+        _this._properties = properties;
+        return _this;
+    }
+    FormPropertiesMezzanine.prototype.match = function (cases) {
+        return cases.mezzanine(this._properties);
+    };
+    return FormPropertiesMezzanine;
 }(FormProperties));
 //# sourceMappingURL=FormProperties.js.map
 });
@@ -3636,6 +3705,35 @@ function cellLiftArray(ca) {
     return arrayOfCellToCellOfArray(ca, 0, ca.length).map(sodium.lambda1(function (x) { return x; }, ca));
 }
 exports.cellLiftArray = cellLiftArray;
+function cellArrayKeyed(keyEq, keyExtractor, cellBuilder, cas) {
+    return sodium.Cell.switchC(sodium.Operational
+        .updates(cas)
+        .accumLazy(cas.sampleLazy().map(function (as) { return as.map(function (a) { return Tuples_1.T2.of(keyExtractor(a), cellBuilder(a)); }); }), function (nextAs, lastResult) {
+        var nextResult = [];
+        for (var i = 0; i < nextAs.length; ++i) {
+            var a = nextAs[i];
+            var key = keyExtractor(a);
+            var existingOp = Option_1.Option.none();
+            for (var j = 0; j < lastResult.length; ++j) {
+                var r = lastResult[j];
+                if (keyEq(r._1, key)) {
+                    existingOp = Option_1.Option.some(r);
+                    break;
+                }
+            }
+            if (existingOp.isSome) {
+                var existing = existingOp.fromSome();
+                nextResult.push(existing);
+            }
+            else {
+                nextResult.push(Tuples_1.T2.of(key, cellBuilder(a)));
+            }
+        }
+        return nextResult;
+    })
+        .map(function (r) { return SodiumUtil.cellLiftArray(r.map(function (x) { return x._2; })); }));
+}
+exports.cellArrayKeyed = cellArrayKeyed;
 function streamFilterOption(sa) {
     return sa.filter(function (a) { return a.is_some; }).map(function (a) { return a.fromSome(); });
 }
@@ -3852,6 +3950,7 @@ var FormProperties_1 = require("./FormProperties");
 var FloorSystemData_1 = require("./FloorSystemData");
 var MouseButton_1 = require("../MouseButton");
 var OpeningType_1 = require("./OpeningType");
+var Operation_1 = require("./Operation");
 var BuildingEffect_1 = require("./BuildingEffect");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
@@ -3973,7 +4072,9 @@ var AppModel = /** @class */ (function () {
                     .map(function (x) { return ArrayUtil_1.arrayJoin(x); });
             }));
             cWallBays.listen(function () { });
+            var slFinishedMode = new sodium.StreamLoop();
             var cMode = params.sPerformOperation
+                .orElse(slFinishedMode.mapTo(Operation_1.Operation.select()))
                 .map(sodium.lambda1(function (performOperation) {
                 return performOperation.match({
                     idle: function () { return new IdleMode_1.IdleMode(); },
@@ -4030,7 +4131,8 @@ var AppModel = /** @class */ (function () {
                         cBuildingOp: new sodium.Cell(Option_1.Option.some(building)),
                         cMousePosOp: params.cMousePosOp,
                         sMouseLeftPressed: sMouseLeftPressed,
-                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp
+                        cScreenPointToWorldRayOp: params.cScreenPointToWorldRayOp,
+                        sFormPropertiesChanged: params.sFormPropertiesChanged
                     }); }
                 });
             }, [
@@ -4103,6 +4205,7 @@ var AppModel = /** @class */ (function () {
                 return [BuildingEffect_1.BuildingEffect.changeFloorSystem(FloorSystemData_1.FloorSystemData.create({ height: floorSystemHeight }))];
             }), function (a, b) { return a.concat(b); })
                 .map(function (effects) { return BuildingEffect_1.BuildingEffect.seq(effects); })));
+            slFinishedMode.loop(sodium.Cell.switchS(cMode.map(function (mode) { return mode.sFinishedMode; })));
             var cFloatingDeleteButtons = SodiumUtil.cellPartialCalm(function (a, b) { return a.length == 0 && b.length == 0; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cFloatingDeleteButtons; })));
             var cShowPropertiesOp = SodiumUtil.cellPartialCalm(function (a, b) { return a.isNone && b.isNone; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cShowPropertiesOp; })));
             slBuildingData.loop(sSetBarnDataOp
@@ -4442,6 +4545,12 @@ function performEffectOnBuilding(buildingData, buildingEffect) {
         },
         insertMezzanine: function (mezzanineData) {
             return buildingData.from({ mezzanineDatas: buildingData.mezzanineDatas.concat([mezzanineData]) });
+        },
+        removeMezzanine: function (mezzanineId) {
+            return buildingData.from({ mezzanineDatas: buildingData.mezzanineDatas.filter(function (mezzanineData) { return mezzanineData.id != mezzanineId; }) });
+        },
+        changeMezzanine: function (mezzanineData) {
+            return buildingData.from({ mezzanineDatas: buildingData.mezzanineDatas.map(function (x) { return x.id == mezzanineData.id ? mezzanineData : x; }) });
         }
     });
 }
@@ -4520,6 +4629,7 @@ var BuildingUtil = require("./BuildingUtil");
 var CeeProperties_1 = require("./CeeProperties");
 var FloorSystem_1 = require("./FloorSystem");
 var GutterBargeRidge_1 = require("./GutterBargeRidge");
+var Mezzanine_1 = require("./Mezzanine");
 var Lazy_1 = require("../Lazy");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
@@ -4558,6 +4668,7 @@ var Building = /** @class */ (function () {
             var cSide2RoofData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side2RoofData; }));
             var cSide1LeanToDataOp = SodiumUtil.cellCalm(function (a, b) { return a.equals(b, function (c, d) { return c == d; }); }, params.cBuildingData.map(function (buildingData) { return buildingData.side1LeanToDataOp; }));
             var cSide2LeanToDataOp = SodiumUtil.cellCalm(function (a, b) { return a.equals(b, function (c, d) { return c == d; }); }, params.cBuildingData.map(function (buildingData) { return buildingData.side2LeanToDataOp; }));
+            var cMezzanineDatas = SodiumUtil.cellCalmRefEq(params.cBuildingData.map(function (buildingData) { return buildingData.mezzanineDatas; }));
             var cWallCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingProfile; }));
             var cWallCladdingTextureColour = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.wallSheetingColour; }));
             var cRoofCladdingTextureType = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.claddingData.roofSheetingProfile; }));
@@ -5216,25 +5327,6 @@ var Building = /** @class */ (function () {
                     side2LeanToWalls
                 ]);
             });
-            var cSelectables = SodiumUtil.cellTrace(sodium.Cell.switchC(cWalls.lift(cRoofs, sodium.lambda2(function (walls, roofs) {
-                return SodiumUtil
-                    .cellLiftArray(walls.map(function (wall) { return wall.cSelectables; }))
-                    .lift3(SodiumUtil
-                    .cellLiftArray(roofs.map(function (roof) { return roof.cSelectables; }))
-                    .map(function (x) { return Lazy_1.Lazy.create(function () {
-                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
-                }); }), whirlybirds.cSelectables, function (x, roofSelectables, whirlybirdSelectables) { return Lazy_1.Lazy.create(function () {
-                    return ArrayUtil_1.arrayJoin([
-                        ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); }),
-                        roofSelectables.get(),
-                        whirlybirdSelectables.get()
-                    ]);
-                }); });
-            }, [whirlybirds.cSelectables]))), function (selectables) {
-                return ArrayUtil_1.arrayBind(selectables.get(), function (selectable) {
-                    return selectable.trace();
-                });
-            });
             var cSide1LeanToCModelOp = sodium.Cell.switchC(cSide1LeanToOp.map(function (side1LeanToOp) { return side1LeanToOp.map(function (side1LeanTo) { return side1LeanTo.cModel.map(function (x) { return Option_1.Option.some(x); }); }).orSome_(function () { return new sodium.Cell(Option_1.Option.none()); }); }));
             var cSide2LeanToCModelOp = sodium.Cell.switchC(cSide2LeanToOp.map(function (side2LeanToOp) { return side2LeanToOp.map(function (side2LeanTo) { return side2LeanTo.cModel.map(function (x) { return Option_1.Option.some(x); }); }).orSome_(function () { return new sodium.Cell(Option_1.Option.none()); }); }));
             var cFloorSystemOp = SodiumUtil.cellTrace(SodiumUtil.cellLiftOp1(cFloorSystemDataOp, function (cFloorSystemData) {
@@ -5247,11 +5339,113 @@ var Building = /** @class */ (function () {
                     cSpan: cSpan,
                     cCeeProperties: cCeeProperties,
                     cXMarkers: cSide1BayMarkers,
-                    cYMarkers: cEnd2BayMarkers
+                    cYMarkers: cEnd2BayMarkers,
+                    cHighlighted: new sodium.Cell(false)
                 }));
             }), function (x) { return x.map(function (x2) { return x2.trace(); }).orSome([]); });
+            var cMezzanines = SodiumUtil.cellTrace(SodiumUtil
+                .cellArrayKeyed(function (a, b) { return a == b; }, function (a) { return a; }, function (mezzanineId) {
+                var cMezzanineDataOp = cMezzanineDatas.map(function (mezzanineDatas) {
+                    for (var i = 0; i < mezzanineDatas.length; ++i) {
+                        var mezzanineData = mezzanineDatas[i];
+                        if (mezzanineData.id == mezzanineId) {
+                            return Option_1.Option.some(mezzanineData);
+                        }
+                    }
+                    return Option_1.Option.none();
+                });
+                var cXMarkersOp = cSide1BayMarkers.lift(cMezzanineDataOp, function (side1BayMarkers, mezzanineDataOp) {
+                    if (mezzanineDataOp.isNone) {
+                        return Option_1.Option.none();
+                    }
+                    var mezzanineData = mezzanineDataOp.fromSome();
+                    var fromIdx = mezzanineData.fromMarkerXIdx;
+                    var toIdx = mezzanineData.toMarkerXIdx;
+                    if (toIdx >= side1BayMarkers.length) {
+                        return Option_1.Option.none();
+                    }
+                    return Option_1.Option.some(side1BayMarkers.slice(fromIdx, toIdx + 1));
+                });
+                var cYMarkersOp = cEnd2BayMarkers.lift(cMezzanineDataOp, function (end2BayMarkers, mezzanineDataOp) {
+                    if (mezzanineDataOp.isNone) {
+                        return Option_1.Option.none();
+                    }
+                    var mezzanineData = mezzanineDataOp.fromSome();
+                    var fromIdx = mezzanineData.fromMarkerYIdx;
+                    var toIdx = mezzanineData.toMarkerYIdx;
+                    if (toIdx >= end2BayMarkers.length) {
+                        return Option_1.Option.none();
+                    }
+                    return Option_1.Option.some(end2BayMarkers.slice(fromIdx, toIdx + 1));
+                });
+                var cMezzanineOp = SodiumUtil.cellLiftOp3(cMezzanineDataOp, cXMarkersOp, cYMarkersOp, function (cMezzanineData, cXMarkers, cYMarkers) {
+                    var cMinXMarker = cXMarkers.map(function (xMarkers) { return ArrayUtil_1.arrayReduce(xMarkers, Math.min).fromSome(); });
+                    var cMaxXMarker = cXMarkers.map(function (xMarkers) { return ArrayUtil_1.arrayReduce(xMarkers, Math.max).fromSome(); });
+                    var cMinYMarker = cYMarkers.map(function (yMarkers) { return ArrayUtil_1.arrayReduce(yMarkers, Math.min).fromSome(); });
+                    var cMaxYMarker = cYMarkers.map(function (yMarkers) { return ArrayUtil_1.arrayReduce(yMarkers, Math.max).fromSome(); });
+                    var cCentreX = cMinXMarker.lift(cMaxXMarker, function (minMarkerX, maxMarkerX) { return (minMarkerX + maxMarkerX) * 0.5; });
+                    var cCentreY = cMinYMarker.lift(cMaxYMarker, function (minMarkerY, maxMarkerY) { return (minMarkerY + maxMarkerY) * 0.5; });
+                    var cLength = cMinXMarker.lift(cMaxXMarker, function (minMarkerX, maxMarkerX) { return maxMarkerX - minMarkerX; });
+                    var cSpan = cMinYMarker.lift(cMaxYMarker, function (minMarkerY, maxMarkerY) { return maxMarkerY - minMarkerY; });
+                    var cReadjustedXMarkers = cXMarkers.lift(cCentreX, function (xMarkers, centreX) { return xMarkers.map(function (xMarker) { return xMarker - centreX; }); });
+                    var cReadjustedYMarkers = cYMarkers.lift(cCentreY, function (yMarkers, centreY) { return yMarkers.map(function (yMarker) { return yMarker - centreY; }); });
+                    return new sodium.Cell(new Mezzanine_1.Mezzanine({
+                        cStableName: cMezzanineData.map(function (mezzanineData) { return "mezzanine_ " + mezzanineData.id; }),
+                        cMezzanineData: cMezzanineData,
+                        cAxes: cCentreX.lift3(cCentreY, cFFL, function (centreX, centreY, ffl) {
+                            return Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(centreX, centreY, ffl), Quaternion_1.Quaternion.identity);
+                        }),
+                        cFFL: cMezzanineData.map(function (mezzanineData) { return mezzanineData.height; }),
+                        cLength: cLength,
+                        cSpan: cSpan,
+                        cCeeProperties: cCeeProperties,
+                        cXMarkers: cReadjustedXMarkers,
+                        cYMarkers: cReadjustedYMarkers,
+                        cHighlightedStableNames: params.cHighlightedStableNames
+                    }));
+                });
+                return cMezzanineOp;
+            }, cMezzanineDatas.map(function (x) { return x.map(function (x2) { return x2.id; }); }))
+                .map(function (x) { return ArrayUtil_1.arraySomes(x); }), function (x) { return ArrayUtil_1.arrayBind(x, function (x2) { return x2.trace(); }); });
+            var cSelectables = SodiumUtil.cellTrace(sodium.Cell.switchC(cWalls.lift3(cRoofs, cMezzanines, sodium.lambda3(function (walls, roofs, mezzanines) {
+                return SodiumUtil
+                    .cellLiftArray(walls.map(function (wall) { return wall.cSelectables; }))
+                    .map(function (x) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
+                }); })
+                    .lift4(SodiumUtil
+                    .cellLiftArray(roofs.map(function (roof) { return roof.cSelectables; }))
+                    .map(function (x) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
+                }); }), whirlybirds.cSelectables, SodiumUtil
+                    .cellLiftArray(mezzanines.map(function (mezzanine) { return mezzanine.cSelectables; }))
+                    .map(function (x) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
+                }); }), function (wallSelectables, roofSelectables, whirlybirdSelectables, mezzanineSelectables) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayJoin([
+                        wallSelectables.get(),
+                        roofSelectables.get(),
+                        whirlybirdSelectables.get(),
+                        mezzanineSelectables.get()
+                    ]);
+                }); });
+            }, [whirlybirds.cSelectables]))), function (selectables) {
+                return ArrayUtil_1.arrayBind(selectables.get(), function (selectable) {
+                    return selectable.trace();
+                });
+            });
             _this._cBuildingData = params.cBuildingData;
-            _this._cModel = MkModelEffect_1.composeCListOfCModels(cMainWalls.lift6(cMainRoofs, cInternalWalls, cSide1LeanToCModelOp, cSide2LeanToCModelOp, cFloorSystemOp, sodium.lambda6(function (walls, roofs, internalWalls, side1LeanToCModelOp, side2LeanToCModelOp, floorSystemOp) {
+            _this._cModel = MkModelEffect_1.composeCListOfCModels(cMainWalls
+                .lift6(cMainRoofs, cInternalWalls, cSide1LeanToCModelOp, cSide2LeanToCModelOp, cFloorSystemOp, function (x1, x2, x3, x4, x5, x6) { return Tuples_1.T6.of(x1, x2, x3, x4, x5, x6); })
+                .lift(cMezzanines, function (x1, x2) { return Tuples_1.T2.of(x1, x2); })
+                .map(sodium.lambda1(function (x) {
+                var walls = x._1._1;
+                var roofs = x._1._2;
+                var internalWalls = x._1._3;
+                var side1LeanToCModelOp = x._1._4;
+                var side2LeanToCModelOp = x._1._5;
+                var floorSystemOp = x._1._6;
+                var mezzanines = x._2;
                 return ArrayUtil_1.arrayJoin([
                     walls.map(function (wall) { return wall.cModel; }),
                     roofs.map(function (roof) { return roof.cModel; }),
@@ -5267,7 +5461,8 @@ var Building = /** @class */ (function () {
                     ArrayUtil_1.arrayBind([
                         side1LeanToCModelOp,
                         side2LeanToCModelOp
-                    ], function (x) { return x.map(function (x2) { return [new sodium.Cell(x2)]; }).orSome([]); })
+                    ], function (x) { return x.map(function (x2) { return [new sodium.Cell(x2)]; }).orSome([]); }),
+                    mezzanines.map(function (x) { return x.cModel; })
                 ]);
             }, [cSide1LeanToCModelOp, cSide2LeanToCModelOp])));
             _this._cWalls = cWalls;
@@ -6968,6 +7163,7 @@ var FloorSystem = /** @class */ (function () {
             this.params.cCeeProperties,
             this.params.cXMarkers,
             this.params.cYMarkers,
+            this.params.cHighlighted,
             this.cModel
         ];
     };
@@ -8597,6 +8793,944 @@ function offsetContour(offset, contour) {
 }
 exports.offsetContour = offsetContour;
 //# sourceMappingURL=ThreeJSUtil.js.map
+});
+___scope___.file("app/model/Mezzanine.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var THREE = require("three");
+var BuildingEffect_1 = require("./BuildingEffect");
+var FloorSystem_1 = require("./FloorSystem");
+var FormProperties_1 = require("./FormProperties");
+var MezzanineFormProperties_1 = require("./MezzanineFormProperties");
+var Selectable_1 = require("./Selectable");
+var ArrayUtil_1 = require("../ArrayUtil");
+var Lazy_1 = require("../Lazy");
+var MkModelEffect_1 = require("../MkModelEffect");
+var Option_1 = require("../Option");
+var SodiumUtil = require("../SodiumUtil");
+var Axes3D_1 = require("../math/Axes3D");
+var Box3D_1 = require("../math/Box3D");
+var Quaternion_1 = require("../math/Quaternion");
+var Vector3D_1 = require("../math/Vector3D");
+var Mezzanine = /** @class */ (function () {
+    function Mezzanine(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var cHighlighted = SodiumUtil.cellCalmRefEq(params.cStableName.lift(params.cHighlightedStableNames, function (stableName, highlightedStableNames) {
+                return ArrayUtil_1.arrayIncludes(highlightedStableNames, stableName);
+            }));
+            var floorSystem = new FloorSystem_1.FloorSystem({
+                cAxes: params.cAxes,
+                cFFL: params.cFFL,
+                cLength: params.cLength,
+                cSpan: params.cSpan,
+                cCeeProperties: params.cCeeProperties,
+                cXMarkers: params.cXMarkers,
+                cYMarkers: params.cYMarkers,
+                cHighlighted: cHighlighted
+            });
+            var cModel = floorSystem.cModel;
+            var cSelectables = new sodium.Cell(Lazy_1.Lazy.create(function () {
+                return [new MezzanineSelectable(params)];
+            }));
+            _this._params = params;
+            _this._cModel = cModel;
+            _this._cSelectables = cSelectables;
+        });
+    }
+    Object.defineProperty(Mezzanine.prototype, "params", {
+        get: function () {
+            return this._params;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mezzanine.prototype, "cModel", {
+        get: function () {
+            return this._cModel;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Mezzanine.prototype, "cSelectables", {
+        get: function () {
+            return this._cSelectables;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Mezzanine.prototype.trace = function () {
+        return [
+            this.params.cStableName,
+            this.params.cMezzanineData,
+            this.params.cAxes,
+            this.params.cFFL,
+            this.params.cLength,
+            this.params.cSpan,
+            this.params.cCeeProperties,
+            this.params.cXMarkers,
+            this.params.cYMarkers,
+            this.params.cHighlightedStableNames,
+            this.cModel,
+            this.cSelectables
+        ];
+    };
+    return Mezzanine;
+}());
+exports.Mezzanine = Mezzanine;
+var MezzanineSelectable = /** @class */ (function (_super) {
+    __extends(MezzanineSelectable, _super);
+    function MezzanineSelectable(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cBox = params.cAxes.lift4(params.cFFL, params.cLength, params.cSpan, function (axes, ffl, length, span) {
+                return Box3D_1.Box3D.create({
+                    axes: axes.fromThisSpace(Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(0.0, 0.0, 0.5 * ffl), Quaternion_1.Quaternion.identity)),
+                    len: Vector3D_1.Vector3D.create(length, span, ffl)
+                });
+            });
+            var cMouseRayCollisionTimeOpOp = cBox.map(function (box) {
+                return Option_1.Option.some(function (mouseRay) {
+                    return box.rayIntersectionTime(mouseRay);
+                });
+            });
+            var cFormPropertiesOp = params.cFFL.map(function (ffl) {
+                return Option_1.Option.some(FormProperties_1.FormProperties.mezzanine(MezzanineFormProperties_1.MezzanineFormProperties.create({
+                    height: ffl
+                })));
+            });
+            var cSetFormPropertiesOp = params.cMezzanineData.map(function (mezzanineData) {
+                return Option_1.Option.some(function (formProperties) {
+                    return formProperties.partialMatch(Option_1.Option.none(), {
+                        mezzanine: function (properties) {
+                            return Option_1.Option.some(BuildingEffect_1.BuildingEffect.changeMezzanine(mezzanineData.from({
+                                height: properties.height
+                            })));
+                        }
+                    });
+                });
+            });
+            var cHighlightOverlayModelOp = cBox.map(sodium.lambda1(function (box) { return Option_1.Option.some(MkModelEffect_1.MkModelEffect.create(function (textureLoader, repaintCallback) {
+                var geometry = new THREE.BoxBufferGeometry(box.len.x + 100.0, box.len.y + 100.0, box.len.z + 100.0);
+                geometry.translate(0.0, 0.0, 0.5 * box.len.z + 50.0);
+                var material = new THREE.MeshBasicMaterial({ color: 0x00FF00, transparent: true, opacity: 0.3 });
+                var mesh = new THREE.Mesh(geometry, material);
+                MkModelEffect_1.THREEObject3DSetAxes(mesh, params.cAxes.sample());
+                return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                    var cleanups = [];
+                    cleanups.push(params.cAxes.listen(function (axes) {
+                        MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
+                        repaintCallback();
+                    }));
+                    return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                }, mesh));
+            })); }, [params.cAxes]));
+            var cBoundingBoxOp = cBox.map(function (x) { return Option_1.Option.some(x); });
+            var cDeleteOp = params.cMezzanineData.map(function (mezzanineData) { return Option_1.Option.some(Lazy_1.Lazy.create(function () {
+                return BuildingEffect_1.BuildingEffect.seq([
+                    BuildingEffect_1.BuildingEffect.removeMezzanine(mezzanineData.id),
+                    BuildingEffect_1.BuildingEffect.freeId(mezzanineData.id)
+                ]);
+            })); });
+            _this._cMouseRayCollisionTimeOpOp = cMouseRayCollisionTimeOpOp;
+            _this._cFormPropertiesOp = cFormPropertiesOp;
+            _this._cSetFormPropertiesOp = cSetFormPropertiesOp;
+            _this._cHighlightOverlayModelOp = cHighlightOverlayModelOp;
+            _this._cDeleteOp = cDeleteOp;
+            _this._cBoundingBoxOp = cBoundingBoxOp;
+        });
+        return _this;
+    }
+    Object.defineProperty(MezzanineSelectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return this._cMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(MezzanineSelectable.prototype, "cFormPropertiesOp", {
+        get: function () {
+            return this._cFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(MezzanineSelectable.prototype, "cSetFormPropertiesOp", {
+        get: function () {
+            return this._cSetFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(MezzanineSelectable.prototype, "cHighlightOverlayModelOp", {
+        get: function () {
+            return this._cHighlightOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(MezzanineSelectable.prototype, "cDeleteOp", {
+        get: function () {
+            return this._cDeleteOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(MezzanineSelectable.prototype, "cBoundingBoxOp", {
+        get: function () {
+            return this._cBoundingBoxOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    MezzanineSelectable.prototype.trace = function () {
+        return [
+            this._cMouseRayCollisionTimeOpOp,
+            this._cFormPropertiesOp,
+            this._cSetFormPropertiesOp,
+            this._cHighlightOverlayModelOp,
+            this._cDeleteOp,
+            this._cBoundingBoxOp
+        ];
+    };
+    return MezzanineSelectable;
+}(Selectable_1.Selectable));
+//# sourceMappingURL=Mezzanine.js.map
+});
+___scope___.file("app/model/BuildingEffect.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var BuildingEffect = /** @class */ (function () {
+    function BuildingEffect() {
+    }
+    BuildingEffect.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            seq: function (effects) {
+                if (cases.seq) {
+                    return cases.seq(effects);
+                }
+                else {
+                    return default_;
+                }
+            },
+            allocId: function (k) {
+                if (cases.allocId) {
+                    return cases.allocId(k);
+                }
+                else {
+                    return default_;
+                }
+            },
+            freeId: function (id) {
+                if (cases.freeId) {
+                    return cases.freeId(id);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertOpening: function (insertOpeningData) {
+                if (cases.insertOpening) {
+                    return cases.insertOpening(insertOpeningData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeOpening: function (wallStableName, openingId) {
+                if (cases.removeOpening) {
+                    return cases.removeOpening(wallStableName, openingId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            changeOpening: function (wallStableName, openingData) {
+                if (cases.changeOpening) {
+                    return cases.changeOpening(wallStableName, openingData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
+                if (cases.toggleInternalWallByBayMarkerIndex) {
+                    return cases.toggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleBay: function (wallStableName, bayIndex) {
+                if (cases.toggleBay) {
+                    return cases.toggleBay(wallStableName, bayIndex);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertSkylight: function (roofStableName, skylightData) {
+                if (cases.insertSkylight) {
+                    return cases.insertSkylight(roofStableName, skylightData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeSkylight: function (roofStableName, skylightId) {
+                if (cases.removeSkylight) {
+                    return cases.removeSkylight(roofStableName, skylightId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertWhirlybird: function (roofStableName, whirlybirdData) {
+                if (cases.insertWhirlybird) {
+                    return cases.insertWhirlybird(roofStableName, whirlybirdData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeWhirlybird: function (roofStableName, whirlybirdId) {
+                if (cases.removeWhirlybird) {
+                    return cases.removeWhirlybird(roofStableName, whirlybirdId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertLeanTo: function (leanToStableName, leanToFormProperties) {
+                if (cases.insertLeanTo) {
+                    return cases.insertLeanTo(leanToStableName, leanToFormProperties);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeLeanTo: function (leanToStableName) {
+                if (cases.removeLeanTo) {
+                    return cases.removeLeanTo(leanToStableName);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertFloorSystem: function (height) {
+                if (cases.insertFloorSystem) {
+                    return cases.insertFloorSystem(height);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeFloorSystem: function () {
+                if (cases.removeFloorSystem) {
+                    return cases.removeFloorSystem();
+                }
+                else {
+                    return default_;
+                }
+            },
+            changeFloorSystem: function (floorSystemData) {
+                if (cases.changeFloorSystem) {
+                    return cases.changeFloorSystem(floorSystemData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertMezzanine: function (mezzanineData) {
+                if (cases.insertMezzanine) {
+                    return cases.insertMezzanine(mezzanineData);
+                }
+                else {
+                    return default_;
+                }
+            },
+            removeMezzanine: function (mezzanineId) {
+                if (cases.removeMezzanine) {
+                    return cases.removeMezzanine(mezzanineId);
+                }
+                else {
+                    return default_;
+                }
+            },
+            changeMezzanine: function (mezzanineData) {
+                if (cases.changeMezzanine) {
+                    return cases.changeMezzanine(mezzanineData);
+                }
+                else {
+                    return default_;
+                }
+            }
+        });
+    };
+    BuildingEffect.seq = function (effects) {
+        return new BuildingEffectSeq(effects);
+    };
+    BuildingEffect.allocId = function (k) {
+        return new BuildingEffectAllocId(k);
+    };
+    BuildingEffect.freeId = function (id) {
+        return new BuildingEffectFreeId(id);
+    };
+    BuildingEffect.insertOpening = function (insertOpeningData) {
+        return new BuildingEffectInsertOpening(insertOpeningData);
+    };
+    BuildingEffect.removeOpening = function (wallStableName, openingId) {
+        return new BuildingEffectRemoveOpening(wallStableName, openingId);
+    };
+    BuildingEffect.changeOpening = function (wallStableName, openingData) {
+        return new BuildingEffectChangeOpening(wallStableName, openingData);
+    };
+    BuildingEffect.toggleInternalWallByBayMarkerIndex = function (bayMarkerIndex) {
+        return new BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex);
+    };
+    BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
+        return new BuildingEffectToggleBay(wallStableName, bayIndex);
+    };
+    BuildingEffect.insertSkylight = function (roofStableName, skylightData) {
+        return new BuildingEffectInsertSkylight(roofStableName, skylightData);
+    };
+    BuildingEffect.removeSkylight = function (roofStableName, skylightId) {
+        return new BuildingEffectRemoveSkylight(roofStableName, skylightId);
+    };
+    BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdData) {
+        return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData);
+    };
+    BuildingEffect.removeWhirlybird = function (roofStableName, whirlybirdId) {
+        return new BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId);
+    };
+    BuildingEffect.insertLeanTo = function (leanToStableName, leanToFormProperties) {
+        return new BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties);
+    };
+    BuildingEffect.removeLeanTo = function (leanToStableName) {
+        return new BuildingEffectRemoveLeanTo(leanToStableName);
+    };
+    BuildingEffect.insertFloorSystem = function (height) {
+        return new BuildingEffectInsertFloorSystem(height);
+    };
+    BuildingEffect.removeFloorSystem = function () {
+        return new BuildingEffectRemoveFloorSystem();
+    };
+    BuildingEffect.changeFloorSystem = function (floorSystemData) {
+        return new BuildingEffectChangeFloorSystem(floorSystemData);
+    };
+    BuildingEffect.insertMezzanine = function (mezzanineData) {
+        return new BuildingEffectInsertMezzanine(mezzanineData);
+    };
+    BuildingEffect.removeMezzanine = function (mezzanineId) {
+        return new BuildingEffectRemoveMezzanine(mezzanineId);
+    };
+    BuildingEffect.changeMezzanine = function (mezzanineData) {
+        return new BuildingEffectChangeMezzanine(mezzanineData);
+    };
+    return BuildingEffect;
+}());
+exports.BuildingEffect = BuildingEffect;
+var BuildingEffectSeq = /** @class */ (function (_super) {
+    __extends(BuildingEffectSeq, _super);
+    function BuildingEffectSeq(effects) {
+        var _this = _super.call(this) || this;
+        _this._effects = effects;
+        return _this;
+    }
+    BuildingEffectSeq.prototype.match = function (cases) {
+        return cases.seq(this._effects);
+    };
+    return BuildingEffectSeq;
+}(BuildingEffect));
+var BuildingEffectAllocId = /** @class */ (function (_super) {
+    __extends(BuildingEffectAllocId, _super);
+    function BuildingEffectAllocId(k) {
+        var _this = _super.call(this) || this;
+        _this._k = k;
+        return _this;
+    }
+    BuildingEffectAllocId.prototype.match = function (cases) {
+        return cases.allocId(this._k);
+    };
+    return BuildingEffectAllocId;
+}(BuildingEffect));
+var BuildingEffectFreeId = /** @class */ (function (_super) {
+    __extends(BuildingEffectFreeId, _super);
+    function BuildingEffectFreeId(id) {
+        var _this = _super.call(this) || this;
+        _this._id = id;
+        return _this;
+    }
+    BuildingEffectFreeId.prototype.match = function (cases) {
+        return cases.freeId(this._id);
+    };
+    return BuildingEffectFreeId;
+}(BuildingEffect));
+var BuildingEffectInsertOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertOpening, _super);
+    function BuildingEffectInsertOpening(insertOpeningData) {
+        var _this = _super.call(this) || this;
+        _this._insertOpeningData = insertOpeningData;
+        return _this;
+    }
+    BuildingEffectInsertOpening.prototype.match = function (cases) {
+        return cases.insertOpening(this._insertOpeningData);
+    };
+    return BuildingEffectInsertOpening;
+}(BuildingEffect));
+var BuildingEffectRemoveOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveOpening, _super);
+    function BuildingEffectRemoveOpening(wallStableName, openingId) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._openingId = openingId;
+        return _this;
+    }
+    BuildingEffectRemoveOpening.prototype.match = function (cases) {
+        return cases.removeOpening(this._wallStableName, this._openingId);
+    };
+    return BuildingEffectRemoveOpening;
+}(BuildingEffect));
+var BuildingEffectChangeOpening = /** @class */ (function (_super) {
+    __extends(BuildingEffectChangeOpening, _super);
+    function BuildingEffectChangeOpening(wallStableName, openingData) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._openingData = openingData;
+        return _this;
+    }
+    BuildingEffectChangeOpening.prototype.match = function (cases) {
+        return cases.changeOpening(this._wallStableName, this._openingData);
+    };
+    return BuildingEffectChangeOpening;
+}(BuildingEffect));
+var BuildingEffectToggleInternalWallByBayMarkerIndex = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleInternalWallByBayMarkerIndex, _super);
+    function BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex) {
+        var _this = _super.call(this) || this;
+        _this._bayMarkerIndex = bayMarkerIndex;
+        return _this;
+    }
+    BuildingEffectToggleInternalWallByBayMarkerIndex.prototype.match = function (cases) {
+        return cases.toggleInternalWallByBayMarkerIndex(this._bayMarkerIndex);
+    };
+    return BuildingEffectToggleInternalWallByBayMarkerIndex;
+}(BuildingEffect));
+var BuildingEffectToggleBay = /** @class */ (function (_super) {
+    __extends(BuildingEffectToggleBay, _super);
+    function BuildingEffectToggleBay(wallStableName, bayIndex) {
+        var _this = _super.call(this) || this;
+        _this._wallStableName = wallStableName;
+        _this._bayIndex = bayIndex;
+        return _this;
+    }
+    BuildingEffectToggleBay.prototype.match = function (cases) {
+        return cases.toggleBay(this._wallStableName, this._bayIndex);
+    };
+    return BuildingEffectToggleBay;
+}(BuildingEffect));
+var BuildingEffectInsertSkylight = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertSkylight, _super);
+    function BuildingEffectInsertSkylight(roofStableName, skylightData) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._skylightData = skylightData;
+        return _this;
+    }
+    BuildingEffectInsertSkylight.prototype.match = function (cases) {
+        return cases.insertSkylight(this._roofStableName, this._skylightData);
+    };
+    return BuildingEffectInsertSkylight;
+}(BuildingEffect));
+var BuildingEffectRemoveSkylight = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveSkylight, _super);
+    function BuildingEffectRemoveSkylight(roofStableName, skylightId) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._skylightId = skylightId;
+        return _this;
+    }
+    BuildingEffectRemoveSkylight.prototype.match = function (cases) {
+        return cases.removeSkylight(this._roofStableName, this._skylightId);
+    };
+    return BuildingEffectRemoveSkylight;
+}(BuildingEffect));
+var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertWhirlybird, _super);
+    function BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._whirlybirdData = whirlybirdData;
+        return _this;
+    }
+    BuildingEffectInsertWhirlybird.prototype.match = function (cases) {
+        return cases.insertWhirlybird(this._roofStableName, this._whirlybirdData);
+    };
+    return BuildingEffectInsertWhirlybird;
+}(BuildingEffect));
+var BuildingEffectRemoveWhirlybird = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveWhirlybird, _super);
+    function BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId) {
+        var _this = _super.call(this) || this;
+        _this._roofStableName = roofStableName;
+        _this._whirlybirdId = whirlybirdId;
+        return _this;
+    }
+    BuildingEffectRemoveWhirlybird.prototype.match = function (cases) {
+        return cases.removeWhirlybird(this._roofStableName, this._whirlybirdId);
+    };
+    return BuildingEffectRemoveWhirlybird;
+}(BuildingEffect));
+var BuildingEffectInsertLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertLeanTo, _super);
+    function BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        _this._leanToFormProperties = leanToFormProperties;
+        return _this;
+    }
+    BuildingEffectInsertLeanTo.prototype.match = function (cases) {
+        return cases.insertLeanTo(this._leanToStableName, this._leanToFormProperties);
+    };
+    return BuildingEffectInsertLeanTo;
+}(BuildingEffect));
+var BuildingEffectRemoveLeanTo = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveLeanTo, _super);
+    function BuildingEffectRemoveLeanTo(leanToStableName) {
+        var _this = _super.call(this) || this;
+        _this._leanToStableName = leanToStableName;
+        return _this;
+    }
+    BuildingEffectRemoveLeanTo.prototype.match = function (cases) {
+        return cases.removeLeanTo(this._leanToStableName);
+    };
+    return BuildingEffectRemoveLeanTo;
+}(BuildingEffect));
+var BuildingEffectInsertFloorSystem = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertFloorSystem, _super);
+    function BuildingEffectInsertFloorSystem(height) {
+        var _this = _super.call(this) || this;
+        _this._height = height;
+        return _this;
+    }
+    BuildingEffectInsertFloorSystem.prototype.match = function (cases) {
+        return cases.insertFloorSystem(this._height);
+    };
+    return BuildingEffectInsertFloorSystem;
+}(BuildingEffect));
+var BuildingEffectRemoveFloorSystem = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveFloorSystem, _super);
+    function BuildingEffectRemoveFloorSystem() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    BuildingEffectRemoveFloorSystem.prototype.match = function (cases) {
+        return cases.removeFloorSystem();
+    };
+    return BuildingEffectRemoveFloorSystem;
+}(BuildingEffect));
+var BuildingEffectChangeFloorSystem = /** @class */ (function (_super) {
+    __extends(BuildingEffectChangeFloorSystem, _super);
+    function BuildingEffectChangeFloorSystem(floorSystemData) {
+        var _this = _super.call(this) || this;
+        _this._floorSystemData = floorSystemData;
+        return _this;
+    }
+    BuildingEffectChangeFloorSystem.prototype.match = function (cases) {
+        return cases.changeFloorSystem(this._floorSystemData);
+    };
+    return BuildingEffectChangeFloorSystem;
+}(BuildingEffect));
+var BuildingEffectInsertMezzanine = /** @class */ (function (_super) {
+    __extends(BuildingEffectInsertMezzanine, _super);
+    function BuildingEffectInsertMezzanine(mezzanineData) {
+        var _this = _super.call(this) || this;
+        _this._mezzanineData = mezzanineData;
+        return _this;
+    }
+    BuildingEffectInsertMezzanine.prototype.match = function (cases) {
+        return cases.insertMezzanine(this._mezzanineData);
+    };
+    return BuildingEffectInsertMezzanine;
+}(BuildingEffect));
+var BuildingEffectRemoveMezzanine = /** @class */ (function (_super) {
+    __extends(BuildingEffectRemoveMezzanine, _super);
+    function BuildingEffectRemoveMezzanine(mezzanineId) {
+        var _this = _super.call(this) || this;
+        _this._mezzanineId = mezzanineId;
+        return _this;
+    }
+    BuildingEffectRemoveMezzanine.prototype.match = function (cases) {
+        return cases.removeMezzanine(this._mezzanineId);
+    };
+    return BuildingEffectRemoveMezzanine;
+}(BuildingEffect));
+var BuildingEffectChangeMezzanine = /** @class */ (function (_super) {
+    __extends(BuildingEffectChangeMezzanine, _super);
+    function BuildingEffectChangeMezzanine(mazzanineData) {
+        var _this = _super.call(this) || this;
+        _this._mezzanineData = mazzanineData;
+        return _this;
+    }
+    BuildingEffectChangeMezzanine.prototype.match = function (cases) {
+        return cases.changeMezzanine(this._mezzanineData);
+    };
+    return BuildingEffectChangeMezzanine;
+}(BuildingEffect));
+//# sourceMappingURL=BuildingEffect.js.map
+});
+___scope___.file("app/model/MezzanineFormProperties.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var MezzanineFormProperties = /** @class */ (function () {
+    function MezzanineFormProperties(params) {
+        this._params = params;
+    }
+    Object.defineProperty(MezzanineFormProperties.prototype, "height", {
+        get: function () {
+            return this._params.height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    MezzanineFormProperties.create = function (params) {
+        return new MezzanineFormProperties(params);
+    };
+    MezzanineFormProperties.prototype.from = function (params) {
+        return MezzanineFormProperties.create(Object.assign({}, this._params, params));
+    };
+    return MezzanineFormProperties;
+}());
+exports.MezzanineFormProperties = MezzanineFormProperties;
+//# sourceMappingURL=MezzanineFormProperties.js.map
+});
+___scope___.file("app/model/Selectable.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var Option_1 = require("../Option");
+var Selectable = /** @class */ (function () {
+    function Selectable() {
+    }
+    Selectable.prototype.trace = function () {
+        return [];
+    };
+    Object.defineProperty(Selectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return defaultCMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cFormPropertiesOp", {
+        get: function () {
+            return defaultCFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cSetFormPropertiesOp", {
+        get: function () {
+            return defaultCSetFormPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cHighlightStableNames", {
+        get: function () {
+            return defaultCHighlightStableNames;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cHighlightOverlayModelOp", {
+        get: function () {
+            return defaultCHighlightOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cDeleteOp", {
+        get: function () {
+            return defaultCDeleteOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Selectable.prototype, "cBoundingBoxOp", {
+        /**
+         * Used for approximating an appropriate position of a floating delete button and possibly other buttons.
+         */
+        get: function () {
+            return defaultCBoundingBoxOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Selectable;
+}());
+exports.Selectable = Selectable;
+var defaultCMouseRayCollisionTimeOpOp = new sodium.Cell(Option_1.Option.none());
+var defaultCFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
+var defaultCSetFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
+var defaultCHighlightStableNames = new sodium.Cell([]);
+var defaultCHighlightOverlayModelOp = new sodium.Cell(Option_1.Option.none());
+var defaultCDeleteOp = new sodium.Cell(Option_1.Option.none());
+var defaultCBoundingBoxOp = new sodium.Cell(Option_1.Option.none());
+//# sourceMappingURL=Selectable.js.map
+});
+___scope___.file("app/math/Box3D.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Option_1 = require("../Option");
+var Box3D = /** @class */ (function () {
+    function Box3D(axes, len) {
+        this._axes = axes;
+        this._len = len;
+    }
+    Object.defineProperty(Box3D.prototype, "axes", {
+        get: function () {
+            return this._axes;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Box3D.prototype, "len", {
+        get: function () {
+            return this._len;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Box3D.create = function (params) {
+        return new Box3D(params.axes, params.len);
+    };
+    Box3D.prototype.rayIntersectionTime = function (ray) {
+        var ray2 = ray.toSpace(this.axes);
+        { // x faces
+            var t1 = (-0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // y faces
+            var t1 = (-0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
+                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        { // z faces
+            var t1 = (-0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t1Hit = false;
+            if (isFinite(t1) && t1 >= 0.0) {
+                var pt = ray2.positionFromTime(t1);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t1Hit = true;
+                    }
+                }
+            }
+            var t2 = (+0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
+            var t2Hit = false;
+            if (isFinite(t2) && t2 >= 0.0) {
+                var pt = ray2.positionFromTime(t2);
+                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
+                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
+                        t2Hit = true;
+                    }
+                }
+            }
+            if (t1Hit && t2Hit) {
+                return Option_1.Option.some(t1 < t2 ? t1 : t2);
+            }
+            else if (t1Hit) {
+                return Option_1.Option.some(t1);
+            }
+            else if (t2Hit) {
+                return Option_1.Option.some(t2);
+            }
+        }
+        return Option_1.Option.none();
+    };
+    return Box3D;
+}());
+exports.Box3D = Box3D;
+//# sourceMappingURL=Box3D.js.map
 });
 ___scope___.file("app/model/Portals.js", function(exports, require, module, __filename, __dirname){
 
@@ -10898,657 +12032,6 @@ var SkylightSelectable = /** @class */ (function (_super) {
 }(Selectable_1.Selectable));
 //# sourceMappingURL=Skylight.js.map
 });
-___scope___.file("app/model/BuildingEffect.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var BuildingEffect = /** @class */ (function () {
-    function BuildingEffect() {
-    }
-    BuildingEffect.prototype.partialMatch = function (default_, cases) {
-        return this.match({
-            seq: function (effects) {
-                if (cases.seq) {
-                    return cases.seq(effects);
-                }
-                else {
-                    return default_;
-                }
-            },
-            allocId: function (k) {
-                if (cases.allocId) {
-                    return cases.allocId(k);
-                }
-                else {
-                    return default_;
-                }
-            },
-            freeId: function (id) {
-                if (cases.freeId) {
-                    return cases.freeId(id);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertOpening: function (insertOpeningData) {
-                if (cases.insertOpening) {
-                    return cases.insertOpening(insertOpeningData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeOpening: function (wallStableName, openingId) {
-                if (cases.removeOpening) {
-                    return cases.removeOpening(wallStableName, openingId);
-                }
-                else {
-                    return default_;
-                }
-            },
-            changeOpening: function (wallStableName, openingData) {
-                if (cases.changeOpening) {
-                    return cases.changeOpening(wallStableName, openingData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleInternalWallByBayMarkerIndex: function (bayMarkerIndex) {
-                if (cases.toggleInternalWallByBayMarkerIndex) {
-                    return cases.toggleInternalWallByBayMarkerIndex(bayMarkerIndex);
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleBay: function (wallStableName, bayIndex) {
-                if (cases.toggleBay) {
-                    return cases.toggleBay(wallStableName, bayIndex);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertSkylight: function (roofStableName, skylightData) {
-                if (cases.insertSkylight) {
-                    return cases.insertSkylight(roofStableName, skylightData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeSkylight: function (roofStableName, skylightId) {
-                if (cases.removeSkylight) {
-                    return cases.removeSkylight(roofStableName, skylightId);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertWhirlybird: function (roofStableName, whirlybirdData) {
-                if (cases.insertWhirlybird) {
-                    return cases.insertWhirlybird(roofStableName, whirlybirdData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeWhirlybird: function (roofStableName, whirlybirdId) {
-                if (cases.removeWhirlybird) {
-                    return cases.removeWhirlybird(roofStableName, whirlybirdId);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertLeanTo: function (leanToStableName, leanToFormProperties) {
-                if (cases.insertLeanTo) {
-                    return cases.insertLeanTo(leanToStableName, leanToFormProperties);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeLeanTo: function (leanToStableName) {
-                if (cases.removeLeanTo) {
-                    return cases.removeLeanTo(leanToStableName);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertFloorSystem: function (height) {
-                if (cases.insertFloorSystem) {
-                    return cases.insertFloorSystem(height);
-                }
-                else {
-                    return default_;
-                }
-            },
-            removeFloorSystem: function () {
-                if (cases.removeFloorSystem) {
-                    return cases.removeFloorSystem();
-                }
-                else {
-                    return default_;
-                }
-            },
-            changeFloorSystem: function (floorSystemData) {
-                if (cases.changeFloorSystem) {
-                    return cases.changeFloorSystem(floorSystemData);
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertMezzanine: function (mezzanineData) {
-                if (cases.insertMezzanine) {
-                    return cases.insertMezzanine(mezzanineData);
-                }
-                else {
-                    return default_;
-                }
-            }
-        });
-    };
-    BuildingEffect.seq = function (effects) {
-        return new BuildingEffectSeq(effects);
-    };
-    BuildingEffect.allocId = function (k) {
-        return new BuildingEffectAllocId(k);
-    };
-    BuildingEffect.freeId = function (id) {
-        return new BuildingEffectFreeId(id);
-    };
-    BuildingEffect.insertOpening = function (insertOpeningData) {
-        return new BuildingEffectInsertOpening(insertOpeningData);
-    };
-    BuildingEffect.removeOpening = function (wallStableName, openingId) {
-        return new BuildingEffectRemoveOpening(wallStableName, openingId);
-    };
-    BuildingEffect.changeOpening = function (wallStableName, openingData) {
-        return new BuildingEffectChangeOpening(wallStableName, openingData);
-    };
-    BuildingEffect.toggleInternalWallByBayMarkerIndex = function (bayMarkerIndex) {
-        return new BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex);
-    };
-    BuildingEffect.toggleBay = function (wallStableName, bayIndex) {
-        return new BuildingEffectToggleBay(wallStableName, bayIndex);
-    };
-    BuildingEffect.insertSkylight = function (roofStableName, skylightData) {
-        return new BuildingEffectInsertSkylight(roofStableName, skylightData);
-    };
-    BuildingEffect.removeSkylight = function (roofStableName, skylightId) {
-        return new BuildingEffectRemoveSkylight(roofStableName, skylightId);
-    };
-    BuildingEffect.insertWhirlybird = function (roofStableName, whirlybirdData) {
-        return new BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData);
-    };
-    BuildingEffect.removeWhirlybird = function (roofStableName, whirlybirdId) {
-        return new BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId);
-    };
-    BuildingEffect.insertLeanTo = function (leanToStableName, leanToFormProperties) {
-        return new BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties);
-    };
-    BuildingEffect.removeLeanTo = function (leanToStableName) {
-        return new BuildingEffectRemoveLeanTo(leanToStableName);
-    };
-    BuildingEffect.insertFloorSystem = function (height) {
-        return new BuildingEffectInsertFloorSystem(height);
-    };
-    BuildingEffect.removeFloorSystem = function () {
-        return new BuildingEffectRemoveFloorSystem();
-    };
-    BuildingEffect.changeFloorSystem = function (floorSystemData) {
-        return new BuildingEffectChangeFloorSystem(floorSystemData);
-    };
-    BuildingEffect.insertMezzanine = function (mezzanineData) {
-        return new BuildingEffectInsertMezzanine(mezzanineData);
-    };
-    return BuildingEffect;
-}());
-exports.BuildingEffect = BuildingEffect;
-var BuildingEffectSeq = /** @class */ (function (_super) {
-    __extends(BuildingEffectSeq, _super);
-    function BuildingEffectSeq(effects) {
-        var _this = _super.call(this) || this;
-        _this._effects = effects;
-        return _this;
-    }
-    BuildingEffectSeq.prototype.match = function (cases) {
-        return cases.seq(this._effects);
-    };
-    return BuildingEffectSeq;
-}(BuildingEffect));
-var BuildingEffectAllocId = /** @class */ (function (_super) {
-    __extends(BuildingEffectAllocId, _super);
-    function BuildingEffectAllocId(k) {
-        var _this = _super.call(this) || this;
-        _this._k = k;
-        return _this;
-    }
-    BuildingEffectAllocId.prototype.match = function (cases) {
-        return cases.allocId(this._k);
-    };
-    return BuildingEffectAllocId;
-}(BuildingEffect));
-var BuildingEffectFreeId = /** @class */ (function (_super) {
-    __extends(BuildingEffectFreeId, _super);
-    function BuildingEffectFreeId(id) {
-        var _this = _super.call(this) || this;
-        _this._id = id;
-        return _this;
-    }
-    BuildingEffectFreeId.prototype.match = function (cases) {
-        return cases.freeId(this._id);
-    };
-    return BuildingEffectFreeId;
-}(BuildingEffect));
-var BuildingEffectInsertOpening = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertOpening, _super);
-    function BuildingEffectInsertOpening(insertOpeningData) {
-        var _this = _super.call(this) || this;
-        _this._insertOpeningData = insertOpeningData;
-        return _this;
-    }
-    BuildingEffectInsertOpening.prototype.match = function (cases) {
-        return cases.insertOpening(this._insertOpeningData);
-    };
-    return BuildingEffectInsertOpening;
-}(BuildingEffect));
-var BuildingEffectRemoveOpening = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveOpening, _super);
-    function BuildingEffectRemoveOpening(wallStableName, openingId) {
-        var _this = _super.call(this) || this;
-        _this._wallStableName = wallStableName;
-        _this._openingId = openingId;
-        return _this;
-    }
-    BuildingEffectRemoveOpening.prototype.match = function (cases) {
-        return cases.removeOpening(this._wallStableName, this._openingId);
-    };
-    return BuildingEffectRemoveOpening;
-}(BuildingEffect));
-var BuildingEffectChangeOpening = /** @class */ (function (_super) {
-    __extends(BuildingEffectChangeOpening, _super);
-    function BuildingEffectChangeOpening(wallStableName, openingData) {
-        var _this = _super.call(this) || this;
-        _this._wallStableName = wallStableName;
-        _this._openingData = openingData;
-        return _this;
-    }
-    BuildingEffectChangeOpening.prototype.match = function (cases) {
-        return cases.changeOpening(this._wallStableName, this._openingData);
-    };
-    return BuildingEffectChangeOpening;
-}(BuildingEffect));
-var BuildingEffectToggleInternalWallByBayMarkerIndex = /** @class */ (function (_super) {
-    __extends(BuildingEffectToggleInternalWallByBayMarkerIndex, _super);
-    function BuildingEffectToggleInternalWallByBayMarkerIndex(bayMarkerIndex) {
-        var _this = _super.call(this) || this;
-        _this._bayMarkerIndex = bayMarkerIndex;
-        return _this;
-    }
-    BuildingEffectToggleInternalWallByBayMarkerIndex.prototype.match = function (cases) {
-        return cases.toggleInternalWallByBayMarkerIndex(this._bayMarkerIndex);
-    };
-    return BuildingEffectToggleInternalWallByBayMarkerIndex;
-}(BuildingEffect));
-var BuildingEffectToggleBay = /** @class */ (function (_super) {
-    __extends(BuildingEffectToggleBay, _super);
-    function BuildingEffectToggleBay(wallStableName, bayIndex) {
-        var _this = _super.call(this) || this;
-        _this._wallStableName = wallStableName;
-        _this._bayIndex = bayIndex;
-        return _this;
-    }
-    BuildingEffectToggleBay.prototype.match = function (cases) {
-        return cases.toggleBay(this._wallStableName, this._bayIndex);
-    };
-    return BuildingEffectToggleBay;
-}(BuildingEffect));
-var BuildingEffectInsertSkylight = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertSkylight, _super);
-    function BuildingEffectInsertSkylight(roofStableName, skylightData) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._skylightData = skylightData;
-        return _this;
-    }
-    BuildingEffectInsertSkylight.prototype.match = function (cases) {
-        return cases.insertSkylight(this._roofStableName, this._skylightData);
-    };
-    return BuildingEffectInsertSkylight;
-}(BuildingEffect));
-var BuildingEffectRemoveSkylight = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveSkylight, _super);
-    function BuildingEffectRemoveSkylight(roofStableName, skylightId) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._skylightId = skylightId;
-        return _this;
-    }
-    BuildingEffectRemoveSkylight.prototype.match = function (cases) {
-        return cases.removeSkylight(this._roofStableName, this._skylightId);
-    };
-    return BuildingEffectRemoveSkylight;
-}(BuildingEffect));
-var BuildingEffectInsertWhirlybird = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertWhirlybird, _super);
-    function BuildingEffectInsertWhirlybird(roofStableName, whirlybirdData) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._whirlybirdData = whirlybirdData;
-        return _this;
-    }
-    BuildingEffectInsertWhirlybird.prototype.match = function (cases) {
-        return cases.insertWhirlybird(this._roofStableName, this._whirlybirdData);
-    };
-    return BuildingEffectInsertWhirlybird;
-}(BuildingEffect));
-var BuildingEffectRemoveWhirlybird = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveWhirlybird, _super);
-    function BuildingEffectRemoveWhirlybird(roofStableName, whirlybirdId) {
-        var _this = _super.call(this) || this;
-        _this._roofStableName = roofStableName;
-        _this._whirlybirdId = whirlybirdId;
-        return _this;
-    }
-    BuildingEffectRemoveWhirlybird.prototype.match = function (cases) {
-        return cases.removeWhirlybird(this._roofStableName, this._whirlybirdId);
-    };
-    return BuildingEffectRemoveWhirlybird;
-}(BuildingEffect));
-var BuildingEffectInsertLeanTo = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertLeanTo, _super);
-    function BuildingEffectInsertLeanTo(leanToStableName, leanToFormProperties) {
-        var _this = _super.call(this) || this;
-        _this._leanToStableName = leanToStableName;
-        _this._leanToFormProperties = leanToFormProperties;
-        return _this;
-    }
-    BuildingEffectInsertLeanTo.prototype.match = function (cases) {
-        return cases.insertLeanTo(this._leanToStableName, this._leanToFormProperties);
-    };
-    return BuildingEffectInsertLeanTo;
-}(BuildingEffect));
-var BuildingEffectRemoveLeanTo = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveLeanTo, _super);
-    function BuildingEffectRemoveLeanTo(leanToStableName) {
-        var _this = _super.call(this) || this;
-        _this._leanToStableName = leanToStableName;
-        return _this;
-    }
-    BuildingEffectRemoveLeanTo.prototype.match = function (cases) {
-        return cases.removeLeanTo(this._leanToStableName);
-    };
-    return BuildingEffectRemoveLeanTo;
-}(BuildingEffect));
-var BuildingEffectInsertFloorSystem = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertFloorSystem, _super);
-    function BuildingEffectInsertFloorSystem(height) {
-        var _this = _super.call(this) || this;
-        _this._height = height;
-        return _this;
-    }
-    BuildingEffectInsertFloorSystem.prototype.match = function (cases) {
-        return cases.insertFloorSystem(this._height);
-    };
-    return BuildingEffectInsertFloorSystem;
-}(BuildingEffect));
-var BuildingEffectRemoveFloorSystem = /** @class */ (function (_super) {
-    __extends(BuildingEffectRemoveFloorSystem, _super);
-    function BuildingEffectRemoveFloorSystem() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    BuildingEffectRemoveFloorSystem.prototype.match = function (cases) {
-        return cases.removeFloorSystem();
-    };
-    return BuildingEffectRemoveFloorSystem;
-}(BuildingEffect));
-var BuildingEffectChangeFloorSystem = /** @class */ (function (_super) {
-    __extends(BuildingEffectChangeFloorSystem, _super);
-    function BuildingEffectChangeFloorSystem(floorSystemData) {
-        var _this = _super.call(this) || this;
-        _this._floorSystemData = floorSystemData;
-        return _this;
-    }
-    BuildingEffectChangeFloorSystem.prototype.match = function (cases) {
-        return cases.changeFloorSystem(this._floorSystemData);
-    };
-    return BuildingEffectChangeFloorSystem;
-}(BuildingEffect));
-var BuildingEffectInsertMezzanine = /** @class */ (function (_super) {
-    __extends(BuildingEffectInsertMezzanine, _super);
-    function BuildingEffectInsertMezzanine(mezzanineData) {
-        var _this = _super.call(this) || this;
-        _this._mezzanineData = mezzanineData;
-        return _this;
-    }
-    BuildingEffectInsertMezzanine.prototype.match = function (cases) {
-        return cases.insertMezzanine(this._mezzanineData);
-    };
-    return BuildingEffectInsertMezzanine;
-}(BuildingEffect));
-//# sourceMappingURL=BuildingEffect.js.map
-});
-___scope___.file("app/model/Selectable.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var sodium = require("sodiumjs");
-var Option_1 = require("../Option");
-var Selectable = /** @class */ (function () {
-    function Selectable() {
-    }
-    Selectable.prototype.trace = function () {
-        return [];
-    };
-    Object.defineProperty(Selectable.prototype, "cMouseRayCollisionTimeOpOp", {
-        get: function () {
-            return defaultCMouseRayCollisionTimeOpOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cFormPropertiesOp", {
-        get: function () {
-            return defaultCFormPropertiesOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cSetFormPropertiesOp", {
-        get: function () {
-            return defaultCSetFormPropertiesOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cHighlightStableNames", {
-        get: function () {
-            return defaultCHighlightStableNames;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cHighlightOverlayModelOp", {
-        get: function () {
-            return defaultCHighlightOverlayModelOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cDeleteOp", {
-        get: function () {
-            return defaultCDeleteOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Selectable.prototype, "cBoundingBoxOp", {
-        /**
-         * Used for approximating an appropriate position of a floating delete button and possibly other buttons.
-         */
-        get: function () {
-            return defaultCBoundingBoxOp;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Selectable;
-}());
-exports.Selectable = Selectable;
-var defaultCMouseRayCollisionTimeOpOp = new sodium.Cell(Option_1.Option.none());
-var defaultCFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
-var defaultCSetFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
-var defaultCHighlightStableNames = new sodium.Cell([]);
-var defaultCHighlightOverlayModelOp = new sodium.Cell(Option_1.Option.none());
-var defaultCDeleteOp = new sodium.Cell(Option_1.Option.none());
-var defaultCBoundingBoxOp = new sodium.Cell(Option_1.Option.none());
-//# sourceMappingURL=Selectable.js.map
-});
-___scope___.file("app/math/Box3D.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Option_1 = require("../Option");
-var Box3D = /** @class */ (function () {
-    function Box3D(axes, len) {
-        this._axes = axes;
-        this._len = len;
-    }
-    Object.defineProperty(Box3D.prototype, "axes", {
-        get: function () {
-            return this._axes;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Box3D.prototype, "len", {
-        get: function () {
-            return this._len;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Box3D.create = function (params) {
-        return new Box3D(params.axes, params.len);
-    };
-    Box3D.prototype.rayIntersectionTime = function (ray) {
-        var ray2 = ray.toSpace(this.axes);
-        { // x faces
-            var t1 = (-0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.x - ray2.origin.x) / ray2.direction.x;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                    if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        { // y faces
-            var t1 = (-0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.y - ray2.origin.y) / ray2.direction.y;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.z <= pt.z && pt.z <= +0.5 * this.len.z) {
-                    if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        { // z faces
-            var t1 = (-0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
-            var t1Hit = false;
-            if (isFinite(t1) && t1 >= 0.0) {
-                var pt = ray2.positionFromTime(t1);
-                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                        t1Hit = true;
-                    }
-                }
-            }
-            var t2 = (+0.5 * this.len.z - ray2.origin.z) / ray2.direction.z;
-            var t2Hit = false;
-            if (isFinite(t2) && t2 >= 0.0) {
-                var pt = ray2.positionFromTime(t2);
-                if (-0.5 * this.len.x <= pt.x && pt.x <= +0.5 * this.len.x) {
-                    if (-0.5 * this.len.y <= pt.y && pt.y <= +0.5 * this.len.y) {
-                        t2Hit = true;
-                    }
-                }
-            }
-            if (t1Hit && t2Hit) {
-                return Option_1.Option.some(t1 < t2 ? t1 : t2);
-            }
-            else if (t1Hit) {
-                return Option_1.Option.some(t1);
-            }
-            else if (t2Hit) {
-                return Option_1.Option.some(t2);
-            }
-        }
-        return Option_1.Option.none();
-    };
-    return Box3D;
-}());
-exports.Box3D = Box3D;
-//# sourceMappingURL=Box3D.js.map
-});
 ___scope___.file("app/math/Outline3D.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -13357,6 +13840,223 @@ var Whirlybird = /** @class */ (function () {
 exports.Whirlybird = Whirlybird;
 //# sourceMappingURL=Whirlybird.js.map
 });
+___scope___.file("app/model/Operation.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Operation = /** @class */ (function () {
+    function Operation() {
+    }
+    Operation.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            idle: function () {
+                if (cases.idle) {
+                    return cases.idle();
+                }
+                else {
+                    return default_;
+                }
+            },
+            select: function () {
+                if (cases.select) {
+                    return cases.select();
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertOpening: function (openingType) {
+                if (cases.insertOpening) {
+                    return cases.insertOpening(openingType);
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleWalls: function () {
+                if (cases.toggleWalls) {
+                    return cases.toggleWalls();
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleBays: function () {
+                if (cases.toggleBays) {
+                    return cases.toggleBays();
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertSkylight: function () {
+                if (cases.insertSkylight) {
+                    return cases.insertSkylight();
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertWhirlybird: function () {
+                if (cases.insertWhirlybird) {
+                    return cases.insertWhirlybird();
+                }
+                else {
+                    return default_;
+                }
+            },
+            toggleLeanTos: function () {
+                if (cases.toggleLeanTos) {
+                    return cases.toggleLeanTos();
+                }
+                else {
+                    return default_;
+                }
+            },
+            insertMezzanine: function () {
+                if (cases.insertMezzanine) {
+                    return cases.insertMezzanine();
+                }
+                else {
+                    return default_;
+                }
+            }
+        });
+    };
+    Operation.idle = function () {
+        return new OperationIdle();
+    };
+    Operation.select = function () {
+        return new OperationSelect();
+    };
+    Operation.insertOpening = function (openingType) {
+        return new OperationInsertOpening(openingType);
+    };
+    Operation.toggleWalls = function () {
+        return new OperationToggleWalls();
+    };
+    Operation.toggleBays = function () {
+        return new OperationToggleBays();
+    };
+    Operation.insertSkylight = function () {
+        return new OperationInsertSkylight();
+    };
+    Operation.insertWhirlybird = function () {
+        return new OperationInsertWhirlybird();
+    };
+    Operation.toggleLeanTos = function () {
+        return new OperationToggleLeanTos();
+    };
+    Operation.insertMezzanine = function () {
+        return new OperationInsertMezzanine();
+    };
+    return Operation;
+}());
+exports.Operation = Operation;
+var OperationIdle = /** @class */ (function (_super) {
+    __extends(OperationIdle, _super);
+    function OperationIdle() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationIdle.prototype.match = function (cases) {
+        return cases.idle();
+    };
+    return OperationIdle;
+}(Operation));
+var OperationSelect = /** @class */ (function (_super) {
+    __extends(OperationSelect, _super);
+    function OperationSelect() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationSelect.prototype.match = function (cases) {
+        return cases.select();
+    };
+    return OperationSelect;
+}(Operation));
+var OperationInsertOpening = /** @class */ (function (_super) {
+    __extends(OperationInsertOpening, _super);
+    function OperationInsertOpening(openingType) {
+        var _this = _super.call(this) || this;
+        _this._openingType = openingType;
+        return _this;
+    }
+    OperationInsertOpening.prototype.match = function (cases) {
+        return cases.insertOpening(this._openingType);
+    };
+    return OperationInsertOpening;
+}(Operation));
+var OperationToggleWalls = /** @class */ (function (_super) {
+    __extends(OperationToggleWalls, _super);
+    function OperationToggleWalls() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationToggleWalls.prototype.match = function (cases) {
+        return cases.toggleWalls();
+    };
+    return OperationToggleWalls;
+}(Operation));
+var OperationToggleBays = /** @class */ (function (_super) {
+    __extends(OperationToggleBays, _super);
+    function OperationToggleBays() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationToggleBays.prototype.match = function (cases) {
+        return cases.toggleBays();
+    };
+    return OperationToggleBays;
+}(Operation));
+var OperationInsertSkylight = /** @class */ (function (_super) {
+    __extends(OperationInsertSkylight, _super);
+    function OperationInsertSkylight() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationInsertSkylight.prototype.match = function (cases) {
+        return cases.insertSkylight();
+    };
+    return OperationInsertSkylight;
+}(Operation));
+var OperationInsertWhirlybird = /** @class */ (function (_super) {
+    __extends(OperationInsertWhirlybird, _super);
+    function OperationInsertWhirlybird() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationInsertWhirlybird.prototype.match = function (cases) {
+        return cases.insertWhirlybird();
+    };
+    return OperationInsertWhirlybird;
+}(Operation));
+var OperationToggleLeanTos = /** @class */ (function (_super) {
+    __extends(OperationToggleLeanTos, _super);
+    function OperationToggleLeanTos() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationToggleLeanTos.prototype.match = function (cases) {
+        return cases.toggleLeanTos();
+    };
+    return OperationToggleLeanTos;
+}(Operation));
+var OperationInsertMezzanine = /** @class */ (function (_super) {
+    __extends(OperationInsertMezzanine, _super);
+    function OperationInsertMezzanine() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    OperationInsertMezzanine.prototype.match = function (cases) {
+        return cases.insertMezzanine();
+    };
+    return OperationInsertMezzanine;
+}(Operation));
+//# sourceMappingURL=Operation.js.map
+});
 ___scope___.file("app/modes/IdleMode.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
@@ -13419,6 +14119,13 @@ var Mode = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Mode.prototype, "sFinishedMode", {
+        get: function () {
+            return defaultSFinishedMode;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Mode.prototype, "cFloatingDeleteButtons", {
         get: function () {
             return defaultCFloatingDeleteButtons;
@@ -13436,6 +14143,7 @@ var Mode = /** @class */ (function () {
     return Mode;
 }());
 exports.Mode = Mode;
+var defaultSFinishedMode = new sodium.Stream();
 var defaultCFloatingDeleteButtons = new sodium.Cell([]);
 var defaultCShowPropertiesOp = new sodium.Cell(Option_1.Option.none());
 //# sourceMappingURL=Mode.js.map
@@ -13979,10 +14687,17 @@ var MkModelEffect_1 = require("../MkModelEffect");
 var Option_1 = require("../Option");
 var Tuples_1 = require("../Tuples");
 var SodiumUtil = require("../SodiumUtil");
+var AARectangle_1 = require("../math/AARectangle");
 var Axes3D_1 = require("../math/Axes3D");
 var Box3D_1 = require("../math/Box3D");
+var Plane3D_1 = require("../math/Plane3D");
+var Vector2D_1 = require("../math/Vector2D");
 var Vector3D_1 = require("../math/Vector3D");
 var Quaternion_1 = require("../math/Quaternion");
+var BuildingEffect_1 = require("../model/BuildingEffect");
+var FormProperties_1 = require("../model/FormProperties");
+var MezzanineData_1 = require("../model/MezzanineData");
+var MezzanineFormProperties_1 = require("../model/MezzanineFormProperties");
 var InsertMezzanineMode = /** @class */ (function (_super) {
     __extends(InsertMezzanineMode, _super);
     function InsertMezzanineMode(params) {
@@ -13991,25 +14706,120 @@ var InsertMezzanineMode = /** @class */ (function (_super) {
             var cMouseRayOp = params.cMousePosOp.lift(params.cScreenPointToWorldRayOp, function (mousePosOp, screenPointToWorldRayOp) {
                 return mousePosOp.bind(screenPointToWorldRayOp);
             });
-            var cSelectableMarkerLocations = sodium.Cell.switchC(params.cBuildingOp.map(function (buildingOp) {
-                return buildingOp
-                    .map(function (building) {
-                    var cHeight = SodiumUtil.cellCalmRefEq(building.cBuildingData.map(function (buildingData) { return buildingData.height; }));
-                    return building.cSideBayMarkers.lift3(building.cEnd2BayMarkers, cHeight, function (sideBayMarkers, end2BayMarkers, height) {
-                        return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRange(0, sideBayMarkers.length), function (xIdx) {
-                            var posX = sideBayMarkers[xIdx];
-                            return ArrayUtil_1.arrayIntRange(0, end2BayMarkers.length)
-                                .map(function (yIdx) {
-                                var posY = end2BayMarkers[yIdx];
-                                return Tuples_1.T3.of(xIdx, yIdx, Box3D_1.Box3D.create({
-                                    axes: Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(posX, posY, 0.5 * height), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ)),
-                                    len: Vector3D_1.Vector3D.create(height, 500.0, 500.0)
-                                }));
+            var slReset = new sodium.StreamLoop();
+            var slFirstMarkerOp = new sodium.StreamLoop();
+            var cFirstMarkerOp = slFirstMarkerOp.hold(Option_1.Option.none());
+            var slSecondMarkerOp = new sodium.StreamLoop();
+            var cSecondMarkerOp = slSecondMarkerOp.hold(Option_1.Option.none());
+            var cMezzanineHeight = SodiumUtil
+                .streamFilterOption(params.sFormPropertiesChanged.map(function (formProperties) {
+                return formProperties.partialMatch(Option_1.Option.none(), {
+                    mezzanine: function (x) { return Option_1.Option.some(x.height); }
+                });
+            }))
+                .hold(2400.0);
+            var cSelectableMarkerLocations = sodium.Cell.switchC(params.cBuildingOp.lift3(cFirstMarkerOp, cSecondMarkerOp, function (buildingOp, firstMarkerOp, secondMarkerOp) {
+                return firstMarkerOp.isSome && secondMarkerOp.isSome ?
+                    new sodium.Cell([]) :
+                    buildingOp
+                        .map(function (building) {
+                        var cHeight = SodiumUtil.cellCalmRefEq(building.cBuildingData.map(function (buildingData) { return buildingData.height; }));
+                        return building.cSideBayMarkers.lift3(building.cEnd2BayMarkers, cHeight, function (sideBayMarkers, end2BayMarkers, height) {
+                            return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRange(0, sideBayMarkers.length), function (xIdx) {
+                                var posX = sideBayMarkers[xIdx];
+                                if (firstMarkerOp.isSome) {
+                                    var firstMarker = firstMarkerOp.fromSome();
+                                    if (firstMarker._1 == xIdx) {
+                                        return [];
+                                    }
+                                }
+                                return ArrayUtil_1.arrayBind(ArrayUtil_1.arrayIntRange(0, end2BayMarkers.length), function (yIdx) {
+                                    var posY = end2BayMarkers[yIdx];
+                                    if (firstMarkerOp.isSome) {
+                                        var firstMarker = firstMarkerOp.fromSome();
+                                        if (firstMarker._2 == yIdx) {
+                                            return [];
+                                        }
+                                    }
+                                    return [Tuples_1.T3.of(xIdx, yIdx, Box3D_1.Box3D.create({
+                                            axes: Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(posX, posY, 0.5 * height), Quaternion_1.Quaternion.fromWU(Vector3D_1.Vector3D.unitX, Vector3D_1.Vector3D.unitZ)),
+                                            len: Vector3D_1.Vector3D.create(height, 500.0, 500.0)
+                                        }))];
+                                });
                             });
                         });
-                    });
-                })
-                    .orSome_(function () { return new sodium.Cell([]); });
+                    })
+                        .orSome_(function () { return new sodium.Cell([]); });
+            }));
+            var cSelectableMarkerUnderMouseOp = SodiumUtil.cellLift2(cMouseRayOp, cSelectableMarkerLocations, function (mouseRayOp, selectableMarkerLocations) {
+                return mouseRayOp.bind(function (mouseRay) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayBind(selectableMarkerLocations, function (selectableMarkerLocation) {
+                        return selectableMarkerLocation._3
+                            .rayIntersectionTime(mouseRay)
+                            .map(function (t) { return [Tuples_1.T2.of(selectableMarkerLocation, t)]; })
+                            .orSome([]);
+                    }), function (a, b) { return a._2 < b._2 ? a : b; })
+                        .map(function (x) { return x._1; });
+                });
+            });
+            slFirstMarkerOp.loop(SodiumUtil
+                .streamFilterOption(params.sMouseLeftPressed
+                .gate(cFirstMarkerOp.map(function (x) { return x.isNone; }))
+                .snapshot1(cSelectableMarkerUnderMouseOp))
+                .map(function (x) { return Option_1.Option.some(x); })
+                .orElse(slReset.mapTo(Option_1.Option.none())));
+            slSecondMarkerOp.loop(SodiumUtil
+                .streamFilterOption(params.sMouseLeftPressed
+                .gate(cFirstMarkerOp.map(function (x) { return x.isSome; }))
+                .gate(cSecondMarkerOp.map(function (x) { return x.isNone; }))
+                .snapshot1(cSelectableMarkerUnderMouseOp))
+                .map(function (x) { return Option_1.Option.some(x); })
+                .orElse(sodium.Operational.defer(slReset).mapTo(Option_1.Option.none())));
+            var cWipMezzanineAreaOp = SodiumUtil.cellPartialCalm(function (a, b) { return a.isNone && b.isNone; }, SodiumUtil.cellLift5(cFirstMarkerOp, cSecondMarkerOp, cSelectableMarkerUnderMouseOp, cMezzanineHeight, cMouseRayOp, function (firstMarkerOp, secondMarkerOp, selectableMarkerUnderMouseOp, mezzanineHeight, mouseRayOp) {
+                return secondMarkerOp.isSome ?
+                    Option_1.Option.none() :
+                    Option_1.Option.join(firstMarkerOp.lift2(mouseRayOp, function (firstMarker, mouseRay) {
+                        if (selectableMarkerUnderMouseOp.isSome) {
+                            var selectableMarkerUnderMouse = selectableMarkerUnderMouseOp.fromSome();
+                            var pt1 = firstMarker._3.axes.origin;
+                            var pt2 = selectableMarkerUnderMouse._3.axes.origin;
+                            var centreX = (pt1.x + pt2.x) * 0.5;
+                            var centreY = (pt1.y + pt2.y) * 0.5;
+                            var lenX = Math.abs(pt2.x - pt1.x);
+                            var lenY = Math.abs(pt2.y - pt1.y);
+                            if (lenX == 0 || lenY == 0) {
+                                return Option_1.Option.none();
+                            }
+                            return Option_1.Option.some(Tuples_1.T2.of(AARectangle_1.AARectangle.create({
+                                pos: Vector2D_1.Vector2D.create(centreX, centreY),
+                                len: Vector2D_1.Vector2D.create(lenX, lenY)
+                            }), mezzanineHeight));
+                        }
+                        else {
+                            var mezzaninePlane = Plane3D_1.Plane3D.fromKnownPtAndNormal(Vector3D_1.Vector3D.create(0.0, 0.0, mezzanineHeight), Vector3D_1.Vector3D.unitZ);
+                            var tOp = mouseRay.collisionTimeWithPlane(mezzaninePlane);
+                            if (tOp.isNone) {
+                                return Option_1.Option.none();
+                            }
+                            var t = tOp.fromSome();
+                            if (t < 0.0) {
+                                return Option_1.Option.none();
+                            }
+                            var pt1 = firstMarker._3.axes.origin;
+                            var pt2 = mouseRay.positionFromTime(t);
+                            var centreX = (pt1.x + pt2.x) * 0.5;
+                            var centreY = (pt1.y + pt2.y) * 0.5;
+                            var lenX = Math.abs(pt2.x - pt1.x);
+                            var lenY = Math.abs(pt2.y - pt1.y);
+                            if (lenX == 0 || lenY == 0) {
+                                return Option_1.Option.none();
+                            }
+                            return Option_1.Option.some(Tuples_1.T2.of(AARectangle_1.AARectangle.create({
+                                pos: Vector2D_1.Vector2D.create(centreX, centreY),
+                                len: Vector2D_1.Vector2D.create(lenX, lenY)
+                            }), mezzanineHeight));
+                        }
+                    }));
             }));
             var cOverlayModelOp = new sodium.Cell(Option_1.Option.some(MkModelEffect_1.MkModelEffect.create(function (textureLoader, repaintCallback) {
                 var group = new THREE.Group();
@@ -14017,33 +14827,99 @@ var InsertMezzanineMode = /** @class */ (function (_super) {
                 var _boxGeometry = new THREE.BoxBufferGeometry(1000.0, 1000.0, 1000.0);
                 var _boxMaterial = new THREE.MeshStandardMaterial({ color: 0x808080, transparent: true, opacity: 0.5 });
                 var _mesh = new THREE.Mesh(_boxGeometry, _boxMaterial);
+                var _wipMezzanineAreaMaterial = new THREE.MeshStandardMaterial({ color: 0x0000FF, transparent: true, opacity: 0.5 });
+                var wipMezzanineAreaMesh = new THREE.Mesh(_boxGeometry, _wipMezzanineAreaMaterial);
+                group.add(wipMezzanineAreaMesh);
                 return Promise.resolve(MkModelEffect_1.Model.create(function () {
                     var cleanups = [];
-                    cleanups.push(cSelectableMarkerLocations.listen(function (selectableMarkerLocations) {
-                        while (meshes.length < selectableMarkerLocations.length) {
-                            var mesh = _mesh.clone();
-                            meshes.push(mesh);
-                            group.add(mesh);
+                    // selectable marker locations
+                    {
+                        var innerCleanups1_1 = [];
+                        cleanups.push(cSelectableMarkerLocations.listen(function (selectableMarkerLocations) {
+                            while (meshes.length < selectableMarkerLocations.length) {
+                                var mesh = _mesh.clone();
+                                meshes.push(mesh);
+                                group.add(mesh);
+                            }
+                            while (meshes.length > selectableMarkerLocations.length) {
+                                group.remove(meshes.splice(meshes.length - 1, 1)[0]);
+                            }
+                            innerCleanups1_1.forEach(function (cleanup) { return cleanup(); });
+                            innerCleanups1_1 = [];
+                            var _loop_1 = function (i) {
+                                var selectableMarkerLocation = selectableMarkerLocations[i];
+                                var mesh = meshes[i];
+                                MkModelEffect_1.THREEObject3DSetAxes(mesh, selectableMarkerLocation._3.axes);
+                                var scale = selectableMarkerLocation._3.len.scale(1.0 / 1000.0);
+                                mesh.scale.set(scale.x, scale.y, scale.z);
+                                var cHighlighted = SodiumUtil.cellCalmRefEq(cSelectableMarkerUnderMouseOp.map(function (selectableMarkerLocationUnderMouseOp) {
+                                    return selectableMarkerLocationUnderMouseOp
+                                        .map(function (selectableMarkerLocationUnderMouse) {
+                                        return selectableMarkerLocationUnderMouse._1 == selectableMarkerLocation._1 &&
+                                            selectableMarkerLocationUnderMouse._2 == selectableMarkerLocation._2;
+                                    })
+                                        .orSome(false);
+                                }));
+                                innerCleanups1_1.push(cHighlighted.listen(function (highlighted) {
+                                    var material;
+                                    if (highlighted) {
+                                        material = new THREE.MeshStandardMaterial({ color: 0x00FF00, transparent: true, opacity: 0.5 });
+                                    }
+                                    else {
+                                        material = new THREE.MeshStandardMaterial({ color: 0x808080, transparent: true, opacity: 0.5 });
+                                    }
+                                    mesh.material = material;
+                                    repaintCallback();
+                                }));
+                            };
+                            for (var i = 0; i < selectableMarkerLocations.length; ++i) {
+                                _loop_1(i);
+                            }
+                        }));
+                        cleanups.push(function () { return innerCleanups1_1.forEach(function (cleanup) { return cleanup(); }); });
+                    }
+                    // wip mezzanine area
+                    cleanups.push(cWipMezzanineAreaOp.listen(function (wipMezzanineAreaOp) {
+                        if (wipMezzanineAreaOp.isNone) {
+                            wipMezzanineAreaMesh.visible = false;
+                            repaintCallback();
+                            return;
                         }
-                        while (meshes.length > selectableMarkerLocations.length) {
-                            group.remove(meshes.splice(meshes.length - 1, 1)[0]);
-                        }
-                        for (var i = 0; i < selectableMarkerLocations.length; ++i) {
-                            var selectableMarkerLocation = selectableMarkerLocations[i];
-                            var mesh = meshes[i];
-                            MkModelEffect_1.THREEObject3DSetAxes(mesh, selectableMarkerLocation._3.axes);
-                            var scale = selectableMarkerLocation._3.len.scale(1.0 / 1000.0);
-                            mesh.scale.set(scale.x, scale.y, scale.z);
-                        }
+                        wipMezzanineAreaMesh.visible = true;
+                        var wipMezzanineArea = wipMezzanineAreaOp.fromSome();
+                        MkModelEffect_1.THREEObject3DSetAxes(wipMezzanineAreaMesh, Axes3D_1.Axes3D.create(Vector3D_1.Vector3D.create(wipMezzanineArea._1.pos.x, wipMezzanineArea._1.pos.y, wipMezzanineArea._2), Quaternion_1.Quaternion.identity));
+                        var scale = Vector3D_1.Vector3D.create(wipMezzanineArea._1.len.x, wipMezzanineArea._1.len.y, 100.0).scale(1.0 / 1000.0);
+                        wipMezzanineAreaMesh.scale.set(scale.x, scale.y, scale.z);
+                        repaintCallback();
                     }));
+                    //
                     return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
                 }, group));
-            }))).map(sodium.lambda1(function (x) { return x; }, [cSelectableMarkerLocations]));
+            }))).map(sodium.lambda1(function (x) { return x; }, [cSelectableMarkerLocations, cSelectableMarkerUnderMouseOp]));
             var cRoofVisible = new sodium.Cell(false);
-            var sBuildingEffect = new sodium.Stream();
+            var sBuildingEffect = SodiumUtil.streamFilterOption(slSecondMarkerOp
+                .snapshot3(cMezzanineHeight, cFirstMarkerOp, function (secondMarkerOp, mezzanineHeight, firstMarkerOp) {
+                return firstMarkerOp.lift2(secondMarkerOp, function (firstMarker, secondMarker) {
+                    return BuildingEffect_1.BuildingEffect.allocId(function (id) {
+                        return BuildingEffect_1.BuildingEffect.insertMezzanine(MezzanineData_1.MezzanineData.create({
+                            id: id,
+                            fromMarkerXIdx: Math.min(firstMarker._1, secondMarker._1),
+                            fromMarkerYIdx: Math.min(firstMarker._2, secondMarker._2),
+                            toMarkerXIdx: Math.max(firstMarker._1, secondMarker._1),
+                            toMarkerYIdx: Math.max(firstMarker._2, secondMarker._2),
+                            height: mezzanineHeight
+                        }));
+                    });
+                });
+            }));
+            var sFinishedMode = sBuildingEffect.mapTo(sodium.Unit.UNIT);
+            slReset.loop(sBuildingEffect.mapTo(sodium.Unit.UNIT));
+            var cShowPropertiesOp = new sodium.Cell(Option_1.Option.some(FormProperties_1.FormProperties.mezzanine(MezzanineFormProperties_1.MezzanineFormProperties.create({ height: 2400.0 }))));
             _this._cOverlayModelOp = cOverlayModelOp;
             _this._cRoofVisible = cRoofVisible;
             _this._sBuildingEffect = sBuildingEffect;
+            _this._sFinishedMode = sFinishedMode;
+            _this._cShowPropertiesOp = cShowPropertiesOp;
         });
         return _this;
     }
@@ -14068,10 +14944,55 @@ var InsertMezzanineMode = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(InsertMezzanineMode.prototype, "sFinishedMode", {
+        get: function () {
+            return this._sFinishedMode;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InsertMezzanineMode.prototype, "cShowPropertiesOp", {
+        get: function () {
+            return this._cShowPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return InsertMezzanineMode;
 }(Mode_1.Mode));
 exports.InsertMezzanineMode = InsertMezzanineMode;
 //# sourceMappingURL=InsertMezzanineMode.js.map
+});
+___scope___.file("app/math/AARectangle.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var AARectangle = /** @class */ (function () {
+    function AARectangle(pos, len) {
+        this._pos = pos;
+        this._len = len;
+    }
+    Object.defineProperty(AARectangle.prototype, "pos", {
+        get: function () {
+            return this._pos;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AARectangle.prototype, "len", {
+        get: function () {
+            return this._len;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    AARectangle.create = function (params) {
+        return new AARectangle(params.pos, params.len);
+    };
+    return AARectangle;
+}());
+exports.AARectangle = AARectangle;
+//# sourceMappingURL=AARectangle.js.map
 });
 ___scope___.file("app/modes/SelectionMode.js", function(exports, require, module, __filename, __dirname){
 
@@ -14090,6 +15011,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var Mode_1 = require("./Mode");
 var ArrayUtil_1 = require("../ArrayUtil");
+var MkModelEffect_1 = require("../MkModelEffect");
 var Option_1 = require("../Option");
 var SodiumUtil = require("../SodiumUtil");
 var Tuples_1 = require("../Tuples");
@@ -14134,6 +15056,23 @@ var SelectionMode = /** @class */ (function (_super) {
                 .snapshot1(cSelectableUnderMouseOp)
                 .orElse(slDeselect.mapTo(Option_1.Option.none()))
                 .hold(Option_1.Option.none());
+            var cOverlayModelOp = sodium.Cell.switchC(cSelectableUnderMouseOp.lift(cSelectedSelectableOp, function (selectableObjectUnderMouseOp, selectedSelectableOp) {
+                return selectableObjectUnderMouseOp
+                    .map(function (selectableObjectUnderMouse) {
+                    return selectableObjectUnderMouse.cHighlightOverlayModelOp;
+                })
+                    .orSome_(function () { return new sodium.Cell(Option_1.Option.none()); })
+                    .lift(selectedSelectableOp
+                    .map(function (selectedSelectable) {
+                    return selectedSelectable.cHighlightOverlayModelOp;
+                })
+                    .orSome_(function () { return new sodium.Cell(Option_1.Option.none()); }), function (a, b) {
+                    return ArrayUtil_1.arrayReduce(ArrayUtil_1.arrayJoin([
+                        a.map(function (x) { return [x]; }).orSome([]),
+                        b.map(function (x) { return [x]; }).orSome([])
+                    ]), function (c, d) { return MkModelEffect_1.MkModelEffect.compose([c, d]); });
+                });
+            }));
             var cHighlightedStableNames = sodium.Cell.switchC(cSelectableUnderMouseOp.lift(cSelectedSelectableOp, function (selectableObjectUnderMouseOp, selectedSelectableOp) {
                 return selectableObjectUnderMouseOp
                     .map(function (selectableObjectUnderMouse) {
@@ -14223,6 +15162,7 @@ var SelectionMode = /** @class */ (function (_super) {
                     .map(function (selectedSelectable) { return selectedSelectable.cFormPropertiesOp; })
                     .orSome_(function () { return new sodium.Cell(Option_1.Option.none()); });
             }));
+            _this._cOverlayModelOp = cOverlayModelOp;
             _this._cHighlightedStableNames = cHighlightedStableNames;
             _this._sBuildingEffect = sBuildingEffect;
             _this._cFloatingDeleteButtons = cFloatingDeleteButtons;
@@ -14230,6 +15170,13 @@ var SelectionMode = /** @class */ (function (_super) {
         });
         return _this;
     }
+    Object.defineProperty(SelectionMode.prototype, "cOverlayModelOp", {
+        get: function () {
+            return this._cOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(SelectionMode.prototype, "cHighlightedStableNames", {
         get: function () {
             return this._cHighlightedStableNames;
@@ -14832,223 +15779,6 @@ var ToggleWallsMode = /** @class */ (function (_super) {
 }(Mode_1.Mode));
 exports.ToggleWallsMode = ToggleWallsMode;
 //# sourceMappingURL=ToggleWallsMode.js.map
-});
-___scope___.file("app/model/Operation.js", function(exports, require, module, __filename, __dirname){
-
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var Operation = /** @class */ (function () {
-    function Operation() {
-    }
-    Operation.prototype.partialMatch = function (default_, cases) {
-        return this.match({
-            idle: function () {
-                if (cases.idle) {
-                    return cases.idle();
-                }
-                else {
-                    return default_;
-                }
-            },
-            select: function () {
-                if (cases.select) {
-                    return cases.select();
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertOpening: function (openingType) {
-                if (cases.insertOpening) {
-                    return cases.insertOpening(openingType);
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleWalls: function () {
-                if (cases.toggleWalls) {
-                    return cases.toggleWalls();
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleBays: function () {
-                if (cases.toggleBays) {
-                    return cases.toggleBays();
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertSkylight: function () {
-                if (cases.insertSkylight) {
-                    return cases.insertSkylight();
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertWhirlybird: function () {
-                if (cases.insertWhirlybird) {
-                    return cases.insertWhirlybird();
-                }
-                else {
-                    return default_;
-                }
-            },
-            toggleLeanTos: function () {
-                if (cases.toggleLeanTos) {
-                    return cases.toggleLeanTos();
-                }
-                else {
-                    return default_;
-                }
-            },
-            insertMezzanine: function () {
-                if (cases.insertMezzanine) {
-                    return cases.insertMezzanine();
-                }
-                else {
-                    return default_;
-                }
-            }
-        });
-    };
-    Operation.idle = function () {
-        return new OperationIdle();
-    };
-    Operation.select = function () {
-        return new OperationSelect();
-    };
-    Operation.insertOpening = function (openingType) {
-        return new OperationInsertOpening(openingType);
-    };
-    Operation.toggleWalls = function () {
-        return new OperationToggleWalls();
-    };
-    Operation.toggleBays = function () {
-        return new OperationToggleBays();
-    };
-    Operation.insertSkylight = function () {
-        return new OperationInsertSkylight();
-    };
-    Operation.insertWhirlybird = function () {
-        return new OperationInsertWhirlybird();
-    };
-    Operation.toggleLeanTos = function () {
-        return new OperationToggleLeanTos();
-    };
-    Operation.insertMezzanine = function () {
-        return new OperationInsertMezzanine();
-    };
-    return Operation;
-}());
-exports.Operation = Operation;
-var OperationIdle = /** @class */ (function (_super) {
-    __extends(OperationIdle, _super);
-    function OperationIdle() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationIdle.prototype.match = function (cases) {
-        return cases.idle();
-    };
-    return OperationIdle;
-}(Operation));
-var OperationSelect = /** @class */ (function (_super) {
-    __extends(OperationSelect, _super);
-    function OperationSelect() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationSelect.prototype.match = function (cases) {
-        return cases.select();
-    };
-    return OperationSelect;
-}(Operation));
-var OperationInsertOpening = /** @class */ (function (_super) {
-    __extends(OperationInsertOpening, _super);
-    function OperationInsertOpening(openingType) {
-        var _this = _super.call(this) || this;
-        _this._openingType = openingType;
-        return _this;
-    }
-    OperationInsertOpening.prototype.match = function (cases) {
-        return cases.insertOpening(this._openingType);
-    };
-    return OperationInsertOpening;
-}(Operation));
-var OperationToggleWalls = /** @class */ (function (_super) {
-    __extends(OperationToggleWalls, _super);
-    function OperationToggleWalls() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationToggleWalls.prototype.match = function (cases) {
-        return cases.toggleWalls();
-    };
-    return OperationToggleWalls;
-}(Operation));
-var OperationToggleBays = /** @class */ (function (_super) {
-    __extends(OperationToggleBays, _super);
-    function OperationToggleBays() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationToggleBays.prototype.match = function (cases) {
-        return cases.toggleBays();
-    };
-    return OperationToggleBays;
-}(Operation));
-var OperationInsertSkylight = /** @class */ (function (_super) {
-    __extends(OperationInsertSkylight, _super);
-    function OperationInsertSkylight() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationInsertSkylight.prototype.match = function (cases) {
-        return cases.insertSkylight();
-    };
-    return OperationInsertSkylight;
-}(Operation));
-var OperationInsertWhirlybird = /** @class */ (function (_super) {
-    __extends(OperationInsertWhirlybird, _super);
-    function OperationInsertWhirlybird() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationInsertWhirlybird.prototype.match = function (cases) {
-        return cases.insertWhirlybird();
-    };
-    return OperationInsertWhirlybird;
-}(Operation));
-var OperationToggleLeanTos = /** @class */ (function (_super) {
-    __extends(OperationToggleLeanTos, _super);
-    function OperationToggleLeanTos() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationToggleLeanTos.prototype.match = function (cases) {
-        return cases.toggleLeanTos();
-    };
-    return OperationToggleLeanTos;
-}(Operation));
-var OperationInsertMezzanine = /** @class */ (function (_super) {
-    __extends(OperationInsertMezzanine, _super);
-    function OperationInsertMezzanine() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    OperationInsertMezzanine.prototype.match = function (cases) {
-        return cases.insertMezzanine();
-    };
-    return OperationInsertMezzanine;
-}(Operation));
-//# sourceMappingURL=Operation.js.map
 });
 ___scope___.file("app/ui/FloatingDeleteButtonHelper.js", function(exports, require, module, __filename, __dirname){
 

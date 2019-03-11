@@ -559,6 +559,44 @@
                             }
                         });
                     })();
+                    // mezzanineProperties
+                    (function() {
+                        let divMezzanineProperties = document.getElementById("mezzanineProperties");
+                        let txtMezzanineHeight = document.getElementById("txtMezzanineHeight");
+                        $("#mezzanineHeightSlider").slider({
+                            "min": 500,
+                            "max": 6000,
+                            "step": 100,
+                            "value": 2400,
+                            "slide": function(event, ui) {
+                                app.setMezzanineHeight(ui.value);
+                                txtMezzanineHeight.value = ui.value;
+                            }
+                        });
+                        txtMezzanineHeight.addEventListener("input", function() {
+                            var value = parseFloat(txtMezzanineHeight.value);
+                            if (!isNaN(value)) {
+                                app.setMezzanineHeight(value);
+                                $("#mezzanineHeightSlider").slider({ value: value });
+                            }
+                        });
+                        app.cMezzanineFormPropertiesVisible.listen(function(visible) {
+                            divMezzanineProperties.style.display = visible ? "block" : "none";
+                        });
+                        app.sSetFormProperties.listen(function(formProperties) {
+                            formProperties.partialMatch(
+                                function() {},
+                                {
+                                    mezzanine: function(mezzanineFormProperties) {
+                                        return function() {
+                                            $("#mezzanineHeightSlider").slider({value: mezzanineFormProperties.height});
+                                            txtMezzanineHeight.value = "" + mezzanineFormProperties.height;
+                                        };
+                                    }
+                                }
+                            )();
+                        });
+                    })();
                     //
                     (function() {
                         var btnAddSkylight = document.getElementById("btnAddSkylight");
@@ -720,6 +758,8 @@
                 <div>
                     <hr>
                     <div id="addOpeningProperties" style="display:none" w3-include-html="opening_properties.html">
+                    </div>
+                    <div id="mezzanineProperties" style="display:none" w3-include-html="mezzanine_properties.html">
                     </div>
                 </div>
             </div>
