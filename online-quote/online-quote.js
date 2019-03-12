@@ -47,7 +47,7 @@ sodium.Vertex.collectCycles = (function () {
 })();
 var App = /** @class */ (function () {
     function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked, sToggleBaysButtonClicked, sToggleWallsButtonClicked) {
-        var _this_1 = this;
+        var _this = this;
         this._csAnimate = new sodium.CellSink(false);
         this._ssInsertSkylight = new sodium.StreamSink();
         this._ssInsertWhirlybird = new sodium.StreamSink();
@@ -114,7 +114,7 @@ var App = /** @class */ (function () {
                     window.requestAnimationFrame(animateStep);
                 }
             }
-            _this_1._csAnimate.listen(function (animate2) {
+            _this._csAnimate.listen(function (animate2) {
                 animate = animate2;
                 if (animate) {
                     window.requestAnimationFrame(animateStep);
@@ -122,7 +122,7 @@ var App = /** @class */ (function () {
             });
             var clShowPropertiesOp = new sodium.CellLoop();
             var slSetFormProperties = new sodium.StreamLoop();
-            _this_1._sSetFormProperties = slSetFormProperties;
+            _this._sSetFormProperties = slSetFormProperties;
             var cShowOpeningPropertiesOp = clShowPropertiesOp.map(function (showFormPropertiesOp) {
                 return showFormPropertiesOp.map(function (showFormProperties) {
                     return showFormProperties.partialMatch(Option_1.Option.none(), {
@@ -130,10 +130,10 @@ var App = /** @class */ (function () {
                     });
                 });
             });
-            _this_1._cAddOpeningPropertiesVisible =
+            _this._cAddOpeningPropertiesVisible =
                 sAddOpeningButtonClicked
                     .mapTo(true)
-                    .orElse(_this_1._ssToggleLeanTo.mapTo(false))
+                    .orElse(_this._ssToggleLeanTo.mapTo(false))
                     .orElse(sPropertiesNameButtonClicked.mapTo(false))
                     .orElse(sToggleBaysButtonClicked.mapTo(false))
                     .orElse(sToggleWallsButtonClicked.mapTo(false))
@@ -141,15 +141,15 @@ var App = /** @class */ (function () {
                     .lift(cShowOpeningPropertiesOp, function (defaultOpeningPropertiesVisible, modeShowOpeningPropertiesOp) {
                     return modeShowOpeningPropertiesOp.isSome || defaultOpeningPropertiesVisible;
                 });
-            _this_1._cLeanToFormPropertiesVisible =
-                _this_1._ssToggleLeanTo
+            _this._cLeanToFormPropertiesVisible =
+                _this._ssToggleLeanTo
                     .mapTo(true)
                     .orElse(sAddOpeningButtonClicked.mapTo(false))
                     .orElse(sPropertiesNameButtonClicked.mapTo(false))
                     .orElse(sToggleBaysButtonClicked.mapTo(false))
                     .orElse(sToggleWallsButtonClicked.mapTo(false))
                     .hold(false);
-            _this_1._cMezzanineFormPropertiesVisible =
+            _this._cMezzanineFormPropertiesVisible =
                 clShowPropertiesOp.map(function (formPropertiesOp) {
                     return formPropertiesOp
                         .map(function (formProperties) {
@@ -158,23 +158,23 @@ var App = /** @class */ (function () {
                         .orSome(false);
                 });
             var slLeanToFormProperties = new sodium.StreamLoop();
-            _this_1._cLeanToFormProperties =
+            _this._cLeanToFormProperties =
                 slLeanToFormProperties
                     .hold(LeanToFormProperties_1.LeanToFormProperties.create({
                     span: 3000.0,
                     height: 1500.0,
                     pitch: 10.0
                 }));
-            slLeanToFormProperties.loop(_this_1._ssLeanToFormPropertiesSetSpan
-                .snapshot(_this_1._cLeanToFormProperties, function (span, leanToFormProperties) {
+            slLeanToFormProperties.loop(_this._ssLeanToFormPropertiesSetSpan
+                .snapshot(_this._cLeanToFormProperties, function (span, leanToFormProperties) {
                 return leanToFormProperties.from({ span: span });
             })
-                .orElse(_this_1._ssLeanToFormPropertiesSetHeight
-                .snapshot(_this_1._cLeanToFormProperties, function (height, leanToFormProperties) {
+                .orElse(_this._ssLeanToFormPropertiesSetHeight
+                .snapshot(_this._cLeanToFormProperties, function (height, leanToFormProperties) {
                 return leanToFormProperties.from({ height: height });
             }))
-                .orElse(_this_1._ssLeanToFormPropertiesSetPitch
-                .snapshot(_this_1._cLeanToFormProperties, function (pitch, leanToFormProperties) {
+                .orElse(_this._ssLeanToFormPropertiesSetPitch
+                .snapshot(_this._cLeanToFormProperties, function (pitch, leanToFormProperties) {
                 return leanToFormProperties.from({ pitch: pitch });
             })));
             var slMezzanineFormPropertiesOp = new sodium.StreamLoop();
@@ -185,7 +185,7 @@ var App = /** @class */ (function () {
                     mezzanine: function (mezzanineFormProperties) { return Option_1.Option.some(mezzanineFormProperties); }
                 });
             })
-                .orElse(SodiumUtil.streamFilterOption(_this_1._ssSetMezzanineHeight).snapshot(cMezzanineFormPropertiesOp, function (height, mezzanineFormPropertiesOp) {
+                .orElse(SodiumUtil.streamFilterOption(_this._ssSetMezzanineHeight).snapshot(cMezzanineFormPropertiesOp, function (height, mezzanineFormPropertiesOp) {
                 return mezzanineFormPropertiesOp.map(function (mezzanineFormProperties) { return mezzanineFormProperties.from({ height: height }); });
             })));
             var scene = new THREE.Scene();
@@ -210,6 +210,32 @@ var App = /** @class */ (function () {
             });
             window['scene'] = scene;
             camera.up = new THREE.Vector3(0, 0, 1);
+            canvas.addEventListener = (function () {
+                var realAddEventListener = canvas.addEventListener;
+                return function (type, handler) {
+                    if (type == "mousemove") {
+                        var block_1 = false;
+                        return realAddEventListener.call(canvas, type, function (a, b) {
+                            if (block_1) {
+                                return;
+                            }
+                            var this_ = this;
+                            block_1 = true;
+                            window.requestAnimationFrame(function () {
+                                try {
+                                    handler.call(this_, a, b);
+                                }
+                                finally {
+                                    block_1 = false;
+                                }
+                            });
+                        });
+                    }
+                    else {
+                        return realAddEventListener.call(canvas, type, handler);
+                    }
+                };
+            })();
             var controls = new three_orbitcontrols_ts_1.OrbitControls(camera, canvas);
             controls.maxPolarAngle = 0.5 * Math.PI;
             controls.maxDistance = 60000.0;
@@ -249,15 +275,15 @@ var App = /** @class */ (function () {
                     }
                 });
             }));
-            _this_1._sSetOpeningProperties = sSetOpeningProperties;
+            _this._sSetOpeningProperties = sSetOpeningProperties;
             var sSetOpeningWidth = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.width; });
             var sSetOpeningHeight = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.height; });
             var sSetOpeningHeadHeight = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.headHeight; });
-            var ssOpeningWidthOpChangedByUser = _this_1._ssSetOpeningWidth;
-            var ssOpeningHeightOpChangedByUser = _this_1._ssSetOpeningHeight;
+            var ssOpeningWidthOpChangedByUser = _this._ssSetOpeningWidth;
+            var ssOpeningHeightOpChangedByUser = _this._ssSetOpeningHeight;
             var cOpeningWidthOp = sSetOpeningWidth.map(function (x) { return Option_1.Option.some(x); }).orElse(ssOpeningWidthOpChangedByUser).hold(Option_1.Option.none());
             var cOpeningHeightOp = sSetOpeningHeight.map(function (x) { return Option_1.Option.some(x); }).orElse(ssOpeningHeightOpChangedByUser).hold(Option_1.Option.none());
-            var cOpeningHeadHeightOp = sSetOpeningHeadHeight.map(function (x) { return Option_1.Option.some(x); }).orElse(_this_1._ssSetOpeningHeadHeight).hold(Option_1.Option.none());
+            var cOpeningHeadHeightOp = sSetOpeningHeadHeight.map(function (x) { return Option_1.Option.some(x); }).orElse(_this._ssSetOpeningHeadHeight).hold(Option_1.Option.none());
             var cOpeningFormPropertiesOp = cOpeningWidthOp.lift3(cOpeningHeightOp, cOpeningHeadHeightOp, function (openingWidthOp, openingHeightOp, openingHeadHeightOp) {
                 return openingWidthOp.lift3(openingHeightOp, openingHeadHeightOp, function (openingWidth, openingHeight, openingHeadHeight) {
                     return OpeningFormProperties_1.OpeningFormProperties.create({
@@ -271,13 +297,13 @@ var App = /** @class */ (function () {
                 .streamFilterOption(sodium.Operational
                 .defer(ssOpeningWidthOpChangedByUser.mapTo(sodium.Unit.UNIT)
                 .orElse(ssOpeningHeightOpChangedByUser.mapTo(sodium.Unit.UNIT))
-                .orElse(_this_1._ssSetOpeningHeadHeight.mapTo(sodium.Unit.UNIT)))
+                .orElse(_this._ssSetOpeningHeadHeight.mapTo(sodium.Unit.UNIT)))
                 .snapshot1(cOpeningFormPropertiesOp)
                 .map(function (openingFormPropertiesOp) {
                 return openingFormPropertiesOp.map(FormProperties_1.FormProperties.opening);
             }))
                 .orElse(SodiumUtil.streamFilterOption(sodium.Operational
-                .defer(_this_1._ssSetMezzanineHeight)
+                .defer(_this._ssSetMezzanineHeight)
                 .snapshot1(cMezzanineFormPropertiesOp)
                 .map(function (mezzanineFormPropertiesOp) {
                 return mezzanineFormPropertiesOp.map(FormProperties_1.FormProperties.mezzanine);
@@ -498,10 +524,10 @@ var App = /** @class */ (function () {
                 .orElse(sAddOpeningButtonClicked.map(function (openingType) { return Operation_1.Operation.insertOpening(openingType); }))
                 .orElse(sToggleBaysButtonClicked.mapTo(Operation_1.Operation.toggleBays()))
                 .orElse(sToggleWallsButtonClicked.mapTo(Operation_1.Operation.toggleWalls()))
-                .orElse(_this_1._ssInsertSkylight.mapTo(Operation_1.Operation.insertSkylight()))
-                .orElse(_this_1._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()))
-                .orElse(_this_1._ssToggleLeanTo.mapTo(Operation_1.Operation.toggleLeanTos()))
-                .orElse(_this_1._ssInsertMezzanine.mapTo(Operation_1.Operation.insertMezzanine()));
+                .orElse(_this._ssInsertSkylight.mapTo(Operation_1.Operation.insertSkylight()))
+                .orElse(_this._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()))
+                .orElse(_this._ssToggleLeanTo.mapTo(Operation_1.Operation.toggleLeanTos()))
+                .orElse(_this._ssInsertMezzanine.mapTo(Operation_1.Operation.insertMezzanine()));
             var clFloatingDeleteButtons = new sodium.CellLoop();
             var floatingDeleteButtonHelper = new FloatingDeleteButtonHelper_1.FloatingDeleteButtonHelper(canvasParentDiv, clFloatingDeleteButtons);
             // model
@@ -513,37 +539,37 @@ var App = /** @class */ (function () {
                 cProjectWorldPointToScreenOp: cProjectWorldPointToScreenOp,
                 buildingParamsChanges: {
                     claddingParamsChanges: {
-                        sSetWallSheetingProfile: _this_1._ssSetWallSheetingProfile,
-                        sSetRoofSheetingProfile: _this_1._ssSetRoofSheetingProfile,
-                        sSetWallSheetingColour: _this_1._ssSetWallSheetingColour,
-                        sSetRoofSheetingColour: _this_1._ssSetRoofSheetingColour,
-                        sSetGutterColour: _this_1._ssSetGutterColour,
-                        sSetBargeColour: _this_1._ssSetBargeColour,
-                        sSetRidgeColour: _this_1._ssSetRidgeColour
+                        sSetWallSheetingProfile: _this._ssSetWallSheetingProfile,
+                        sSetRoofSheetingProfile: _this._ssSetRoofSheetingProfile,
+                        sSetWallSheetingColour: _this._ssSetWallSheetingColour,
+                        sSetRoofSheetingColour: _this._ssSetRoofSheetingColour,
+                        sSetGutterColour: _this._ssSetGutterColour,
+                        sSetBargeColour: _this._ssSetBargeColour,
+                        sSetRidgeColour: _this._ssSetRidgeColour
                     },
-                    sSetBuildingData: _this_1._ssSetBuildingData,
-                    sSetBuildingType: _this_1._ssSetBuildingType,
-                    sSetLength: _this_1._ssSetLength,
-                    sSetSpan: _this_1._ssSetSpan,
-                    sSetHeight: _this_1._ssSetHeight,
-                    sSetPitch: _this_1._ssSetPitch,
-                    sSetFloorSystemEnabled: _this_1._ssSetFloorSystemEnabled,
-                    sSetFloorSystemHeight: _this_1._ssSetFloorSystemHeight,
-                    sSetLeftWingSpan: _this_1._ssSetLeftWingSpan,
-                    sSetLeftWingHeight: _this_1._ssSetLeftWingHeight,
-                    sSetLeftWingPitch: _this_1._ssSetLeftWingPitch,
-                    sSetRightWingSameAsLeftWing: _this_1._ssSetRightWingSameAsLeftWing,
-                    sSetRightWingSpan: _this_1._ssSetRightWingSpan,
-                    sSetRightWingHeight: _this_1._ssSetRightWingHeight,
-                    sSetRightWingPitch: _this_1._ssSetRightWingPitch,
-                    sSetPreferredNumBays: _this_1._ssSetPreferredNumBays,
-                    sUnsetPreferredNumBays: _this_1._ssUnsetPreferredNumBays,
-                    sSetPreferredBaySize: _this_1._ssSetPreferredBaySize,
-                    sUnsetPreferredBaySize: _this_1._ssUnsetPreferredBaySize
+                    sSetBuildingData: _this._ssSetBuildingData,
+                    sSetBuildingType: _this._ssSetBuildingType,
+                    sSetLength: _this._ssSetLength,
+                    sSetSpan: _this._ssSetSpan,
+                    sSetHeight: _this._ssSetHeight,
+                    sSetPitch: _this._ssSetPitch,
+                    sSetFloorSystemEnabled: _this._ssSetFloorSystemEnabled,
+                    sSetFloorSystemHeight: _this._ssSetFloorSystemHeight,
+                    sSetLeftWingSpan: _this._ssSetLeftWingSpan,
+                    sSetLeftWingHeight: _this._ssSetLeftWingHeight,
+                    sSetLeftWingPitch: _this._ssSetLeftWingPitch,
+                    sSetRightWingSameAsLeftWing: _this._ssSetRightWingSameAsLeftWing,
+                    sSetRightWingSpan: _this._ssSetRightWingSpan,
+                    sSetRightWingHeight: _this._ssSetRightWingHeight,
+                    sSetRightWingPitch: _this._ssSetRightWingPitch,
+                    sSetPreferredNumBays: _this._ssSetPreferredNumBays,
+                    sUnsetPreferredNumBays: _this._ssUnsetPreferredNumBays,
+                    sSetPreferredBaySize: _this._ssSetPreferredBaySize,
+                    sUnsetPreferredBaySize: _this._ssUnsetPreferredBaySize
                 },
-                sSetShowingBaySizes: _this_1._ssSetShowingBaySizes,
+                sSetShowingBaySizes: _this._ssSetShowingBaySizes,
                 cOpeningFormPropertiesOp: cOpeningFormPropertiesOp,
-                cLeanToFormPropertiesOp: _this_1._cLeanToFormProperties.map(function (x) { return Option_1.Option.some(x); }),
+                cLeanToFormPropertiesOp: _this._cLeanToFormProperties.map(function (x) { return Option_1.Option.some(x); }),
                 sFormPropertiesChanged: sFormPropertiesChanged,
                 sPerformOperation: sPerformOperation,
                 sFloatingDeleteButtonClicked: floatingDeleteButtonHelper.sDeleteButtonClicked
@@ -568,12 +594,12 @@ var App = /** @class */ (function () {
                     });
                 })();
             }
-            _this_1._appModel = appModel;
+            _this._appModel = appModel;
         });
     }
     App.prototype.setAnimate = function (animate) {
-        var _this_1 = this;
-        window.setTimeout(function () { return _this_1._csAnimate.send(animate); });
+        var _this = this;
+        window.setTimeout(function () { return _this._csAnimate.send(animate); });
     };
     Object.defineProperty(App.prototype, "cAddOpeningPropertiesVisible", {
         get: function () {
@@ -611,12 +637,12 @@ var App = /** @class */ (function () {
         configurable: true
     });
     App.prototype.deferEffect = function (effect) {
-        var _this_1 = this;
+        var _this = this;
         if (this._deferEffectEffects.length == 0) {
             this._deferEffectEffects.push(effect);
             window.setTimeout(function () {
-                _this_1._deferEffectEffects.forEach(function (effect) { return effect(); });
-                _this_1._deferEffectEffects = [];
+                _this._deferEffectEffects.forEach(function (effect) { return effect(); });
+                _this._deferEffectEffects = [];
             });
         }
         else {
@@ -624,140 +650,140 @@ var App = /** @class */ (function () {
         }
     };
     App.prototype.setBuildingType = function (buildingType) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetBuildingType.send(buildingType); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetBuildingType.send(buildingType); });
     };
     App.prototype.setSpan = function (span) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetSpan.send(span); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetSpan.send(span); });
     };
     App.prototype.setLength = function (length) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetLength.send(length); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetLength.send(length); });
     };
     App.prototype.setHeight = function (height) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetHeight.send(height); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetHeight.send(height); });
     };
     App.prototype.setPitch = function (pitch) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetPitch.send(pitch); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetPitch.send(pitch); });
     };
     App.prototype.setFloorSystemEnabled = function (floorSystemEnabled) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetFloorSystemEnabled.send(floorSystemEnabled); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetFloorSystemEnabled.send(floorSystemEnabled); });
     };
     App.prototype.setFloorSystemHeight = function (floorSystemHeight) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetFloorSystemHeight.send(floorSystemHeight); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetFloorSystemHeight.send(floorSystemHeight); });
     };
     App.prototype.setLeftWingSpan = function (leftWingSpan) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetLeftWingSpan.send(leftWingSpan); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetLeftWingSpan.send(leftWingSpan); });
     };
     App.prototype.setLeftWingHeight = function (leftWingHeight) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetLeftWingHeight.send(leftWingHeight); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetLeftWingHeight.send(leftWingHeight); });
     };
     App.prototype.setLeftWingPitch = function (leftWingPitch) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetLeftWingPitch.send(leftWingPitch); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetLeftWingPitch.send(leftWingPitch); });
     };
     App.prototype.setRightWingSameAsLeftWing = function (rightWingSameAsLeftWing) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetRightWingSameAsLeftWing.send(rightWingSameAsLeftWing); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetRightWingSameAsLeftWing.send(rightWingSameAsLeftWing); });
     };
     App.prototype.setRightWingSpan = function (rightWingSpan) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetRightWingSpan.send(rightWingSpan); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetRightWingSpan.send(rightWingSpan); });
     };
     App.prototype.setRightWingHeight = function (rightWingHeight) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetRightWingHeight.send(rightWingHeight); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetRightWingHeight.send(rightWingHeight); });
     };
     App.prototype.setRightWingPitch = function (rightWingPitch) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetRightWingPitch.send(rightWingPitch); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetRightWingPitch.send(rightWingPitch); });
     };
     App.prototype.setShowingBaySizes = function (showingBaySizes) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetShowingBaySizes.send(showingBaySizes); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetShowingBaySizes.send(showingBaySizes); });
     };
     App.prototype.setPreferredNumBays = function (numBays) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetPreferredNumBays.send(numBays); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetPreferredNumBays.send(numBays); });
     };
     App.prototype.unsetPreferredNumBays = function () {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssUnsetPreferredNumBays.send(sodium.Unit.UNIT); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssUnsetPreferredNumBays.send(sodium.Unit.UNIT); });
     };
     App.prototype.setPreferredBaySize = function (bayIndex, baySize) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetPreferredBaySize.send(Tuples_1.T2.of(bayIndex, baySize)); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetPreferredBaySize.send(Tuples_1.T2.of(bayIndex, baySize)); });
     };
     App.prototype.unsetPreferredBaySize = function (bayIndex) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssUnsetPreferredBaySize.send(bayIndex); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssUnsetPreferredBaySize.send(bayIndex); });
     };
     App.prototype.setOpeningWidth = function (openingWidth) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetOpeningWidth.send(Option_1.Option.some(openingWidth)); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetOpeningWidth.send(Option_1.Option.some(openingWidth)); });
     };
     App.prototype.setOpeningHeight = function (openingHeight) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetOpeningHeight.send(Option_1.Option.some(openingHeight)); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetOpeningHeight.send(Option_1.Option.some(openingHeight)); });
     };
     App.prototype.setOpeningHeadHeight = function (openingHeadHeight) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetOpeningHeadHeight.send(Option_1.Option.some(openingHeadHeight)); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetOpeningHeadHeight.send(Option_1.Option.some(openingHeadHeight)); });
     };
     App.prototype.setMezzanineHeight = function (mezzanineHeight) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetMezzanineHeight.send(Option_1.Option.some(mezzanineHeight)); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetMezzanineHeight.send(Option_1.Option.some(mezzanineHeight)); });
     };
     App.prototype.setWallSheetingProfile = function (wallSheetingProfile) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetWallSheetingProfile.send(wallSheetingProfile); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetWallSheetingProfile.send(wallSheetingProfile); });
     };
     App.prototype.setRoofSheetingProfile = function (roofSheetingProfile) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetRoofSheetingProfile.send(roofSheetingProfile); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetRoofSheetingProfile.send(roofSheetingProfile); });
     };
     App.prototype.setWallSheetingColour = function (wallSheetingColour) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetWallSheetingColour.send(wallSheetingColour); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetWallSheetingColour.send(wallSheetingColour); });
     };
     App.prototype.setRoofSheetingColour = function (roofSheetingColour) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetRoofSheetingColour.send(roofSheetingColour); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetRoofSheetingColour.send(roofSheetingColour); });
     };
     App.prototype.setGutterColour = function (gutterColour) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetGutterColour.send(gutterColour); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetGutterColour.send(gutterColour); });
     };
     App.prototype.setBargeColour = function (bargeColour) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetBargeColour.send(bargeColour); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetBargeColour.send(bargeColour); });
     };
     App.prototype.setRidgeColour = function (ridgeColour) {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssSetRidgeColour.send(ridgeColour); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssSetRidgeColour.send(ridgeColour); });
     };
     App.prototype.insertSkylight = function () {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssInsertSkylight.send(sodium.Unit.UNIT); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssInsertSkylight.send(sodium.Unit.UNIT); });
     };
     App.prototype.insertWhirlybird = function () {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssInsertWhirlybird.send(sodium.Unit.UNIT); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssInsertWhirlybird.send(sodium.Unit.UNIT); });
     };
     App.prototype.toggleLeanTo = function () {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssToggleLeanTo.send(sodium.Unit.UNIT); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssToggleLeanTo.send(sodium.Unit.UNIT); });
     };
     App.prototype.insertMezzanine = function () {
-        var _this_1 = this;
-        this.deferEffect(function () { return _this_1._ssInsertMezzanine.send(sodium.Unit.UNIT); });
+        var _this = this;
+        this.deferEffect(function () { return _this._ssInsertMezzanine.send(sodium.Unit.UNIT); });
     };
     App.prototype.collectCycles = function () {
         sodium.Vertex.collectCycles();
@@ -779,14 +805,14 @@ var App = /** @class */ (function () {
     Object.defineProperty(App.prototype, "ccSideBaySizeResettableList", {
         get: function () {
             var cNumBays = SodiumUtil.cellCalmRefEq(this.building.cSideBayMarkers.map(function (sideBayMarkers) { return sideBayMarkers.length - 1; }));
-            var _this = this;
+            var this_ = this;
             var cPreferredSideBaySizes = SodiumUtil.cellCalmRefEq(this.cBuildingData.map(function (buildingData) { return buildingData.preferredSideBaySizes; }));
             return SodiumUtil.cellTrace(cNumBays.map(sodium.lambda1(function (numBays) {
                 var result = [];
                 var _loop_1 = function (i) {
                     (function () {
                         var bayIdx = i;
-                        result.push(Tuples_1.T2.of(SodiumUtil.cellCalmRefEq(_this.building.cSideBayMarkers.map(function (sideBayMarkers) {
+                        result.push(Tuples_1.T2.of(SodiumUtil.cellCalmRefEq(this_.building.cSideBayMarkers.map(function (sideBayMarkers) {
                             if (bayIdx >= sideBayMarkers.length - 1) {
                                 return 0.0;
                             }
@@ -833,21 +859,21 @@ var App = /** @class */ (function () {
         configurable: true
     });
     App.prototype.leanToFormPropertiesSetSpan = function (span) {
-        var _this_1 = this;
+        var _this = this;
         window.setTimeout(function () {
-            _this_1._ssLeanToFormPropertiesSetSpan.send(span);
+            _this._ssLeanToFormPropertiesSetSpan.send(span);
         });
     };
     App.prototype.leanToFormPropertiesSetHeight = function (height) {
-        var _this_1 = this;
+        var _this = this;
         window.setTimeout(function () {
-            _this_1._ssLeanToFormPropertiesSetHeight.send(height);
+            _this._ssLeanToFormPropertiesSetHeight.send(height);
         });
     };
     App.prototype.leanToFormPropertiesSetPitch = function (pitch) {
-        var _this_1 = this;
+        var _this = this;
         window.setTimeout(function () {
-            _this_1._ssLeanToFormPropertiesSetPitch.send(pitch);
+            _this._ssLeanToFormPropertiesSetPitch.send(pitch);
         });
     };
     App.prototype.saveBuildingToCompressedBase64 = function () {
@@ -862,14 +888,14 @@ var App = /** @class */ (function () {
         });
     };
     App.prototype.loadBuildingFromCompressedBase64 = function (data) {
-        var _this_1 = this;
+        var _this = this;
         var zip = new JSZip();
         return zip
             .loadAsync(data, { base64: true })
             .then(function (zip2) { return zip2.file("building.json").async("text"); })
             .then(function (data) {
             var buildingData2 = BuildingData_1.BuildingData.fromJSON(JSON.parse(data));
-            window.setTimeout(function () { return _this_1._ssSetBuildingData.send(buildingData2); });
+            window.setTimeout(function () { return _this._ssSetBuildingData.send(buildingData2); });
         });
     };
     App.prototype.saveToGLTF = function () {
@@ -4270,6 +4296,7 @@ var AppModel = /** @class */ (function () {
             slFinishedMode.loop(sodium.Cell.switchS(cMode.map(function (mode) { return mode.sFinishedMode; })));
             var cFloatingDeleteButtons = SodiumUtil.cellPartialCalm(function (a, b) { return a.length == 0 && b.length == 0; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cFloatingDeleteButtons; })));
             var cShowPropertiesOp = SodiumUtil.cellPartialCalm(function (a, b) { return a.isNone && b.isNone; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cShowPropertiesOp; })));
+            var cShowFormOp = SodiumUtil.cellPartialCalm(function (a, b) { return a.isNone && b.isNone; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cFormOp; })));
             slBuildingData.loop(sSetBarnDataOp
                 .snapshot(cBuildingData, function (barnDataOp) {
                 return function (buildingData) {
@@ -4416,6 +4443,7 @@ var AppModel = /** @class */ (function () {
             _this._sSetFormProperties = sSetFormProperties;
             _this._cFloatingDeleteButtons = cFloatingDeleteButtons;
             _this._cShowPropertiesOp = cShowPropertiesOp;
+            _this._cShowFormOp = cShowFormOp;
             _this._building = building;
         });
     }
@@ -4471,6 +4499,13 @@ var AppModel = /** @class */ (function () {
     Object.defineProperty(AppModel.prototype, "cShowPropertiesOp", {
         get: function () {
             return this._cShowPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AppModel.prototype, "cShowFormOp", {
+        get: function () {
+            return this._cShowFormOp;
         },
         enumerable: true,
         configurable: true
@@ -9688,6 +9723,13 @@ var Selectable = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Selectable.prototype, "cFormOp", {
+        get: function () {
+            return defaultCFormOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Selectable.prototype, "cFormPropertiesOp", {
         get: function () {
             return defaultCFormPropertiesOp;
@@ -9737,6 +9779,7 @@ var Selectable = /** @class */ (function () {
 }());
 exports.Selectable = Selectable;
 var defaultCMouseRayCollisionTimeOpOp = new sodium.Cell(Option_1.Option.none());
+var defaultCFormOp = new sodium.Cell(Option_1.Option.none());
 var defaultCFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
 var defaultCSetFormPropertiesOp = new sodium.Cell(Option_1.Option.none());
 var defaultCHighlightStableNames = new sodium.Cell([]);
@@ -12383,6 +12426,16 @@ exports.Slab = Slab;
 ___scope___.file("app/model/Wall.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var sodium = require("sodiumjs");
 var THREE = require("three");
@@ -12390,12 +12443,16 @@ var CSG2D = require("csg2d");
 var SodiumUtil = require("../SodiumUtil");
 var BattenPlane_1 = require("./BattenPlane");
 var Bay_1 = require("./Bay");
+var Form_1 = require("./Form");
 var Mullions_1 = require("./Mullions");
 var Opening_1 = require("./Opening");
 var Sheeting_1 = require("./Sheeting");
+var Selectable_1 = require("./Selectable");
+var ArrayUtil_1 = require("../ArrayUtil");
 var Lazy_1 = require("../Lazy");
 var MkModelEffect_1 = require("../MkModelEffect");
 var Option_1 = require("../Option");
+var Tuples_1 = require("../Tuples");
 var ThreeJSUtil = require("../ThreeJSUtil");
 var Vectors_1 = require("../Vectors");
 var Axes3D_1 = require("../math/Axes3D");
@@ -12405,7 +12462,8 @@ var Quaternion_1 = require("../math/Quaternion");
 var TextureSpace_1 = require("../math/TextureSpace");
 var Vector2D_1 = require("../math/Vector2D");
 var Vector3D_1 = require("../math/Vector3D");
-var ArrayUtil_1 = require("../ArrayUtil");
+var WallForm_1 = require("./WallForm");
+var ArrayUtil_2 = require("../ArrayUtil");
 var CAG_1 = require("../math/CAG");
 var Polygon2D_1 = require("../math/Polygon2D");
 var Wall = /** @class */ (function () {
@@ -12543,7 +12601,7 @@ var Wall = /** @class */ (function () {
                         var marker1 = bayMarkers[i];
                         var marker2 = bayMarkers[i + 1];
                         var stableIndex = i;
-                        var visible = !ArrayUtil_1.arrayIncludes(openBayIndices, stableIndex);
+                        var visible = !ArrayUtil_2.arrayIncludes(openBayIndices, stableIndex);
                         bays.push(new Bay_1.Bay({
                             cParentStableName: params.cStableName,
                             cStableName: params.cStableName.map(function (stableName) { return stableName + ('.bay[' + stableIndex + ']'); }),
@@ -12587,7 +12645,7 @@ var Wall = /** @class */ (function () {
                 for (var i = 0; i < bayMarkers.length - 1; ++i) {
                     var marker1 = bayMarkers[i] - (i == 0 ? 100.0 : 1.0);
                     var marker2 = bayMarkers[i + 1] + (i == bayMarkers.length - 2 ? 100.0 : 1.0);
-                    var isOpen = ArrayUtil_1.arrayIncludes(wallData.openBayIndices, i);
+                    var isOpen = ArrayUtil_2.arrayIncludes(wallData.openBayIndices, i);
                     if (!isOpen) {
                         continue;
                     }
@@ -12673,11 +12731,29 @@ var Wall = /** @class */ (function () {
                 }),
                 cBattenProperties: params.cBattenProperties
             });
+            var cWallSelectableOp = SodiumUtil
+                .cellCalmRefEq(cHasMullions)
+                .map(function (hasMullions) {
+                return hasMullions ?
+                    Option_1.Option.some(new WallSelectable(params)) :
+                    Option_1.Option.none();
+            });
             var cSelectables = sodium.Cell.switchC(cOpenings.map(function (openings) {
                 return SodiumUtil
                     .cellLiftArray(openings.map(function (opening) { return opening.cSelectables; }))
                     .map(function (x) { return Lazy_1.Lazy.create(function () {
-                    return ArrayUtil_1.arrayBind(x, function (x2) { return x2.get(); });
+                    return ArrayUtil_2.arrayBind(x, function (x2) { return x2.get(); });
+                }); })
+                    .lift(cWallSelectableOp
+                    .map(function (wallSelectableOp) {
+                    return wallSelectableOp
+                        .map(function (x) { return [x]; })
+                        .orSome([]);
+                }), function (openingSelectables, wallSelectables) { return Lazy_1.Lazy.create(function () {
+                    return ArrayUtil_1.arrayJoin([
+                        openingSelectables.get(),
+                        wallSelectables
+                    ]);
                 }); });
             }));
             var cMullionOutlineCAGOp = SodiumUtil.cellLift3(params.cOutline, params.cBattenProperties, cMullionPropertiesOp, function (outline, battenProperties, mullionPropertiesOp) {
@@ -12850,10 +12926,112 @@ var Wall = /** @class */ (function () {
     return Wall;
 }());
 exports.Wall = Wall;
-/*
-class WallSelectable extends Selectable {
-    public _cHighlightOverlayModelOp:
-}*/ 
+var WallSelectable = /** @class */ (function (_super) {
+    __extends(WallSelectable, _super);
+    function WallSelectable(params) {
+        var _this = _super.call(this) || this;
+        sodium.Transaction.run(function () {
+            var cOutline3D = SodiumUtil.cellLift2(params.cAxes, params.cOutline, function (axes, outline) {
+                return Outline3D_1.Outline3D.create({
+                    axes: axes,
+                    outline: outline
+                });
+            });
+            var cMouseRayCollisionTimeOpOp = cOutline3D.map(function (outline) { return Option_1.Option.some(function (mouseRay) {
+                return outline
+                    .rayIntersectionTimeOp(mouseRay)
+                    .filter(function (t) { return t >= 0.0; });
+            }); });
+            var cNumBays = SodiumUtil.cellCalmRefEq(params.cBayMarkers.map(function (bayMarkers) { return bayMarkers.length - 1; }));
+            var ccBaySizeResettableList = SodiumUtil.cellTrace(cNumBays.map(sodium.lambda1(function (numBays) {
+                var result = [];
+                var _loop_1 = function (i) {
+                    (function () {
+                        var bayIdx = i;
+                        result.push(Tuples_1.T2.of(params.cBayMarkers.map(function (bayMarkers) {
+                            if (bayIdx >= bayMarkers.length - 1) {
+                                return 0.0;
+                            }
+                            else {
+                                return bayMarkers[bayIdx + 1] - bayMarkers[bayIdx];
+                            }
+                        }), new sodium.Cell(false)));
+                    })();
+                };
+                for (var i = 0; i < numBays; ++i) {
+                    _loop_1(i);
+                }
+                return result;
+            }, [params.cBayMarkers])), function (x) { return ArrayUtil_2.arrayBind(x, function (x2) { return [x2._1, x2._2]; }); });
+            var cFormOp = new sodium.Cell(Option_1.Option.some(Form_1.Form.wall(WallForm_1.WallForm.create({
+                ccBaySizeResettableList: ccBaySizeResettableList
+            }))));
+            var cHighlightOverlayModelOp = params.cOutline.map(function (outline) {
+                return Option_1.Option.some(MkModelEffect_1.MkModelEffect.create(function (textureLoader, repaintCallback) {
+                    var shape = new THREE.Shape();
+                    for (var i = 0; i < outline.length; ++i) {
+                        var pt = outline[i];
+                        if (i == 0) {
+                            shape.moveTo(pt.x, pt.y);
+                        }
+                        else {
+                            shape.lineTo(pt.x, pt.y);
+                        }
+                    }
+                    shape.closePath();
+                    var geometry = new THREE.ExtrudeBufferGeometry(shape, {
+                        depth: 100,
+                        bevelEnabled: false
+                    });
+                    geometry.translate(0, 0, -50.0);
+                    var material = new THREE.MeshBasicMaterial({ color: 0x00FF00, transparent: true, opacity: 0.5 });
+                    var mesh = new THREE.Mesh(geometry, material);
+                    return Promise.resolve(MkModelEffect_1.Model.create(function () {
+                        var cleanups = [];
+                        cleanups.push(params.cAxes.listen(function (axes) {
+                            MkModelEffect_1.THREEObject3DSetAxes(mesh, axes);
+                            repaintCallback();
+                        }));
+                        return function () { return cleanups.forEach(function (cleanup) { return cleanup(); }); };
+                    }, mesh));
+                }));
+            });
+            _this._cMouseRayCollisionTimeOpOp = cMouseRayCollisionTimeOpOp;
+            _this._cFormOp = cFormOp;
+            _this._cHighlightOverlayModelOp = cHighlightOverlayModelOp;
+        });
+        return _this;
+    }
+    WallSelectable.prototype.trace = function () {
+        return [
+            this._cMouseRayCollisionTimeOpOp,
+            this._cHighlightOverlayModelOp,
+            this._cFormOp
+        ];
+    };
+    Object.defineProperty(WallSelectable.prototype, "cMouseRayCollisionTimeOpOp", {
+        get: function () {
+            return this._cMouseRayCollisionTimeOpOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WallSelectable.prototype, "cFormOp", {
+        get: function () {
+            return this._cFormOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WallSelectable.prototype, "cHighlightOverlayModelOp", {
+        get: function () {
+            return this._cHighlightOverlayModelOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return WallSelectable;
+}(Selectable_1.Selectable));
 //# sourceMappingURL=Wall.js.map
 });
 ___scope___.file("app/model/Bay.js", function(exports, require, module, __filename, __dirname){
@@ -13036,6 +13214,60 @@ var Bay = /** @class */ (function () {
 }());
 exports.Bay = Bay;
 //# sourceMappingURL=Bay.js.map
+});
+___scope___.file("app/model/Form.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Form = /** @class */ (function () {
+    function Form() {
+    }
+    Form.prototype.partialMatch = function (default_, cases) {
+        return this.match({
+            wall: function (form) {
+                if (cases.wall) {
+                    return cases.wall(form);
+                }
+                else {
+                    return default_;
+                }
+            }
+        });
+    };
+    Form.wall = function (wallForm) {
+        return new FormWall(wallForm);
+    };
+    Form.prototype.sBuildingEffect = function () {
+        return this.match({
+            wall: function (form) { return form.sBuildingEffect; }
+        });
+    };
+    return Form;
+}());
+exports.Form = Form;
+var FormWall = /** @class */ (function (_super) {
+    __extends(FormWall, _super);
+    function FormWall(form) {
+        var _this = _super.call(this) || this;
+        _this._form = form;
+        return _this;
+    }
+    FormWall.prototype.match = function (cases) {
+        return cases.wall(this._form);
+    };
+    return FormWall;
+}(Form));
+//# sourceMappingURL=Form.js.map
 });
 ___scope___.file("app/model/Mullions.js", function(exports, require, module, __filename, __dirname){
 
@@ -13428,6 +13660,42 @@ var OpeningSelectable = /** @class */ (function (_super) {
     return OpeningSelectable;
 }(Selectable_1.Selectable));
 //# sourceMappingURL=Opening.js.map
+});
+___scope___.file("app/model/WallForm.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var sodium = require("sodiumjs");
+var WallForm = /** @class */ (function () {
+    function WallForm(params) {
+        var _this = this;
+        sodium.Transaction.run(function () {
+            var sBuildingEffect = new sodium.Stream();
+            _this._params = params;
+            _this._sBuildingEffect = sBuildingEffect;
+        });
+    }
+    Object.defineProperty(WallForm.prototype, "ccBaySizeResettableList", {
+        get: function () {
+            return this._params.ccBaySizeResettableList;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(WallForm.prototype, "sBuildingEffect", {
+        get: function () {
+            return this._sBuildingEffect;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    WallForm.create = function (params) {
+        return new WallForm(params);
+    };
+    return WallForm;
+}());
+exports.WallForm = WallForm;
+//# sourceMappingURL=WallForm.js.map
 });
 ___scope___.file("app/model/LeanTo.js", function(exports, require, module, __filename, __dirname){
 
@@ -14286,12 +14554,20 @@ var Mode = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Mode.prototype, "cFormOp", {
+        get: function () {
+            return defaultCFormOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return Mode;
 }());
 exports.Mode = Mode;
 var defaultSFinishedMode = new sodium.Stream();
 var defaultCFloatingDeleteButtons = new sodium.Cell([]);
 var defaultCShowPropertiesOp = new sodium.Cell(Option_1.Option.none());
+var defaultCFormOp = new sodium.Cell(Option_1.Option.none());
 //# sourceMappingURL=Mode.js.map
 });
 ___scope___.file("app/modes/InsertOpeningMode.js", function(exports, require, module, __filename, __dirname){
@@ -15308,11 +15584,17 @@ var SelectionMode = /** @class */ (function (_super) {
                     .map(function (selectedSelectable) { return selectedSelectable.cFormPropertiesOp; })
                     .orSome_(function () { return new sodium.Cell(Option_1.Option.none()); });
             }));
+            var cFormOp = sodium.Cell.switchC(cSelectedSelectableOp.map(function (selectedSelectableOp) {
+                return selectedSelectableOp
+                    .map(function (selectedSelectable) { return selectedSelectable.cFormOp; })
+                    .orSome_(function () { return new sodium.Cell(Option_1.Option.none()); });
+            }));
             _this._cOverlayModelOp = cOverlayModelOp;
             _this._cHighlightedStableNames = cHighlightedStableNames;
             _this._sBuildingEffect = sBuildingEffect;
             _this._cFloatingDeleteButtons = cFloatingDeleteButtons;
             _this._cShowPropertiesOp = cShowPropertiesOp;
+            _this._cFormOp = cFormOp;
         });
         return _this;
     }
@@ -15347,6 +15629,13 @@ var SelectionMode = /** @class */ (function (_super) {
     Object.defineProperty(SelectionMode.prototype, "cShowPropertiesOp", {
         get: function () {
             return this._cShowPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SelectionMode.prototype, "cFormOp", {
+        get: function () {
+            return this._cFormOp;
         },
         enumerable: true,
         configurable: true

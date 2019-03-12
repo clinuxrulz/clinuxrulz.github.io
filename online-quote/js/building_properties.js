@@ -1,7 +1,7 @@
 (function() {
     var cboBuildingType = document.getElementById("cboBuildingType");
     var divBarnProperties = document.getElementById("barnProperties");
-    cboBuildingType.addEventListener("input", function(ev) {
+    cboBuildingType.addEventListener("change", function(ev) {
         if (cboBuildingType.value == "barn" || cboBuildingType.value == "skillionBarn") {
             divBarnProperties.style.display = "block";
         } else {
@@ -98,7 +98,7 @@
     });
     var divSideBaySizes = document.getElementById("sideBaySizes");
     var tblSideBaySizes = document.getElementById("tblSideBaySizes");
-    chkShowSideBaySizes.addEventListener("input", function() {
+    chkShowSideBaySizes.addEventListener("change", function() {
         if (chkShowSideBaySizes.checked) {
             divSideBaySizes.style.display = "block";
         } else {

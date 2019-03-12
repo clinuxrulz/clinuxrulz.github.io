@@ -163,7 +163,7 @@
                             option.innerText = colours[j].name;
                             cboColours.appendChild(option);
                         }
-                        cboColours.addEventListener("input", function() {
+                        cboColours.addEventListener("change", function() {
                             var j;
                             for (j = 0; j < colours.length; ++j) {
                                 if (cboColours.value == colours[j].value) {
@@ -195,25 +195,25 @@
                     var cboGutterColour = document.getElementById("cboGutterColour");
                     var cboBargeColour = document.getElementById("cboBargeColour");
                     var cboRidgeColour = document.getElementById("cboRidgeColour");
-                    cboWallSheetingProfile.addEventListener("input", function() {
+                    cboWallSheetingProfile.addEventListener("change", function() {
                         app.setWallSheetingProfile(cboWallSheetingProfile.value);
                     });
-                    cboRoofSheetingProfile.addEventListener("input", function() {
+                    cboRoofSheetingProfile.addEventListener("change", function() {
                         app.setRoofSheetingProfile(cboRoofSheetingProfile.value);
                     });
-                    cboWallSheetingColour.addEventListener("input", function() {
+                    cboWallSheetingColour.addEventListener("change", function() {
                         app.setWallSheetingColour(cboWallSheetingColour.value);
                     });
-                    cboRoofSheetingColour.addEventListener("input", function() {
+                    cboRoofSheetingColour.addEventListener("change", function() {
                         app.setRoofSheetingColour(cboRoofSheetingColour.value);
                     });
-                    cboGutterColour.addEventListener("input", function() {
+                    cboGutterColour.addEventListener("change", function() {
                         app.setGutterColour(cboGutterColour.value);
                     });
-                    cboBargeColour.addEventListener("input", function() {
+                    cboBargeColour.addEventListener("change", function() {
                         app.setBargeColour(cboBargeColour.value);
                     });
-                    cboRidgeColour.addEventListener("input", function() {
+                    cboRidgeColour.addEventListener("change", function() {
                         app.setRidgeColour(cboRidgeColour.value);
                     });
                     cboWallSheetingProfile.value = app.claddingData.wallSheetingProfile;
@@ -250,7 +250,7 @@
                             }
                         });
                         txtFloorSystemHeight.value = "1000";
-                        chkFloorSystemEnabled.addEventListener("input", function() {
+                        chkFloorSystemEnabled.addEventListener("change", function() {
                             app.setFloorSystemEnabled(chkFloorSystemEnabled.checked);
                             if (chkFloorSystemEnabled.checked) {
                                 divFloorSystemProperties.style.display = "block";
@@ -328,7 +328,7 @@
                         var chkRightWingSameAsLeft = document.getElementById("chkRightWingSameAsLeft");
                         var lblLefts = document.getElementsByClassName("barnPropertiesLblLeft");
                         var divBarnRightWingProperties = document.getElementById("barnRightWingProperties");
-                        chkRightWingSameAsLeft.addEventListener("input", function() {
+                        chkRightWingSameAsLeft.addEventListener("change", function() {
                             if (chkRightWingSameAsLeft.checked) {
                                 divBarnRightWingProperties.style.display = "none";
                                 for (var i = 0; i < lblLefts.length; ++i) {
@@ -409,7 +409,7 @@
                         var txtOpeningHeadHeight = document.getElementById("txtOpeningHeadHeight");
                         var chkOpeningHeadHeightSameAsOpeningHeight = document.getElementById("chkOpeningHeadHeightSameAsHeight");
                         var divOpeningHeadHeight = document.getElementById("divOpeningHeadHeight");
-                        chkOpeningHeadHeightSameAsOpeningHeight.addEventListener("input", function() {
+                        chkOpeningHeadHeightSameAsOpeningHeight.addEventListener("change", function() {
                             if (chkOpeningHeadHeightSameAsOpeningHeight.checked) {
                                 divOpeningHeadHeight.style.display = "none";
                                 var value = parseFloat(txtOpeningHeight.value);
@@ -549,7 +549,7 @@
                     })();
                     (function() {
                         var chkAnimate = document.getElementById("chkAnimate");
-                        chkAnimate.addEventListener("input", function() {
+                        chkAnimate.addEventListener("change", function() {
                             app.setAnimate(chkAnimate.checked);
                         });
                     })();
