@@ -8,6 +8,7 @@ var JSZip = require("jszip");
 var THREE = require("three");
 var three_orbitcontrols_ts_1 = require("three-orbitcontrols-ts");
 var sodium = require("sodiumjs");
+var ElementQueries = require("css-element-queries");
 window.THREE = THREE;
 //import "./node_modules/three/examples/js/exporters/GLTFExporter.js";
 var FileSaver = require("file-saver");
@@ -21,6 +22,7 @@ var OpeningFormProperties_1 = require("./model/OpeningFormProperties");
 var OpeningType_1 = require("./model/OpeningType");
 var Option_1 = require("./Option");
 var SodiumUtil = require("./SodiumUtil");
+var Tuples_1 = require("./Tuples");
 var Ray3D_1 = require("./math/Ray3D");
 var Vector2D_1 = require("./math/Vector2D");
 var Vector3D_1 = require("./math/Vector3D");
@@ -28,6 +30,7 @@ var AppModel_1 = require("./model/AppModel");
 var Operation_1 = require("./model/Operation");
 var FloatingDeleteButtonHelper_1 = require("./ui/FloatingDeleteButtonHelper");
 var TextureLoader_1 = require("./TextureLoader");
+var ArrayUtil_1 = require("./ArrayUtil");
 sodium.Vertex.collectCycles = (function () {
     var realCollectCycles = sodium.Vertex.collectCycles;
     var collectingCycles = false;
@@ -44,7 +47,7 @@ sodium.Vertex.collectCycles = (function () {
 })();
 var App = /** @class */ (function () {
     function App(sPropertiesNameButtonClicked, sAddOpeningButtonClicked, sToggleBaysButtonClicked, sToggleWallsButtonClicked) {
-        var _this = this;
+        var _this_1 = this;
         this._csAnimate = new sodium.CellSink(false);
         this._ssInsertSkylight = new sodium.StreamSink();
         this._ssInsertWhirlybird = new sodium.StreamSink();
@@ -54,6 +57,7 @@ var App = /** @class */ (function () {
         this._ssLeanToFormPropertiesSetHeight = new sodium.StreamSink();
         this._ssLeanToFormPropertiesSetPitch = new sodium.StreamSink();
         this._ssSetBuildingData = new sodium.StreamSink();
+        this._ssSetBuildingType = new sodium.StreamSink();
         this._ssSetSpan = new sodium.StreamSink();
         this._ssSetLength = new sodium.StreamSink();
         this._ssSetHeight = new sodium.StreamSink();
@@ -67,6 +71,11 @@ var App = /** @class */ (function () {
         this._ssSetRightWingSpan = new sodium.StreamSink();
         this._ssSetRightWingHeight = new sodium.StreamSink();
         this._ssSetRightWingPitch = new sodium.StreamSink();
+        this._ssSetShowingBaySizes = new sodium.StreamSink();
+        this._ssSetPreferredNumBays = new sodium.StreamSink();
+        this._ssUnsetPreferredNumBays = new sodium.StreamSink();
+        this._ssSetPreferredBaySize = new sodium.StreamSink();
+        this._ssUnsetPreferredBaySize = new sodium.StreamSink();
         this._ssSetOpeningWidth = new sodium.StreamSink();
         this._ssSetOpeningHeight = new sodium.StreamSink();
         this._ssSetOpeningHeadHeight = new sodium.StreamSink();
@@ -105,7 +114,7 @@ var App = /** @class */ (function () {
                     window.requestAnimationFrame(animateStep);
                 }
             }
-            _this._csAnimate.listen(function (animate2) {
+            _this_1._csAnimate.listen(function (animate2) {
                 animate = animate2;
                 if (animate) {
                     window.requestAnimationFrame(animateStep);
@@ -113,7 +122,7 @@ var App = /** @class */ (function () {
             });
             var clShowPropertiesOp = new sodium.CellLoop();
             var slSetFormProperties = new sodium.StreamLoop();
-            _this._sSetFormProperties = slSetFormProperties;
+            _this_1._sSetFormProperties = slSetFormProperties;
             var cShowOpeningPropertiesOp = clShowPropertiesOp.map(function (showFormPropertiesOp) {
                 return showFormPropertiesOp.map(function (showFormProperties) {
                     return showFormProperties.partialMatch(Option_1.Option.none(), {
@@ -121,10 +130,10 @@ var App = /** @class */ (function () {
                     });
                 });
             });
-            _this._cAddOpeningPropertiesVisible =
+            _this_1._cAddOpeningPropertiesVisible =
                 sAddOpeningButtonClicked
                     .mapTo(true)
-                    .orElse(_this._ssToggleLeanTo.mapTo(false))
+                    .orElse(_this_1._ssToggleLeanTo.mapTo(false))
                     .orElse(sPropertiesNameButtonClicked.mapTo(false))
                     .orElse(sToggleBaysButtonClicked.mapTo(false))
                     .orElse(sToggleWallsButtonClicked.mapTo(false))
@@ -132,15 +141,15 @@ var App = /** @class */ (function () {
                     .lift(cShowOpeningPropertiesOp, function (defaultOpeningPropertiesVisible, modeShowOpeningPropertiesOp) {
                     return modeShowOpeningPropertiesOp.isSome || defaultOpeningPropertiesVisible;
                 });
-            _this._cLeanToFormPropertiesVisible =
-                _this._ssToggleLeanTo
+            _this_1._cLeanToFormPropertiesVisible =
+                _this_1._ssToggleLeanTo
                     .mapTo(true)
                     .orElse(sAddOpeningButtonClicked.mapTo(false))
                     .orElse(sPropertiesNameButtonClicked.mapTo(false))
                     .orElse(sToggleBaysButtonClicked.mapTo(false))
                     .orElse(sToggleWallsButtonClicked.mapTo(false))
                     .hold(false);
-            _this._cMezzanineFormPropertiesVisible =
+            _this_1._cMezzanineFormPropertiesVisible =
                 clShowPropertiesOp.map(function (formPropertiesOp) {
                     return formPropertiesOp
                         .map(function (formProperties) {
@@ -149,23 +158,23 @@ var App = /** @class */ (function () {
                         .orSome(false);
                 });
             var slLeanToFormProperties = new sodium.StreamLoop();
-            _this._cLeanToFormProperties =
+            _this_1._cLeanToFormProperties =
                 slLeanToFormProperties
                     .hold(LeanToFormProperties_1.LeanToFormProperties.create({
                     span: 3000.0,
                     height: 1500.0,
                     pitch: 10.0
                 }));
-            slLeanToFormProperties.loop(_this._ssLeanToFormPropertiesSetSpan
-                .snapshot(_this._cLeanToFormProperties, function (span, leanToFormProperties) {
+            slLeanToFormProperties.loop(_this_1._ssLeanToFormPropertiesSetSpan
+                .snapshot(_this_1._cLeanToFormProperties, function (span, leanToFormProperties) {
                 return leanToFormProperties.from({ span: span });
             })
-                .orElse(_this._ssLeanToFormPropertiesSetHeight
-                .snapshot(_this._cLeanToFormProperties, function (height, leanToFormProperties) {
+                .orElse(_this_1._ssLeanToFormPropertiesSetHeight
+                .snapshot(_this_1._cLeanToFormProperties, function (height, leanToFormProperties) {
                 return leanToFormProperties.from({ height: height });
             }))
-                .orElse(_this._ssLeanToFormPropertiesSetPitch
-                .snapshot(_this._cLeanToFormProperties, function (pitch, leanToFormProperties) {
+                .orElse(_this_1._ssLeanToFormPropertiesSetPitch
+                .snapshot(_this_1._cLeanToFormProperties, function (pitch, leanToFormProperties) {
                 return leanToFormProperties.from({ pitch: pitch });
             })));
             var slMezzanineFormPropertiesOp = new sodium.StreamLoop();
@@ -176,7 +185,7 @@ var App = /** @class */ (function () {
                     mezzanine: function (mezzanineFormProperties) { return Option_1.Option.some(mezzanineFormProperties); }
                 });
             })
-                .orElse(SodiumUtil.streamFilterOption(_this._ssSetMezzanineHeight).snapshot(cMezzanineFormPropertiesOp, function (height, mezzanineFormPropertiesOp) {
+                .orElse(SodiumUtil.streamFilterOption(_this_1._ssSetMezzanineHeight).snapshot(cMezzanineFormPropertiesOp, function (height, mezzanineFormPropertiesOp) {
                 return mezzanineFormPropertiesOp.map(function (mezzanineFormProperties) { return mezzanineFormProperties.from({ height: height }); });
             })));
             var scene = new THREE.Scene();
@@ -196,7 +205,7 @@ var App = /** @class */ (function () {
                 renderer.render(scene, camera);
             }
             fixCanvasAndCamera();
-            window.addEventListener("resize", function (ev) {
+            new ElementQueries.ResizeSensor(canvasParentDiv, function () {
                 fixCanvasAndCamera();
             });
             window['scene'] = scene;
@@ -209,7 +218,7 @@ var App = /** @class */ (function () {
             // lights
             {
                 var light = new THREE.DirectionalLight(0xffffff);
-                light.position.set(1, 1, 1);
+                light.position.set(-1, -1, 1);
                 scene.add(light);
             }
             {
@@ -232,55 +241,6 @@ var App = /** @class */ (function () {
                     action();
                 }
             });
-            // building properties
-            var cboBuildingType = document.getElementById("cboBuildingType");
-            var txtSpan = document.getElementById("txtSpan");
-            var txtLength = document.getElementById("txtLength");
-            var txtHeight = document.getElementById("txtHeight");
-            var txtPitch = document.getElementById("txtPitch");
-            var mkCStringValueFromComboBox = function (el) {
-                var initValue = el.value;
-                var csValue = new sodium.CellSink(initValue);
-                el.addEventListener("input", function () {
-                    var value = el.value;
-                    csValue.send(value);
-                });
-                return csValue;
-            };
-            var mkCValueOpFromTextField = function (el) {
-                var initValue = parseFloat(el.value);
-                var csValueOp = new sodium.CellSink(isNaN(initValue) ? null : initValue);
-                el.addEventListener("input", function () {
-                    var value = parseFloat(el.value);
-                    if (isNaN(value)) {
-                        csValueOp.send(null);
-                    }
-                    else {
-                        csValueOp.send(value);
-                    }
-                });
-                return csValueOp;
-            };
-            var mkCValueOpFromTextField2 = function (el) {
-                var initValue = parseFloat(el.value);
-                var csValueOp = new sodium.CellSink(isNaN(initValue) ? Option_1.Option.none() : Option_1.Option.some(initValue));
-                el.addEventListener("input", function () {
-                    var value = parseFloat(el.value);
-                    if (isNaN(value)) {
-                        csValueOp.send(Option_1.Option.none());
-                    }
-                    else {
-                        csValueOp.send(Option_1.Option.some(value));
-                    }
-                });
-                return csValueOp;
-            };
-            var cBuildingType = mkCStringValueFromComboBox(cboBuildingType)
-                .map(function (buildingType) { return buildingType; });
-            var cSpanOp = mkCValueOpFromTextField(txtSpan);
-            var cLengthOp = mkCValueOpFromTextField(txtLength);
-            var cHeightOp = mkCValueOpFromTextField(txtHeight);
-            var cPitchOp = mkCValueOpFromTextField(txtPitch);
             // opening properties
             var sSetOpeningProperties = SodiumUtil.streamFilterOption(slSetFormProperties.map(function (formProperties) {
                 return formProperties.partialMatch(Option_1.Option.none(), {
@@ -289,15 +249,15 @@ var App = /** @class */ (function () {
                     }
                 });
             }));
-            _this._sSetOpeningProperties = sSetOpeningProperties;
+            _this_1._sSetOpeningProperties = sSetOpeningProperties;
             var sSetOpeningWidth = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.width; });
             var sSetOpeningHeight = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.height; });
             var sSetOpeningHeadHeight = sSetOpeningProperties.map(function (openingProperties) { return openingProperties.headHeight; });
-            var ssOpeningWidthOpChangedByUser = _this._ssSetOpeningWidth;
-            var ssOpeningHeightOpChangedByUser = _this._ssSetOpeningHeight;
+            var ssOpeningWidthOpChangedByUser = _this_1._ssSetOpeningWidth;
+            var ssOpeningHeightOpChangedByUser = _this_1._ssSetOpeningHeight;
             var cOpeningWidthOp = sSetOpeningWidth.map(function (x) { return Option_1.Option.some(x); }).orElse(ssOpeningWidthOpChangedByUser).hold(Option_1.Option.none());
             var cOpeningHeightOp = sSetOpeningHeight.map(function (x) { return Option_1.Option.some(x); }).orElse(ssOpeningHeightOpChangedByUser).hold(Option_1.Option.none());
-            var cOpeningHeadHeightOp = sSetOpeningHeadHeight.map(function (x) { return Option_1.Option.some(x); }).orElse(_this._ssSetOpeningHeadHeight).hold(Option_1.Option.none());
+            var cOpeningHeadHeightOp = sSetOpeningHeadHeight.map(function (x) { return Option_1.Option.some(x); }).orElse(_this_1._ssSetOpeningHeadHeight).hold(Option_1.Option.none());
             var cOpeningFormPropertiesOp = cOpeningWidthOp.lift3(cOpeningHeightOp, cOpeningHeadHeightOp, function (openingWidthOp, openingHeightOp, openingHeadHeightOp) {
                 return openingWidthOp.lift3(openingHeightOp, openingHeadHeightOp, function (openingWidth, openingHeight, openingHeadHeight) {
                     return OpeningFormProperties_1.OpeningFormProperties.create({
@@ -311,13 +271,13 @@ var App = /** @class */ (function () {
                 .streamFilterOption(sodium.Operational
                 .defer(ssOpeningWidthOpChangedByUser.mapTo(sodium.Unit.UNIT)
                 .orElse(ssOpeningHeightOpChangedByUser.mapTo(sodium.Unit.UNIT))
-                .orElse(_this._ssSetOpeningHeadHeight.mapTo(sodium.Unit.UNIT)))
+                .orElse(_this_1._ssSetOpeningHeadHeight.mapTo(sodium.Unit.UNIT)))
                 .snapshot1(cOpeningFormPropertiesOp)
                 .map(function (openingFormPropertiesOp) {
                 return openingFormPropertiesOp.map(FormProperties_1.FormProperties.opening);
             }))
                 .orElse(SodiumUtil.streamFilterOption(sodium.Operational
-                .defer(_this._ssSetMezzanineHeight)
+                .defer(_this_1._ssSetMezzanineHeight)
                 .snapshot1(cMezzanineFormPropertiesOp)
                 .map(function (mezzanineFormPropertiesOp) {
                 return mezzanineFormPropertiesOp.map(FormProperties_1.FormProperties.mezzanine);
@@ -397,8 +357,8 @@ var App = /** @class */ (function () {
                 cube.translateZ(-100.0);
                 scene.add(cube);
             }
-            camera.position.x = 20000.0;
-            camera.position.y = 20000.0;
+            camera.position.x = -20000.0;
+            camera.position.y = -20000.0;
             camera.position.z = 10000.0;
             controls.update();
             renderer.render(scene, camera);
@@ -423,6 +383,7 @@ var App = /** @class */ (function () {
                         sky = new THREE.Mesh(skyGeo, material);
                         sky.position.set(camera.position.x, camera.position.y, camera.position.z);
                         sky.rotateX(-90.0 * Math.PI / 180.0);
+                        sky.rotateY(Math.PI);
                         scene.add(sky);
                         renderer.render(scene, camera);
                     });
@@ -537,10 +498,10 @@ var App = /** @class */ (function () {
                 .orElse(sAddOpeningButtonClicked.map(function (openingType) { return Operation_1.Operation.insertOpening(openingType); }))
                 .orElse(sToggleBaysButtonClicked.mapTo(Operation_1.Operation.toggleBays()))
                 .orElse(sToggleWallsButtonClicked.mapTo(Operation_1.Operation.toggleWalls()))
-                .orElse(_this._ssInsertSkylight.mapTo(Operation_1.Operation.insertSkylight()))
-                .orElse(_this._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()))
-                .orElse(_this._ssToggleLeanTo.mapTo(Operation_1.Operation.toggleLeanTos()))
-                .orElse(_this._ssInsertMezzanine.mapTo(Operation_1.Operation.insertMezzanine()));
+                .orElse(_this_1._ssInsertSkylight.mapTo(Operation_1.Operation.insertSkylight()))
+                .orElse(_this_1._ssInsertWhirlybird.mapTo(Operation_1.Operation.insertWhirlybird()))
+                .orElse(_this_1._ssToggleLeanTo.mapTo(Operation_1.Operation.toggleLeanTos()))
+                .orElse(_this_1._ssInsertMezzanine.mapTo(Operation_1.Operation.insertMezzanine()));
             var clFloatingDeleteButtons = new sodium.CellLoop();
             var floatingDeleteButtonHelper = new FloatingDeleteButtonHelper_1.FloatingDeleteButtonHelper(canvasParentDiv, clFloatingDeleteButtons);
             // model
@@ -552,32 +513,37 @@ var App = /** @class */ (function () {
                 cProjectWorldPointToScreenOp: cProjectWorldPointToScreenOp,
                 buildingParamsChanges: {
                     claddingParamsChanges: {
-                        sSetWallSheetingProfile: _this._ssSetWallSheetingProfile,
-                        sSetRoofSheetingProfile: _this._ssSetRoofSheetingProfile,
-                        sSetWallSheetingColour: _this._ssSetWallSheetingColour,
-                        sSetRoofSheetingColour: _this._ssSetRoofSheetingColour,
-                        sSetGutterColour: _this._ssSetGutterColour,
-                        sSetBargeColour: _this._ssSetBargeColour,
-                        sSetRidgeColour: _this._ssSetRidgeColour
+                        sSetWallSheetingProfile: _this_1._ssSetWallSheetingProfile,
+                        sSetRoofSheetingProfile: _this_1._ssSetRoofSheetingProfile,
+                        sSetWallSheetingColour: _this_1._ssSetWallSheetingColour,
+                        sSetRoofSheetingColour: _this_1._ssSetRoofSheetingColour,
+                        sSetGutterColour: _this_1._ssSetGutterColour,
+                        sSetBargeColour: _this_1._ssSetBargeColour,
+                        sSetRidgeColour: _this_1._ssSetRidgeColour
                     },
-                    sSetBuildingData: _this._ssSetBuildingData,
-                    sSetBuildingType: sodium.Operational.updates(cBuildingType),
-                    sSetLength: sodium.Operational.updates(eliminateOp(cLengthOp)).orElse(_this._ssSetLength),
-                    sSetSpan: sodium.Operational.updates(eliminateOp(cSpanOp)).orElse(_this._ssSetSpan),
-                    sSetHeight: sodium.Operational.updates(eliminateOp(cHeightOp)).orElse(_this._ssSetHeight),
-                    sSetPitch: sodium.Operational.updates(eliminateOp(cPitchOp)).orElse(_this._ssSetPitch),
-                    sSetFloorSystemEnabled: _this._ssSetFloorSystemEnabled,
-                    sSetFloorSystemHeight: _this._ssSetFloorSystemHeight,
-                    sSetLeftWingSpan: _this._ssSetLeftWingSpan,
-                    sSetLeftWingHeight: _this._ssSetLeftWingHeight,
-                    sSetLeftWingPitch: _this._ssSetLeftWingPitch,
-                    sSetRightWingSameAsLeftWing: _this._ssSetRightWingSameAsLeftWing,
-                    sSetRightWingSpan: _this._ssSetRightWingSpan,
-                    sSetRightWingHeight: _this._ssSetRightWingHeight,
-                    sSetRightWingPitch: _this._ssSetRightWingPitch
+                    sSetBuildingData: _this_1._ssSetBuildingData,
+                    sSetBuildingType: _this_1._ssSetBuildingType,
+                    sSetLength: _this_1._ssSetLength,
+                    sSetSpan: _this_1._ssSetSpan,
+                    sSetHeight: _this_1._ssSetHeight,
+                    sSetPitch: _this_1._ssSetPitch,
+                    sSetFloorSystemEnabled: _this_1._ssSetFloorSystemEnabled,
+                    sSetFloorSystemHeight: _this_1._ssSetFloorSystemHeight,
+                    sSetLeftWingSpan: _this_1._ssSetLeftWingSpan,
+                    sSetLeftWingHeight: _this_1._ssSetLeftWingHeight,
+                    sSetLeftWingPitch: _this_1._ssSetLeftWingPitch,
+                    sSetRightWingSameAsLeftWing: _this_1._ssSetRightWingSameAsLeftWing,
+                    sSetRightWingSpan: _this_1._ssSetRightWingSpan,
+                    sSetRightWingHeight: _this_1._ssSetRightWingHeight,
+                    sSetRightWingPitch: _this_1._ssSetRightWingPitch,
+                    sSetPreferredNumBays: _this_1._ssSetPreferredNumBays,
+                    sUnsetPreferredNumBays: _this_1._ssUnsetPreferredNumBays,
+                    sSetPreferredBaySize: _this_1._ssSetPreferredBaySize,
+                    sUnsetPreferredBaySize: _this_1._ssUnsetPreferredBaySize
                 },
+                sSetShowingBaySizes: _this_1._ssSetShowingBaySizes,
                 cOpeningFormPropertiesOp: cOpeningFormPropertiesOp,
-                cLeanToFormPropertiesOp: _this._cLeanToFormProperties.map(function (x) { return Option_1.Option.some(x); }),
+                cLeanToFormPropertiesOp: _this_1._cLeanToFormProperties.map(function (x) { return Option_1.Option.some(x); }),
                 sFormPropertiesChanged: sFormPropertiesChanged,
                 sPerformOperation: sPerformOperation,
                 sFloatingDeleteButtonClicked: floatingDeleteButtonHelper.sDeleteButtonClicked
@@ -602,12 +568,12 @@ var App = /** @class */ (function () {
                     });
                 })();
             }
-            _this._appModel = appModel;
+            _this_1._appModel = appModel;
         });
     }
     App.prototype.setAnimate = function (animate) {
-        var _this = this;
-        window.setTimeout(function () { return _this._csAnimate.send(animate); });
+        var _this_1 = this;
+        window.setTimeout(function () { return _this_1._csAnimate.send(animate); });
     };
     Object.defineProperty(App.prototype, "cAddOpeningPropertiesVisible", {
         get: function () {
@@ -645,129 +611,153 @@ var App = /** @class */ (function () {
         configurable: true
     });
     App.prototype.deferEffect = function (effect) {
-        var _this = this;
+        var _this_1 = this;
         if (this._deferEffectEffects.length == 0) {
             this._deferEffectEffects.push(effect);
             window.setTimeout(function () {
-                _this._deferEffectEffects.forEach(function (effect) { return effect(); });
-                _this._deferEffectEffects = [];
+                _this_1._deferEffectEffects.forEach(function (effect) { return effect(); });
+                _this_1._deferEffectEffects = [];
             });
         }
         else {
             this._deferEffectEffects.push(effect);
         }
     };
+    App.prototype.setBuildingType = function (buildingType) {
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetBuildingType.send(buildingType); });
+    };
     App.prototype.setSpan = function (span) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetSpan.send(span); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetSpan.send(span); });
     };
     App.prototype.setLength = function (length) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetLength.send(length); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetLength.send(length); });
     };
     App.prototype.setHeight = function (height) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetHeight.send(height); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetHeight.send(height); });
     };
     App.prototype.setPitch = function (pitch) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetPitch.send(pitch); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetPitch.send(pitch); });
     };
     App.prototype.setFloorSystemEnabled = function (floorSystemEnabled) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetFloorSystemEnabled.send(floorSystemEnabled); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetFloorSystemEnabled.send(floorSystemEnabled); });
     };
     App.prototype.setFloorSystemHeight = function (floorSystemHeight) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetFloorSystemHeight.send(floorSystemHeight); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetFloorSystemHeight.send(floorSystemHeight); });
     };
     App.prototype.setLeftWingSpan = function (leftWingSpan) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetLeftWingSpan.send(leftWingSpan); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetLeftWingSpan.send(leftWingSpan); });
     };
     App.prototype.setLeftWingHeight = function (leftWingHeight) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetLeftWingHeight.send(leftWingHeight); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetLeftWingHeight.send(leftWingHeight); });
     };
     App.prototype.setLeftWingPitch = function (leftWingPitch) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetLeftWingPitch.send(leftWingPitch); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetLeftWingPitch.send(leftWingPitch); });
     };
     App.prototype.setRightWingSameAsLeftWing = function (rightWingSameAsLeftWing) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetRightWingSameAsLeftWing.send(rightWingSameAsLeftWing); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetRightWingSameAsLeftWing.send(rightWingSameAsLeftWing); });
     };
     App.prototype.setRightWingSpan = function (rightWingSpan) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetRightWingSpan.send(rightWingSpan); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetRightWingSpan.send(rightWingSpan); });
     };
     App.prototype.setRightWingHeight = function (rightWingHeight) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetRightWingHeight.send(rightWingHeight); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetRightWingHeight.send(rightWingHeight); });
     };
     App.prototype.setRightWingPitch = function (rightWingPitch) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetRightWingPitch.send(rightWingPitch); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetRightWingPitch.send(rightWingPitch); });
+    };
+    App.prototype.setShowingBaySizes = function (showingBaySizes) {
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetShowingBaySizes.send(showingBaySizes); });
+    };
+    App.prototype.setPreferredNumBays = function (numBays) {
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetPreferredNumBays.send(numBays); });
+    };
+    App.prototype.unsetPreferredNumBays = function () {
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssUnsetPreferredNumBays.send(sodium.Unit.UNIT); });
+    };
+    App.prototype.setPreferredBaySize = function (bayIndex, baySize) {
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetPreferredBaySize.send(Tuples_1.T2.of(bayIndex, baySize)); });
+    };
+    App.prototype.unsetPreferredBaySize = function (bayIndex) {
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssUnsetPreferredBaySize.send(bayIndex); });
     };
     App.prototype.setOpeningWidth = function (openingWidth) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetOpeningWidth.send(Option_1.Option.some(openingWidth)); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetOpeningWidth.send(Option_1.Option.some(openingWidth)); });
     };
     App.prototype.setOpeningHeight = function (openingHeight) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetOpeningHeight.send(Option_1.Option.some(openingHeight)); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetOpeningHeight.send(Option_1.Option.some(openingHeight)); });
     };
     App.prototype.setOpeningHeadHeight = function (openingHeadHeight) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetOpeningHeadHeight.send(Option_1.Option.some(openingHeadHeight)); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetOpeningHeadHeight.send(Option_1.Option.some(openingHeadHeight)); });
     };
     App.prototype.setMezzanineHeight = function (mezzanineHeight) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetMezzanineHeight.send(Option_1.Option.some(mezzanineHeight)); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetMezzanineHeight.send(Option_1.Option.some(mezzanineHeight)); });
     };
     App.prototype.setWallSheetingProfile = function (wallSheetingProfile) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetWallSheetingProfile.send(wallSheetingProfile); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetWallSheetingProfile.send(wallSheetingProfile); });
     };
     App.prototype.setRoofSheetingProfile = function (roofSheetingProfile) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetRoofSheetingProfile.send(roofSheetingProfile); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetRoofSheetingProfile.send(roofSheetingProfile); });
     };
     App.prototype.setWallSheetingColour = function (wallSheetingColour) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetWallSheetingColour.send(wallSheetingColour); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetWallSheetingColour.send(wallSheetingColour); });
     };
     App.prototype.setRoofSheetingColour = function (roofSheetingColour) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetRoofSheetingColour.send(roofSheetingColour); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetRoofSheetingColour.send(roofSheetingColour); });
     };
     App.prototype.setGutterColour = function (gutterColour) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetGutterColour.send(gutterColour); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetGutterColour.send(gutterColour); });
     };
     App.prototype.setBargeColour = function (bargeColour) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetBargeColour.send(bargeColour); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetBargeColour.send(bargeColour); });
     };
     App.prototype.setRidgeColour = function (ridgeColour) {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssSetRidgeColour.send(ridgeColour); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssSetRidgeColour.send(ridgeColour); });
     };
     App.prototype.insertSkylight = function () {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssInsertSkylight.send(sodium.Unit.UNIT); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssInsertSkylight.send(sodium.Unit.UNIT); });
     };
     App.prototype.insertWhirlybird = function () {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssInsertWhirlybird.send(sodium.Unit.UNIT); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssInsertWhirlybird.send(sodium.Unit.UNIT); });
     };
     App.prototype.toggleLeanTo = function () {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssToggleLeanTo.send(sodium.Unit.UNIT); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssToggleLeanTo.send(sodium.Unit.UNIT); });
     };
     App.prototype.insertMezzanine = function () {
-        var _this = this;
-        this.deferEffect(function () { return _this._ssInsertMezzanine.send(sodium.Unit.UNIT); });
+        var _this_1 = this;
+        this.deferEffect(function () { return _this_1._ssInsertMezzanine.send(sodium.Unit.UNIT); });
     };
     App.prototype.collectCycles = function () {
         sodium.Vertex.collectCycles();
@@ -775,6 +765,55 @@ var App = /** @class */ (function () {
     Object.defineProperty(App.prototype, "buildingData", {
         get: function () {
             return this._appModel.cBuildingData.sample();
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(App.prototype, "cBuildingData", {
+        get: function () {
+            return this._appModel.cBuildingData;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(App.prototype, "ccSideBaySizeResettableList", {
+        get: function () {
+            var cNumBays = SodiumUtil.cellCalmRefEq(this.building.cSideBayMarkers.map(function (sideBayMarkers) { return sideBayMarkers.length - 1; }));
+            var _this = this;
+            var cPreferredSideBaySizes = SodiumUtil.cellCalmRefEq(this.cBuildingData.map(function (buildingData) { return buildingData.preferredSideBaySizes; }));
+            return SodiumUtil.cellTrace(cNumBays.map(sodium.lambda1(function (numBays) {
+                var result = [];
+                var _loop_1 = function (i) {
+                    (function () {
+                        var bayIdx = i;
+                        result.push(Tuples_1.T2.of(SodiumUtil.cellCalmRefEq(_this.building.cSideBayMarkers.map(function (sideBayMarkers) {
+                            if (bayIdx >= sideBayMarkers.length - 1) {
+                                return 0.0;
+                            }
+                            return sideBayMarkers[bayIdx + 1] - sideBayMarkers[bayIdx];
+                        })), SodiumUtil.cellCalmRefEq(cPreferredSideBaySizes.map(function (preferredSideBaySizes) {
+                            for (var i_1 = 0; i_1 < preferredSideBaySizes.length; ++i_1) {
+                                var preferredSideBaySize = preferredSideBaySizes[i_1];
+                                if (preferredSideBaySize._1 == bayIdx) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }))));
+                    })();
+                };
+                for (var i = 0; i < numBays; ++i) {
+                    _loop_1(i);
+                }
+                return result;
+            }, [this.building.cSideBayMarkers])), function (x) { return ArrayUtil_1.arrayBind(x, function (x2) { return [x2._1, x2._2]; }); });
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(App.prototype, "building", {
+        get: function () {
+            return this._appModel.building;
         },
         enumerable: true,
         configurable: true
@@ -794,21 +833,21 @@ var App = /** @class */ (function () {
         configurable: true
     });
     App.prototype.leanToFormPropertiesSetSpan = function (span) {
-        var _this = this;
+        var _this_1 = this;
         window.setTimeout(function () {
-            _this._ssLeanToFormPropertiesSetSpan.send(span);
+            _this_1._ssLeanToFormPropertiesSetSpan.send(span);
         });
     };
     App.prototype.leanToFormPropertiesSetHeight = function (height) {
-        var _this = this;
+        var _this_1 = this;
         window.setTimeout(function () {
-            _this._ssLeanToFormPropertiesSetHeight.send(height);
+            _this_1._ssLeanToFormPropertiesSetHeight.send(height);
         });
     };
     App.prototype.leanToFormPropertiesSetPitch = function (pitch) {
-        var _this = this;
+        var _this_1 = this;
         window.setTimeout(function () {
-            _this._ssLeanToFormPropertiesSetPitch.send(pitch);
+            _this_1._ssLeanToFormPropertiesSetPitch.send(pitch);
         });
     };
     App.prototype.saveBuildingToCompressedBase64 = function () {
@@ -823,14 +862,14 @@ var App = /** @class */ (function () {
         });
     };
     App.prototype.loadBuildingFromCompressedBase64 = function (data) {
-        var _this = this;
+        var _this_1 = this;
         var zip = new JSZip();
         return zip
             .loadAsync(data, { base64: true })
             .then(function (zip2) { return zip2.file("building.json").async("text"); })
             .then(function (data) {
             var buildingData2 = BuildingData_1.BuildingData.fromJSON(JSON.parse(data));
-            window.setTimeout(function () { return _this._ssSetBuildingData.send(buildingData2); });
+            window.setTimeout(function () { return _this_1._ssSetBuildingData.send(buildingData2); });
         });
     };
     App.prototype.saveToGLTF = function () {
@@ -1045,6 +1084,20 @@ var BuildingData = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(BuildingData.prototype, "preferredNumSideBaysOp", {
+        get: function () {
+            return this._params.preferredNumSideBaysOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BuildingData.prototype, "preferredSideBaySizes", {
+        get: function () {
+            return this._params.preferredSideBaySizes;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(BuildingData.prototype, "side1WallData", {
         get: function () {
             return this._params.side1WallData;
@@ -1135,6 +1188,8 @@ var BuildingData = /** @class */ (function () {
             pitch: json.pitch,
             floorSystemDataOp: Option_1.Option.fromJSON(json.floorSystemDataOp, FloorSystemData_1.FloorSystemData.fromJSON),
             barnDataOp: Option_1.Option.fromJSON(json.barnDataOp, BarnData_1.BarnData.fromJSON),
+            preferredNumSideBaysOp: Option_1.Option.fromJSON(json.preferredNumSideBaysOp, function (x) { return x; }),
+            preferredSideBaySizes: json.preferredSideBaySizes.map(function (x) { return Tuples_1.T2.fromJSON(x, function (x2) { return x2; }, function (x2) { return x2; }); }),
             side1WallData: WallData_1.WallData.fromJSON(json.side1WallData),
             side2WallData: WallData_1.WallData.fromJSON(json.side2WallData),
             end1WallData: WallData_1.WallData.fromJSON(json.end1WallData),
@@ -4033,6 +4088,8 @@ var AppModel = /** @class */ (function () {
                 pitch: 15.0,
                 floorSystemDataOp: Option_1.Option.none(),
                 barnDataOp: Option_1.Option.none(),
+                preferredNumSideBaysOp: Option_1.Option.none(),
+                preferredSideBaySizes: [],
                 side1WallData: WallData_1.WallData.default_,
                 side2WallData: WallData_1.WallData.default_,
                 end1WallData: WallData_1.WallData.default_,
@@ -4191,7 +4248,12 @@ var AppModel = /** @class */ (function () {
             }));
             var cOverlayModelOp = SodiumUtil.cellPartialCalm(function (a, b) { return a.is_none && b.is_none; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cOverlayModelOp; })));
             clHighlightedStableNames.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cHighlightedStableNames; }))));
-            clRoofVisible.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell.switchC(cMode.map(function (mode) { return mode.cRoofVisible; }))));
+            var cShowingBaySizes = params.sSetShowingBaySizes.hold(false);
+            clRoofVisible.loop(SodiumUtil.cellCalm(function (a, b) { return a == b; }, sodium.Cell
+                .switchC(cMode.map(function (mode) { return mode.cRoofVisible; }))
+                .lift(cShowingBaySizes, function (modeRoofVisible, showingBaySizes) {
+                return showingBaySizes ? false : modeRoofVisible;
+            })));
             slBuildingEffect.loop(sodium.Cell
                 .switchS(cMode.map(function (mode) { return mode.sBuildingEffect; }))
                 .orElse(params.buildingParamsChanges.sSetFloorSystemEnabled
@@ -4296,6 +4358,42 @@ var AppModel = /** @class */ (function () {
                 .snapshot(cBuildingData, function (pitch, buildingData) {
                 return buildingData.from({ pitch: pitch });
             }))
+                .orElse(params.buildingParamsChanges.sSetPreferredNumBays
+                .snapshot(cBuildingData, function (preferredNumBays, buildingData) {
+                return buildingData.from({ preferredNumSideBaysOp: Option_1.Option.some(preferredNumBays) });
+            }))
+                .orElse(params.buildingParamsChanges.sUnsetPreferredNumBays
+                .snapshot1(cBuildingData)
+                .map(function (buildingData) {
+                return buildingData.from({ preferredNumSideBaysOp: Option_1.Option.none() });
+            }))
+                .orElse(params.buildingParamsChanges.sSetPreferredBaySize
+                .snapshot(cBuildingData, function (preferredBaySize, buildingData) {
+                var preferredBaySizes2 = buildingData.preferredSideBaySizes.slice(0);
+                var found = false;
+                for (var i = 0; i < preferredBaySizes2.length; ++i) {
+                    if (preferredBaySizes2[i]._1 == preferredBaySize._1) {
+                        preferredBaySizes2[i] = preferredBaySize;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    preferredBaySizes2.push(preferredBaySize);
+                }
+                return buildingData.from({ preferredSideBaySizes: preferredBaySizes2 });
+            }))
+                .orElse(params.buildingParamsChanges.sUnsetPreferredBaySize
+                .snapshot(cBuildingData, function (unsetPreferredBaySize, buildingData) {
+                var preferredBaySizes2 = buildingData.preferredSideBaySizes.slice(0);
+                for (var i = 0; i < preferredBaySizes2.length; ++i) {
+                    if (preferredBaySizes2[i]._1 == unsetPreferredBaySize) {
+                        preferredBaySizes2.splice(i, 1);
+                        return buildingData.from({ preferredSideBaySizes: preferredBaySizes2 });
+                    }
+                }
+                return buildingData;
+            }))
                 .orElse(slBuildingEffect
                 .snapshot(cBuildingData, function (buildingEffect, buildingData) {
                 return performEffectOnBuilding(buildingData, buildingEffect);
@@ -4311,10 +4409,14 @@ var AppModel = /** @class */ (function () {
                     .orElse(sodium.Operational
                     .updates(cOverlayModelOp)
                     .mapTo(sodium.Unit.UNIT))
+                    .orElse(sodium.Operational
+                    .updates(clRoofVisible)
+                    .mapTo(sodium.Unit.UNIT))
                     .orElse(slBuildingData.mapTo(sodium.Unit.UNIT));
             _this._sSetFormProperties = sSetFormProperties;
             _this._cFloatingDeleteButtons = cFloatingDeleteButtons;
             _this._cShowPropertiesOp = cShowPropertiesOp;
+            _this._building = building;
         });
     }
     Object.defineProperty(AppModel.prototype, "cBuildingData", {
@@ -4369,6 +4471,13 @@ var AppModel = /** @class */ (function () {
     Object.defineProperty(AppModel.prototype, "cShowPropertiesOp", {
         get: function () {
             return this._cShowPropertiesOp;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(AppModel.prototype, "building", {
+        get: function () {
+            return this._building;
         },
         enumerable: true,
         configurable: true
@@ -4659,6 +4768,8 @@ var Building = /** @class */ (function () {
             var cPitch = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.pitch; }));
             var cFloorSystemDataOp = SodiumUtil.cellCalmRefEq(params.cBuildingData.map(function (buildingData) { return buildingData.floorSystemDataOp; }));
             var cBarnDataOp = SodiumUtil.cellCalmRefEq(params.cBuildingData.map(function (buildingData) { return buildingData.barnDataOp; }));
+            var cPreferredNumSideBaysOp = SodiumUtil.cellCalmRefEq(params.cBuildingData.map(function (buildingData) { return buildingData.preferredNumSideBaysOp; }));
+            var cPreferredSideBaySizes = SodiumUtil.cellCalmRefEq(params.cBuildingData.map(function (buildingData) { return buildingData.preferredSideBaySizes; }));
             var cSide1WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side1WallData; }));
             var cSide2WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.side2WallData; }));
             var cEnd1WallData = SodiumUtil.cellCalm(function (a, b) { return a == b; }, params.cBuildingData.map(function (buildingData) { return buildingData.end1WallData; }));
@@ -4678,13 +4789,44 @@ var Building = /** @class */ (function () {
             var cFFL = cSlabThickness.lift(cFloorSystemDataOp, function (slabthickness, floorSystemDataOp) {
                 return slabthickness + floorSystemDataOp.map(function (floorSystemData) { return floorSystemData.height; }).orSome(0.0);
             });
-            var cSide1BayMarkers = cLength.lift(cMaxBaySize, function (length, maxBaySize) {
-                var numBays = Math.ceil(length / maxBaySize);
-                var baySize = length / numBays;
-                var numBayMarkers = numBays + 1;
+            var cSide1BayMarkers = SodiumUtil.cellLift4(cLength, cMaxBaySize, cPreferredNumSideBaysOp, cPreferredSideBaySizes, function (length, maxBaySize, preferredNumSideBaysOp, preferredSideBaySizes) {
                 var bayMarkers = [];
-                for (var i = 0; i < numBayMarkers; ++i) {
-                    bayMarkers.push(-0.5 * length + i * baySize);
+                var numPreferredSizes = preferredSideBaySizes.length;
+                var totalPreferredSizes = ArrayUtil_1.arrayReduce(preferredSideBaySizes.map(function (x) { return x._2; }), function (a, b) { return a + b; }).orSome(0.0);
+                var remainingLength = length - totalPreferredSizes;
+                var numBays = preferredNumSideBaysOp.orSome_(function () { return numPreferredSizes + Math.ceil(remainingLength / maxBaySize); });
+                if (remainingLength > 0.0 && numPreferredSizes == numBays) {
+                    ++numBays;
+                }
+                var atMarkerPos = -0.5 * length;
+                bayMarkers.push(atMarkerPos);
+                var commonBaySize = numBays == numPreferredSizes ? 0.0 : remainingLength / (numBays - numPreferredSizes);
+                for (var i = 0; i < numBays; ++i) {
+                    var baySize = void 0;
+                    var preferredSizeOp = Option_1.Option.none();
+                    for (var j = 0; j < preferredSideBaySizes.length; ++j) {
+                        var preferredSideBaySize = preferredSideBaySizes[j];
+                        if (preferredSideBaySize._1 == i) {
+                            preferredSizeOp = Option_1.Option.some(preferredSideBaySize._2);
+                            break;
+                        }
+                    }
+                    if (preferredSizeOp.isSome) {
+                        baySize = preferredSizeOp.fromSome();
+                    }
+                    else {
+                        baySize = commonBaySize;
+                    }
+                    var nextMarker = atMarkerPos + baySize;
+                    if (nextMarker >= +0.5 * length) {
+                        nextMarker = +0.5 * length;
+                        bayMarkers.push(nextMarker);
+                        break;
+                    }
+                    else {
+                        bayMarkers.push(nextMarker);
+                    }
+                    atMarkerPos = nextMarker;
                 }
                 return bayMarkers;
             });
@@ -12708,6 +12850,10 @@ var Wall = /** @class */ (function () {
     return Wall;
 }());
 exports.Wall = Wall;
+/*
+class WallSelectable extends Selectable {
+    public _cHighlightOverlayModelOp:
+}*/ 
 //# sourceMappingURL=Wall.js.map
 });
 ___scope___.file("app/model/Bay.js", function(exports, require, module, __filename, __dirname){
@@ -85537,6 +85683,858 @@ ___scope___.file("index.js", function(exports, require, module, __filename, __di
   }
 
   return type;
+
+}));
+
+});
+return ___scope___.entry = "index.js";
+});
+FuseBox.pkg("css-element-queries", {}, function(___scope___){
+___scope___.file("index.js", function(exports, require, module, __filename, __dirname){
+
+module.exports = {
+    ResizeSensor: require('./src/ResizeSensor'),
+    ElementQueries: require('./src/ElementQueries')
+};
+
+});
+___scope___.file("src/ResizeSensor.js", function(exports, require, module, __filename, __dirname){
+
+'use strict';
+
+/**
+ * Copyright Marc J. Schmidt. See the LICENSE file at the top-level
+ * directory of this distribution and at
+ * https://github.com/marcj/css-element-queries/blob/master/LICENSE.
+ */
+(function (root, factory) {
+    if (typeof define === "function" && define.amd) {
+        define(factory);
+    } else if (typeof exports === "object") {
+        module.exports = factory();
+    } else {
+        root.ResizeSensor = factory();
+    }
+}(typeof window !== 'undefined' ? window : this, function () {
+
+    // Make sure it does not throw in a SSR (Server Side Rendering) situation
+    if (typeof window === "undefined") {
+        return null;
+    }
+    // Only used for the dirty checking, so the event callback count is limited to max 1 call per fps per sensor.
+    // In combination with the event based resize sensor this saves cpu time, because the sensor is too fast and
+    // would generate too many unnecessary events.
+    var requestAnimationFrame = window.requestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        function (fn) {
+            return window.setTimeout(fn, 20);
+        };
+
+    /**
+     * Iterate over each of the provided element(s).
+     *
+     * @param {HTMLElement|HTMLElement[]} elements
+     * @param {Function}                  callback
+     */
+    function forEachElement(elements, callback){
+        var elementsType = Object.prototype.toString.call(elements);
+        var isCollectionTyped = ('[object Array]' === elementsType
+            || ('[object NodeList]' === elementsType)
+            || ('[object HTMLCollection]' === elementsType)
+            || ('[object Object]' === elementsType)
+            || ('undefined' !== typeof jQuery && elements instanceof jQuery) //jquery
+            || ('undefined' !== typeof Elements && elements instanceof Elements) //mootools
+        );
+        var i = 0, j = elements.length;
+        if (isCollectionTyped) {
+            for (; i < j; i++) {
+                callback(elements[i]);
+            }
+        } else {
+            callback(elements);
+        }
+    }
+
+    /**
+    * Get element size
+    * @param {HTMLElement} element
+    * @returns {Object} {width, height}
+    */
+    function getElementSize(element) {
+        if (!element.getBoundingClientRect) {
+            return {
+                width: element.offsetWidth,
+                height: element.offsetHeight
+            }
+        }
+
+        var rect = element.getBoundingClientRect();
+        return {
+            width: Math.round(rect.width),
+            height: Math.round(rect.height)
+        }
+    }
+
+    /**
+     * Class for dimension change detection.
+     *
+     * @param {Element|Element[]|Elements|jQuery} element
+     * @param {Function} callback
+     *
+     * @constructor
+     */
+    var ResizeSensor = function(element, callback) {
+        /**
+         *
+         * @constructor
+         */
+        function EventQueue() {
+            var q = [];
+            this.add = function(ev) {
+                q.push(ev);
+            };
+
+            var i, j;
+            this.call = function(sizeInfo) {
+                for (i = 0, j = q.length; i < j; i++) {
+                    q[i].call(this, sizeInfo);
+                }
+            };
+
+            this.remove = function(ev) {
+                var newQueue = [];
+                for(i = 0, j = q.length; i < j; i++) {
+                    if(q[i] !== ev) newQueue.push(q[i]);
+                }
+                q = newQueue;
+            };
+
+            this.length = function() {
+                return q.length;
+            }
+        }
+
+        /**
+         *
+         * @param {HTMLElement} element
+         * @param {Function}    resized
+         */
+        function attachResizeEvent(element, resized) {
+            if (!element) return;
+            if (element.resizedAttached) {
+                element.resizedAttached.add(resized);
+                return;
+            }
+
+            element.resizedAttached = new EventQueue();
+            element.resizedAttached.add(resized);
+
+            element.resizeSensor = document.createElement('div');
+            element.resizeSensor.dir = 'ltr';
+            element.resizeSensor.className = 'resize-sensor';
+            var style = 'pointer-events: none; position: absolute; left: 0px; top: 0px; right: 0; bottom: 0; ' +
+                'overflow: hidden; z-index: -1; visibility: hidden; max-width: 100%;';
+            var styleChild = 'position: absolute; left: 0; top: 0; transition: 0s;';
+
+            element.resizeSensor.style.cssText = style;
+            element.resizeSensor.innerHTML =
+                '<div class="resize-sensor-expand" style="' + style + '">' +
+                    '<div style="' + styleChild + '"></div>' +
+                '</div>' +
+                '<div class="resize-sensor-shrink" style="' + style + '">' +
+                    '<div style="' + styleChild + ' width: 200%; height: 200%"></div>' +
+                '</div>';
+            element.appendChild(element.resizeSensor);
+
+            var computedStyle = window.getComputedStyle(element);
+            var position = computedStyle ? computedStyle.getPropertyValue('position') : null;
+            if ('absolute' !== position && 'relative' !== position && 'fixed' !== position) {
+                element.style.position = 'relative';
+            }
+
+            var expand = element.resizeSensor.childNodes[0];
+            var expandChild = expand.childNodes[0];
+            var shrink = element.resizeSensor.childNodes[1];
+            var dirty, rafId;
+            var size = getElementSize(element);
+            var lastWidth = size.width;
+            var lastHeight = size.height;
+            var initialHiddenCheck = true;
+            var lastAnimationFrame = 0;
+
+            var resetExpandShrink = function () {
+                var width = element.offsetWidth;
+                var height = element.offsetHeight;
+
+                expandChild.style.width = (width + 10) + 'px';
+                expandChild.style.height = (height + 10) + 'px';
+
+                expand.scrollLeft = width + 10;
+                expand.scrollTop = height + 10;
+
+                shrink.scrollLeft = width + 10;
+                shrink.scrollTop = height + 10;
+            };
+
+            var reset = function() {
+                // Check if element is hidden
+                if (initialHiddenCheck) {
+                    var invisible = element.offsetWidth === 0 && element.offsetHeight === 0;
+                    if (invisible) {
+                        // Check in next frame
+                        if (!lastAnimationFrame){
+                            lastAnimationFrame = requestAnimationFrame(function(){
+                                lastAnimationFrame = 0;
+
+                                reset();
+                            });
+                        }
+
+                        return;
+                    } else {
+                        // Stop checking
+                        initialHiddenCheck = false;
+                    }
+                }
+
+                resetExpandShrink();
+            };
+            element.resizeSensor.resetSensor = reset;
+
+            var onResized = function() {
+                rafId = 0;
+
+                if (!dirty) return;
+
+                lastWidth = size.width;
+                lastHeight = size.height;
+
+                if (element.resizedAttached) {
+                    element.resizedAttached.call(size);
+                }
+            };
+
+            var onScroll = function() {
+                size = getElementSize(element);
+                dirty = size.width !== lastWidth || size.height !== lastHeight;
+
+                if (dirty && !rafId) {
+                    rafId = requestAnimationFrame(onResized);
+                }
+
+                reset();
+            };
+
+            var addEvent = function(el, name, cb) {
+                if (el.attachEvent) {
+                    el.attachEvent('on' + name, cb);
+                } else {
+                    el.addEventListener(name, cb);
+                }
+            };
+
+            addEvent(expand, 'scroll', onScroll);
+            addEvent(shrink, 'scroll', onScroll);
+
+            // Fix for custom Elements
+            requestAnimationFrame(reset);
+        }
+
+        forEachElement(element, function(elem){
+            attachResizeEvent(elem, callback);
+        });
+
+        this.detach = function(ev) {
+            ResizeSensor.detach(element, ev);
+        };
+
+        this.reset = function() {
+            element.resizeSensor.resetSensor();
+        };
+    };
+
+    ResizeSensor.reset = function(element) {
+        forEachElement(element, function(elem){
+            elem.resizeSensor.resetSensor();
+        });
+    };
+
+    ResizeSensor.detach = function(element, ev) {
+        forEachElement(element, function(elem){
+            if (!elem) return;
+            if(elem.resizedAttached && typeof ev === "function"){
+                elem.resizedAttached.remove(ev);
+                if(elem.resizedAttached.length()) return;
+            }
+            if (elem.resizeSensor) {
+                if (elem.contains(elem.resizeSensor)) {
+                    elem.removeChild(elem.resizeSensor);
+                }
+                delete elem.resizeSensor;
+                delete elem.resizedAttached;
+            }
+        });
+    };
+
+    if (typeof MutationObserver !== "undefined") {
+        var observer = new MutationObserver(function (mutations) {
+            for (var i in mutations) {
+                if (mutations.hasOwnProperty(i)) {
+                    var items = mutations[i].addedNodes;
+                    for (var j = 0; j < items.length; j++) {
+                        if (items[j].resizeSensor) {
+                            ResizeSensor.reset(items[j]);
+                        }
+                    }
+                }
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function (event) {
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+        });
+    }
+
+    return ResizeSensor;
+
+}));
+
+});
+___scope___.file("src/ElementQueries.js", function(exports, require, module, __filename, __dirname){
+
+'use strict';
+
+/**
+ * Copyright Marc J. Schmidt. See the LICENSE file at the top-level
+ * directory of this distribution and at
+ * https://github.com/marcj/css-element-queries/blob/master/LICENSE.
+ */
+(function (root, factory) {
+    if (typeof define === "function" && define.amd) {
+        define(['./ResizeSensor.js'], factory);
+    } else if (typeof exports === "object") {
+        module.exports = factory(require('./ResizeSensor.js'));
+    } else {
+        root.ElementQueries = factory(root.ResizeSensor);
+        root.ElementQueries.listen();
+    }
+}(typeof window !== 'undefined' ? window : this, function (ResizeSensor) {
+
+    /**
+     *
+     * @type {Function}
+     * @constructor
+     */
+    var ElementQueries = function () {
+        //<style> element with our dynamically created styles
+        var cssStyleElement;
+
+        //all rules found for element queries
+        var allQueries = {};
+
+        //association map to identify which selector belongs to a element from the animationstart event.
+        var idToSelectorMapping = [];
+
+        /**
+         *
+         * @param element
+         * @returns {Number}
+         */
+        function getEmSize(element) {
+            if (!element) {
+                element = document.documentElement;
+            }
+            var fontSize = window.getComputedStyle(element, null).fontSize;
+            return parseFloat(fontSize) || 16;
+        }
+
+        /**
+         * Get element size
+         * @param {HTMLElement} element
+         * @returns {Object} {width, height}
+         */
+        function getElementSize(element) {
+            if (!element.getBoundingClientRect) {
+                return {
+                    width: element.offsetWidth,
+                    height: element.offsetHeight
+                }
+            }
+
+            var rect = element.getBoundingClientRect();
+            return {
+                width: Math.round(rect.width),
+                height: Math.round(rect.height)
+            }
+        }
+
+        /**
+         *
+         * @copyright https://github.com/Mr0grog/element-query/blob/master/LICENSE
+         *
+         * @param {HTMLElement} element
+         * @param {*} value
+         * @returns {*}
+         */
+        function convertToPx(element, value) {
+            var numbers = value.split(/\d/);
+            var units = numbers[numbers.length - 1];
+            value = parseFloat(value);
+            switch (units) {
+                case "px":
+                    return value;
+                case "em":
+                    return value * getEmSize(element);
+                case "rem":
+                    return value * getEmSize();
+                // Viewport units!
+                // According to http://quirksmode.org/mobile/tableViewport.html
+                // documentElement.clientWidth/Height gets us the most reliable info
+                case "vw":
+                    return value * document.documentElement.clientWidth / 100;
+                case "vh":
+                    return value * document.documentElement.clientHeight / 100;
+                case "vmin":
+                case "vmax":
+                    var vw = document.documentElement.clientWidth / 100;
+                    var vh = document.documentElement.clientHeight / 100;
+                    var chooser = Math[units === "vmin" ? "min" : "max"];
+                    return value * chooser(vw, vh);
+                default:
+                    return value;
+                // for now, not supporting physical units (since they are just a set number of px)
+                // or ex/ch (getting accurate measurements is hard)
+            }
+        }
+
+        /**
+         *
+         * @param {HTMLElement} element
+         * @param {String} id
+         * @constructor
+         */
+        function SetupInformation(element, id) {
+            this.element = element;
+            var key, option, elementSize, value, actualValue, attrValues, attrValue, attrName;
+
+            var attributes = ['min-width', 'min-height', 'max-width', 'max-height'];
+
+            /**
+             * Extracts the computed width/height and sets to min/max- attribute.
+             */
+            this.call = function () {
+                // extract current dimensions
+                elementSize = getElementSize(this.element);
+
+                attrValues = {};
+
+                for (key in allQueries[id]) {
+                    if (!allQueries[id].hasOwnProperty(key)) {
+                        continue;
+                    }
+                    option = allQueries[id][key];
+
+                    value = convertToPx(this.element, option.value);
+
+                    actualValue = option.property === 'width' ? elementSize.width : elementSize.height;
+                    attrName = option.mode + '-' + option.property;
+                    attrValue = '';
+
+                    if (option.mode === 'min' && actualValue >= value) {
+                        attrValue += option.value;
+                    }
+
+                    if (option.mode === 'max' && actualValue <= value) {
+                        attrValue += option.value;
+                    }
+
+                    if (!attrValues[attrName]) attrValues[attrName] = '';
+                    if (attrValue && -1 === (' ' + attrValues[attrName] + ' ').indexOf(' ' + attrValue + ' ')) {
+                        attrValues[attrName] += ' ' + attrValue;
+                    }
+                }
+
+                for (var k in attributes) {
+                    if (!attributes.hasOwnProperty(k)) continue;
+
+                    if (attrValues[attributes[k]]) {
+                        this.element.setAttribute(attributes[k], attrValues[attributes[k]].substr(1));
+                    } else {
+                        this.element.removeAttribute(attributes[k]);
+                    }
+                }
+            };
+        }
+
+        /**
+         * @param {HTMLElement} element
+         * @param {Object}      id
+         */
+        function setupElement(element, id) {
+            if (!element.elementQueriesSetupInformation) {
+                element.elementQueriesSetupInformation = new SetupInformation(element, id);
+            }
+            if (!element.elementQueriesSensor) {
+                element.elementQueriesSensor = new ResizeSensor(element, function () {
+                    element.elementQueriesSetupInformation.call();
+                });
+            }
+
+            element.elementQueriesSetupInformation.call();
+        }
+
+        /**
+         * Stores rules to the selector that should be applied once resized.
+         *
+         * @param {String} selector
+         * @param {String} mode min|max
+         * @param {String} property width|height
+         * @param {String} value
+         */
+        function queueQuery(selector, mode, property, value) {
+            if (typeof(allQueries[selector]) === 'undefined') {
+                allQueries[selector] = [];
+                // add animation to trigger animationstart event, so we know exactly when a element appears in the DOM
+
+                var id = idToSelectorMapping.length;
+                cssStyleElement.innerHTML += '\n' + selector + ' {animation: 0.1s element-queries;}';
+                cssStyleElement.innerHTML += '\n' + selector + ' > .resize-sensor {min-width: '+id+'px;}';
+                idToSelectorMapping.push(selector);
+            }
+
+            allQueries[selector].push({
+                mode: mode,
+                property: property,
+                value: value
+            });
+        }
+
+        function getQuery(container) {
+            var query;
+            if (document.querySelectorAll) query = (container) ? container.querySelectorAll.bind(container) : document.querySelectorAll.bind(document);
+            if (!query && 'undefined' !== typeof $$) query = $$;
+            if (!query && 'undefined' !== typeof jQuery) query = jQuery;
+
+            if (!query) {
+                throw 'No document.querySelectorAll, jQuery or Mootools\'s $$ found.';
+            }
+
+            return query;
+        }
+
+        /**
+         * If animationStart didn't catch a new element in the DOM, we can manually search for it
+         */
+        function findElementQueriesElements(container) {
+            var query = getQuery(container);
+
+            for (var selector in allQueries) if (allQueries.hasOwnProperty(selector)) {
+                // find all elements based on the extract query selector from the element query rule
+                var elements = query(selector, container);
+
+                for (var i = 0, j = elements.length; i < j; i++) {
+                    setupElement(elements[i], selector);
+                }
+            }
+        }
+
+        /**
+         *
+         * @param {HTMLElement} element
+         */
+        function attachResponsiveImage(element) {
+            var children = [];
+            var rules = [];
+            var sources = [];
+            var defaultImageId = 0;
+            var lastActiveImage = -1;
+            var loadedImages = [];
+
+            for (var i in element.children) {
+                if (!element.children.hasOwnProperty(i)) continue;
+
+                if (element.children[i].tagName && element.children[i].tagName.toLowerCase() === 'img') {
+                    children.push(element.children[i]);
+
+                    var minWidth = element.children[i].getAttribute('min-width') || element.children[i].getAttribute('data-min-width');
+                    //var minHeight = element.children[i].getAttribute('min-height') || element.children[i].getAttribute('data-min-height');
+                    var src = element.children[i].getAttribute('data-src') || element.children[i].getAttribute('url');
+
+                    sources.push(src);
+
+                    var rule = {
+                        minWidth: minWidth
+                    };
+
+                    rules.push(rule);
+
+                    if (!minWidth) {
+                        defaultImageId = children.length - 1;
+                        element.children[i].style.display = 'block';
+                    } else {
+                        element.children[i].style.display = 'none';
+                    }
+                }
+            }
+
+            lastActiveImage = defaultImageId;
+
+            function check() {
+                var imageToDisplay = false, i;
+
+                for (i in children) {
+                    if (!children.hasOwnProperty(i)) continue;
+
+                    if (rules[i].minWidth) {
+                        if (element.offsetWidth > rules[i].minWidth) {
+                            imageToDisplay = i;
+                        }
+                    }
+                }
+
+                if (!imageToDisplay) {
+                    //no rule matched, show default
+                    imageToDisplay = defaultImageId;
+                }
+
+                if (lastActiveImage !== imageToDisplay) {
+                    //image change
+
+                    if (!loadedImages[imageToDisplay]) {
+                        //image has not been loaded yet, we need to load the image first in memory to prevent flash of
+                        //no content
+
+                        var image = new Image();
+                        image.onload = function () {
+                            children[imageToDisplay].src = sources[imageToDisplay];
+
+                            children[lastActiveImage].style.display = 'none';
+                            children[imageToDisplay].style.display = 'block';
+
+                            loadedImages[imageToDisplay] = true;
+
+                            lastActiveImage = imageToDisplay;
+                        };
+
+                        image.src = sources[imageToDisplay];
+                    } else {
+                        children[lastActiveImage].style.display = 'none';
+                        children[imageToDisplay].style.display = 'block';
+                        lastActiveImage = imageToDisplay;
+                    }
+                } else {
+                    //make sure for initial check call the .src is set correctly
+                    children[imageToDisplay].src = sources[imageToDisplay];
+                }
+            }
+
+            element.resizeSensorInstance = new ResizeSensor(element, check);
+            check();
+        }
+
+        function findResponsiveImages() {
+            var query = getQuery();
+
+            var elements = query('[data-responsive-image],[responsive-image]');
+            for (var i = 0, j = elements.length; i < j; i++) {
+                attachResponsiveImage(elements[i]);
+            }
+        }
+
+        var regex = /,?[\s\t]*([^,\n]*?)((?:\[[\s\t]*?(?:min|max)-(?:width|height)[\s\t]*?[~$\^]?=[\s\t]*?"[^"]*?"[\s\t]*?])+)([^,\n\s\{]*)/mgi;
+        var attrRegex = /\[[\s\t]*?(min|max)-(width|height)[\s\t]*?[~$\^]?=[\s\t]*?"([^"]*?)"[\s\t]*?]/mgi;
+
+        /**
+         * @param {String} css
+         */
+        function extractQuery(css) {
+            var match, smatch, attrs, attrMatch;
+
+            css = css.replace(/'/g, '"');
+            while (null !== (match = regex.exec(css))) {
+                smatch = match[1] + match[3];
+                attrs = match[2];
+
+                while (null !== (attrMatch = attrRegex.exec(attrs))) {
+                    queueQuery(smatch, attrMatch[1], attrMatch[2], attrMatch[3]);
+                }
+            }
+        }
+
+        /**
+         * @param {CssRule[]|String} rules
+         */
+        function readRules(rules) {
+            var selector = '';
+
+            if (!rules) {
+                return;
+            }
+
+            if ('string' === typeof rules) {
+                rules = rules.toLowerCase();
+                if (-1 !== rules.indexOf('min-width') || -1 !== rules.indexOf('max-width')) {
+                    extractQuery(rules);
+                }
+            } else {
+                for (var i = 0, j = rules.length; i < j; i++) {
+                    if (1 === rules[i].type) {
+                        selector = rules[i].selectorText || rules[i].cssText;
+                        if (-1 !== selector.indexOf('min-height') || -1 !== selector.indexOf('max-height')) {
+                            extractQuery(selector);
+                        } else if (-1 !== selector.indexOf('min-width') || -1 !== selector.indexOf('max-width')) {
+                            extractQuery(selector);
+                        }
+                    } else if (4 === rules[i].type) {
+                        readRules(rules[i].cssRules || rules[i].rules);
+                    } else if (3 === rules[i].type) {
+                        if(rules[i].styleSheet.hasOwnProperty("cssRules")) {
+                            readRules(rules[i].styleSheet.cssRules);
+                        }
+                    }
+                }
+            }
+        }
+
+        var defaultCssInjected = false;
+
+        /**
+         * Searches all css rules and setups the event listener to all elements with element query rules..
+         */
+        this.init = function () {
+            var animationStart = 'animationstart';
+            if (typeof document.documentElement.style['webkitAnimationName'] !== 'undefined') {
+                animationStart = 'webkitAnimationStart';
+            } else if (typeof document.documentElement.style['MozAnimationName'] !== 'undefined') {
+                animationStart = 'mozanimationstart';
+            } else if (typeof document.documentElement.style['OAnimationName'] !== 'undefined') {
+                animationStart = 'oanimationstart';
+            }
+
+            document.body.addEventListener(animationStart, function (e) {
+                var element = e.target;
+                var styles = element && window.getComputedStyle(element, null);
+                var animationName = styles && styles.getPropertyValue('animation-name');
+                var requiresSetup = animationName && (-1 !== animationName.indexOf('element-queries'));
+
+                if (requiresSetup) {
+                    element.elementQueriesSensor = new ResizeSensor(element, function () {
+                        if (element.elementQueriesSetupInformation) {
+                            element.elementQueriesSetupInformation.call();
+                        }
+                    });
+
+                    var sensorStyles = window.getComputedStyle(element.resizeSensor, null);
+                    var id = sensorStyles.getPropertyValue('min-width');
+                    id = parseInt(id.replace('px', ''));
+                    setupElement(e.target, idToSelectorMapping[id]);
+                }
+            });
+
+            if (!defaultCssInjected) {
+                cssStyleElement = document.createElement('style');
+                cssStyleElement.type = 'text/css';
+                cssStyleElement.innerHTML = '[responsive-image] > img, [data-responsive-image] {overflow: hidden; padding: 0; } [responsive-image] > img, [data-responsive-image] > img {width: 100%;}';
+
+                //safari wants at least one rule in keyframes to start working
+                cssStyleElement.innerHTML += '\n@keyframes element-queries { 0% { visibility: inherit; } }';
+                document.getElementsByTagName('head')[0].appendChild(cssStyleElement);
+                defaultCssInjected = true;
+            }
+
+            for (var i = 0, j = document.styleSheets.length; i < j; i++) {
+                try {
+                    if (document.styleSheets[i].href && 0 === document.styleSheets[i].href.indexOf('file://')) {
+                        console.log("CssElementQueries: unable to parse local css files, " + document.styleSheets[i].href);
+                    }
+
+                    readRules(document.styleSheets[i].cssRules || document.styleSheets[i].rules || document.styleSheets[i].cssText);
+                } catch (e) {
+                }
+            }
+
+            findResponsiveImages();
+        };
+
+        /**
+         * Go through all collected rules (readRules()) and attach the resize-listener.
+         * Not necessary to call it manually, since we detect automatically when new elements
+         * are available in the DOM. However, sometimes handy for dirty DOM modifications.
+         *
+         * @param {HTMLElement} container only elements of the container are considered (document.body if not set)
+         */
+        this.findElementQueriesElements = function (container) {
+            findElementQueriesElements(container);
+        };
+
+        this.update = function () {
+            this.init();
+        };
+    };
+
+    ElementQueries.update = function () {
+        ElementQueries.instance.update();
+    };
+
+    /**
+     * Removes all sensor and elementquery information from the element.
+     *
+     * @param {HTMLElement} element
+     */
+    ElementQueries.detach = function (element) {
+        if (element.elementQueriesSetupInformation) {
+            //element queries
+            element.elementQueriesSensor.detach();
+            delete element.elementQueriesSetupInformation;
+            delete element.elementQueriesSensor;
+
+        } else if (element.resizeSensorInstance) {
+            //responsive image
+
+            element.resizeSensorInstance.detach();
+            delete element.resizeSensorInstance;
+        }
+    };
+
+    ElementQueries.init = function () {
+        if (!ElementQueries.instance) {
+            ElementQueries.instance = new ElementQueries();
+        }
+
+        ElementQueries.instance.init();
+    };
+
+    var domLoaded = function (callback) {
+        /* Mozilla, Chrome, Opera */
+        if (document.addEventListener) {
+            document.addEventListener('DOMContentLoaded', callback, false);
+        }
+        /* Safari, iCab, Konqueror */
+        else if (/KHTML|WebKit|iCab/i.test(navigator.userAgent)) {
+            var DOMLoadTimer = setInterval(function () {
+                if (/loaded|complete/i.test(document.readyState)) {
+                    callback();
+                    clearInterval(DOMLoadTimer);
+                }
+            }, 10);
+        }
+        /* Other web browsers */
+        else window.onload = callback;
+    };
+
+    ElementQueries.findElementQueriesElements = function (container) {
+        ElementQueries.instance.findElementQueriesElements(container);
+    };
+
+    ElementQueries.listen = function () {
+        domLoaded(ElementQueries.init);
+    };
+
+    return ElementQueries;
 
 }));
 
