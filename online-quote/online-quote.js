@@ -210,12 +210,12 @@ var App = /** @class */ (function () {
             });
             window['scene'] = scene;
             camera.up = new THREE.Vector3(0, 0, 1);
-            canvas.addEventListener = (function () {
-                var realAddEventListener = canvas.addEventListener;
+            document.addEventListener = (function () {
+                var realAddEventListener = document.addEventListener;
                 return function (type, handler) {
                     if (type == "mousemove") {
                         var block_1 = false;
-                        return realAddEventListener.call(canvas, type, function (a, b) {
+                        return realAddEventListener.call(document, type, function (a, b) {
                             if (block_1) {
                                 return;
                             }
@@ -227,6 +227,32 @@ var App = /** @class */ (function () {
                                 }
                                 finally {
                                     block_1 = false;
+                                }
+                            });
+                        });
+                    }
+                    else {
+                        return realAddEventListener.call(document, type, handler);
+                    }
+                };
+            })();
+            canvas.addEventListener = (function () {
+                var realAddEventListener = canvas.addEventListener;
+                return function (type, handler) {
+                    if (type == "mousemove") {
+                        var block_2 = false;
+                        return realAddEventListener.call(canvas, type, function (a, b) {
+                            if (block_2) {
+                                return;
+                            }
+                            var this_ = this;
+                            block_2 = true;
+                            window.requestAnimationFrame(function () {
+                                try {
+                                    handler.call(this_, a, b);
+                                }
+                                finally {
+                                    block_2 = false;
                                 }
                             });
                         });
