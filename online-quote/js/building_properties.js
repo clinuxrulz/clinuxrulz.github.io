@@ -86,7 +86,7 @@
     var btnNumSideBaysReset = document.getElementById("btnNumSideBaysReset");
     var cPreferredNumSideBaysOp = app.cBuildingData.map(function(buildingData) { return buildingData.preferredNumSideBaysOp; });
     cPreferredNumSideBaysOp.listen(function(preferredNumSideBaysOp) { btnNumSideBaysReset.style.display = preferredNumSideBaysOp.isSome ? "block" : "none"; });
-    cNumSideBays.listen(numSideBays => txtNumSideBays.value = "" + numSideBays);
+    cNumSideBays.listen(function(numSideBays) { return txtNumSideBays.value = "" + numSideBays; });
     txtNumSideBays.addEventListener("input", function() {
         var num = parseInt(txtNumSideBays.value);
         if (!isNaN(num) && num > 0) {

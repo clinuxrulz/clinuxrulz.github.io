@@ -17,6 +17,47 @@
         <script src="js/jquery.min.js"></script>
         <script src="js/jquery-ui.min.js"></script>
         <script src="js/w3.js"></script>
+        <script src="js/fetch.umd.js"></script>
+        <script src="js/promise-polyfill.min.js"></script>
+        <script>
+            if (typeof Number.isFinite !== 'function') {
+                Number.isFinite = function isFinite(value) {
+                    // 1. If Type(number) is not Number, return false.
+                    if (typeof value !== 'number') {
+                        return false;
+                    }
+                    // 2. If number is NaN, +∞, or −∞, return false.
+                    if (value !== value || value === Infinity || value === -Infinity) {
+                        return false;
+                    }
+                    // 3. Otherwise, return true.
+                    return true;
+                };
+            }
+            if (!Math.trunc) {
+                Math.trunc = function(v) {
+                    v = +v;
+                    if (!isFinite(v)) return v;
+                    
+                    return (v - v % 1)   ||   (v < 0 ? -0 : v === 0 ? v : 0);
+                    
+                    // returns:
+                    //  0        ->  0
+                    // -0        -> -0
+                    //  0.2      ->  0
+                    // -0.2      -> -0
+                    //  0.7      ->  0
+                    // -0.7      -> -0
+                    //  Infinity ->  Infinity
+                    // -Infinity -> -Infinity
+                    //  NaN      ->  NaN
+                    //  null     ->  0
+                };
+            }
+            if (Number.parseFloat === undefined) {
+                Number.parseFloat = parseFloat;
+            }
+            </script>
     </head>
     <body>
         <script  type="text/javascript" src="online-quote.js"></script>
@@ -425,7 +466,7 @@
                                 divOpeningHeadHeight.style.display = "block";
                             }
                         });
-                        app.sSetOpeningProperties.listen(openingProperties => {
+                        app.sSetOpeningProperties.listen(function(openingProperties) {
                             txtOpeningWidth.value = '' + openingProperties.width;
                             txtOpeningHeight.value = '' + openingProperties.height;
                             txtOpeningHeadHeight.value = '' + openingProperties.headHeight;
@@ -470,14 +511,14 @@
                                 app.setOpeningHeadHeight(ui.value);
                             }
                         });
-                        txtOpeningWidth.addEventListener("input", () => {
+                        txtOpeningWidth.addEventListener("input", function() {
                             var value = parseFloat(txtOpeningWidth.value);
                             if (!isNaN(value)) {
                                 app.setOpeningWidth(value);
                                 $("#openingWidthSlider").slider({ value: value });
                             }
                         });
-                        txtOpeningHeight.addEventListener("input", () => {
+                        txtOpeningHeight.addEventListener("input", function() {
                             var value = parseFloat(txtOpeningHeight.value);
                             if (!isNaN(value)) {
                                 app.setOpeningHeight(value);
@@ -488,7 +529,7 @@
                                 }
                             }
                         });
-                        txtOpeningHeadHeight.addEventListener("input", () => {
+                        txtOpeningHeadHeight.addEventListener("input", function() {
                             var value = parseFloat(txtOpeningHeadHeight.value);
                             if (!isNaN(value)) {
                                 app.setOpeningHeadHeight(value);
@@ -610,7 +651,7 @@
             function updateShareLink() {
                 var shareLink = document.getElementById("shareLink");
                 app.saveBuildingToCompressedBase64()
-                    .then(data => {
+                    .then(function(data) {
                         let url = window.location.href + "?" + data;
                         shareLink.href = url;
                         shareLink.innerText = "link";

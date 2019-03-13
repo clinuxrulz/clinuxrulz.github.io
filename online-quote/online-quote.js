@@ -3567,8 +3567,8 @@ function loadSketchupTexture(path) {
             .then(function success(text) {
             var parser = new DOMParser();
             var properties = parser.parseFromString(text, "text/xml");
-            var tmp = properties.children[0].children[0].children[0];
-            var tmp2 = tmp.children[0].children[0];
+            var tmp = firstNonTextNodeE(firstNonTextNodeE(firstNonTextNodeE(properties)));
+            var tmp2 = firstNonTextNodeE(firstNonTextNodeE(tmp));
             var xScale = Number.parseFloat(tmp.getAttribute("xScale"));
             var yScale = Number.parseFloat(tmp.getAttribute("yScale"));
             var path = tmp2.getAttribute("path");
@@ -3585,6 +3585,16 @@ function loadSketchupTexture(path) {
     });
 }
 exports.loadSketchupTexture = loadSketchupTexture;
+function firstNonTextNodeE(element) {
+    for (var i = 0; i < element.childNodes.length; ++i) {
+        var x = element.childNodes[i];
+        if (x instanceof Text) {
+            continue;
+        }
+        return x;
+    }
+    throw "first non text node not found";
+}
 //# sourceMappingURL=TextureLoader.js.map
 });
 ___scope___.file("app/model/FormProperties.js", function(exports, require, module, __filename, __dirname){
