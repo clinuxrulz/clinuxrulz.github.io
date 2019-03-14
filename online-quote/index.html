@@ -577,6 +577,12 @@
                     })();
                     //
                     (function() {
+                        var btnSheetingStyle = document.getElementById("btnSheetingStyle");
+                        btnSheetingStyle.addEventListener("click", function() {
+                            app.insertSheetingStyle();
+                        });
+                    })();
+                    (function() {
                         var btnAddSkylight = document.getElementById("btnAddSkylight");
                         btnAddSkylight.addEventListener("click", function() {
                             app.insertSkylight();
@@ -636,8 +642,13 @@
                                 leanToPropertiesDiv.style.display = "none";
                             }
                         });
-                        doLoadFromAddressBar();
                     })();
+                    //
+                    (function() {
+                        var scriptLoader = new cScriptLoader(["js/wall_sheeting_style_properties.js"]);
+                        scriptLoader.loadFiles();
+                    })();
+                    doLoadFromAddressBar();
                 });
             }
             function doLoadFromAddressBar() {
@@ -686,6 +697,7 @@
                         <button id="btnAddRollerDoor" onclick="addOpeningButtonClickCallback('rollerDoor')">Roller Door</button>
                         <button id="btnToggleBays" onclick="toggleBaysButtonClickCallback()">Toggle Bays</button>
                         <button id="btnToggleWalls" onclick="toggleWallsButtonClickCallback('toggleWalls')">Toggle Walls</button>
+                        <button id="btnSheetingStyle">Sheeting Style</button>
                         <button id="btnAddSkylight">Skylight</button>
                         <button id="btnAddWhirlybird">Whirlybird</button>
                         <button id="btnToggleLeanTo">Toggle Lean-To</button>
@@ -720,6 +732,8 @@
                     <div id="mezzanineProperties" style="display:none" w3-include-html="mezzanine_properties.html">
                     </div>
                     <div id="bayEditProperties" style="display:none" w3-include-html="bay_edit_properties.html">
+                    </div>
+                    <div id="wallSheetingStyleProperties" style="display:none" w3-include-html="wall_sheeting_style_properties.html">
                     </div>
                 </div>
             </div>
