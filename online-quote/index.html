@@ -274,7 +274,10 @@
             }
             function initUI() {
                 $(function() {
-                    new cScriptLoader(["js/building_properties.js"]).loadFiles();
+                    new cScriptLoader([
+                        "js/building_properties.js",
+                        "js/roof_end_properties.js"
+                    ]).loadFiles();
                     // floor system properties
                     (function() {
                         var chkFloorSystemEnabled = document.getElementById("chkFloorSystemEnabled");
