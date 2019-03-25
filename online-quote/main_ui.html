@@ -1,0 +1,63 @@
+<div class="flex-container" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden">
+    <div class="flex-container flex-vertical">
+        <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Shed Type</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('addProperties')">Add</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')">Colours & Claddings</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('optionsProperties')" style="display:none">Options</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')" style="display:none">Quote</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('saveAndShareProperties'); updateShareLink();" style="display:none">Save & Share</button>
+    </div>
+    <div>
+        <div id="shedTypeProperties" class="properties" w3-include-html="building_properties.html">
+        </div>
+        <div id="addProperties" class="properties" style="display:none">
+            <div class="flex-container flex-vertical">
+                <button id="btnAddPADoor" onclick="addOpeningButtonClickCallback('paDoor')">PA Door</button>
+                <button id="btnAddWindow" onclick="addOpeningButtonClickCallback('window')">Window</button>
+                <button id="btnAddRollerDoor" onclick="addOpeningButtonClickCallback('rollerDoor')">Roller Door</button>
+                <button id="btnToggleBays" onclick="toggleBaysButtonClickCallback()">Toggle Bays</button>
+                <button id="btnToggleWalls" onclick="toggleWallsButtonClickCallback('toggleWalls')">Toggle Walls</button>
+                <button id="btnSheetingStyle">Sheeting Style</button>
+                <button id="btnAddSkylight">Skylight</button>
+                <button id="btnAddWhirlybird">Whirlybird</button>
+                <button id="btnToggleLeanTo">Toggle Lean-To</button>
+                <button id="btnInsertMezzanine">Mezzanine</button>
+            </div>
+            <div id="toggleLeanToProperties" style="display:block">
+                Lean-To Properties: <br/>
+                Span: <input id="txtLeanToSpan" type="text"><br/>
+                Height: <input id="txtLeanToHeight" type="text"><br/>
+                Pitch: <input id="txtLeanToPitch" type="text"><br/>
+            </div>
+        </div>
+        <div id="windowsDoorsSkylightsProperties" class="properties" style="display:none">
+            Tab a wall or a roof segment to zoom in and configure doors, windows, skylights.
+        </div>
+        <div id="coloursProperties" class="properties" style="display:none" w3-include-html="colour_properties.html">
+        </div>
+        <div id="optionsProperties" class="properties" style="display:none">
+            <input id="chkAnimate" type="checkbox"> Animate<br/>
+        </div>
+        <div id="saveAndShareProperties" class="properties" style="display:none">
+            <a id="shareLink" href="">link</a>
+            <button id="btnDownload" type="button" onclick="download()">Download</button>
+        </div>
+        <div id="todoProperties" class="properties" style="display:none">
+            TODO
+        </div>
+        <div>
+            <hr>
+            <div id="addOpeningProperties" style="display:none" w3-include-html="opening_properties.html">
+            </div>
+            <div id="mezzanineProperties" style="display:none" w3-include-html="mezzanine_properties.html">
+            </div>
+            <div id="bayEditProperties" style="display:none" w3-include-html="bay_edit_properties.html">
+            </div>
+            <div id="wallSheetingStyleProperties" style="display:none" w3-include-html="wall_sheeting_style_properties.html">
+            </div>
+        </div>
+    </div>
+    <div style="width:100%;position:relative">
+        <canvas id="canvas"></canvas>
+    </div>
+</div>
