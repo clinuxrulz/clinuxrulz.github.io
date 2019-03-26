@@ -80,6 +80,132 @@
             app.setPitch(value);
         }
     });
+    // Overhangs
+    (function() {
+        var chkDifferentOverhangs = document.getElementById("chkDifferentOverhangs");
+        var divCommonOverhang = document.getElementById("divCommonOverhang");
+        var divDifferentOverhangs = document.getElementById("divDifferentOverhangs");
+        var txtOverhang = document.getElementById("txtOverhang");
+        var txtSide1Overhang = document.getElementById("txtSide1Overhang");
+        var txtSide2Overhang = document.getElementById("txtSide2Overhang");
+        var txtEnd1Overhang = document.getElementById("txtEnd1Overhang");
+        var txtEnd2Overhang = document.getElementById("txtEnd2Overhang");
+        var lastOverhang = 0.0;
+        var lastSide1Overhang = 0.0;
+        var lastSide2Overhang = 0.0;
+        var lastEnd1Overhang = 0.0;
+        var lastEnd2Overhang = 0.0;
+        $("#overhangSlider").slider({
+            "min": 0,
+            "max": 3000,
+            "step": 100,
+            "value": 0,
+            "slide": function(event, ui) {
+                lastOverhang = ui.value;
+                txtOverhang.value = '' + lastOverhang;
+                app.setOverhang(lastOverhang);
+            }
+        });
+        $("#side1OverhangSlider").slider({
+            "min": 0,
+            "max": 3000,
+            "step": 100,
+            "value": 0,
+            "slide": function(event, ui) {
+                lastSide1Overhang = ui.value;
+                txtSide1Overhang.value = '' + lastSide1Overhang;
+                app.setSide1Overhang(lastSide1Overhang);
+            }
+        });
+        $("#side2OverhangSlider").slider({
+            "min": 0,
+            "max": 3000,
+            "step": 100,
+            "value": 0,
+            "slide": function(event, ui) {
+                lastSide2Overhang = ui.value;
+                txtSide2Overhang.value = '' + lastSide2Overhang;
+                app.setSide2Overhang(lastSide2Overhang);
+            }
+        });
+        $("#end1OverhangSlider").slider({
+            "min": 0,
+            "max": 3000,
+            "step": 100,
+            "value": 0,
+            "slide": function(event, ui) {
+                lastEnd1Overhang = ui.value;
+                txtEnd1Overhang.value = '' + lastEnd1Overhang;
+                app.setEnd1Overhang(lastEnd1Overhang);
+            }
+        });
+        $("#end2OverhangSlider").slider({
+            "min": 0,
+            "max": 3000,
+            "step": 100,
+            "value": 0,
+            "slide": function(event, ui) {
+                lastEnd2Overhang = ui.value;
+                txtEnd2Overhang.value = '' + lastEnd2Overhang;
+                app.setEnd2Overhang(lastEnd2Overhang);
+            }
+        });
+        txtOverhang.addEventListener("input", function() {
+            var value = parseFloat(txtOverhang.value);
+            if (!isNaN(value)) {
+                lastOverhang = value;
+                $("#overhangSlider").slider({ "value": lastOverhang });
+                app.setOverhang(lastOverhang);
+            }
+        });
+        txtSide1Overhang.addEventListener("input", function() {
+            var value = parseFloat(txtSide1Overhang.value);
+            if (!isNaN(value)) {
+                lastSide1Overhang = value;
+                $("#side1OverhangSlider").slider({ "value": lastSide1Overhang });
+                app.setSide1Overhang(lastSide1Overhang);
+            }
+        });
+        txtSide2Overhang.addEventListener("input", function() {
+            var value = parseFloat(txtSide2Overhang.value);
+            if (!isNaN(value)) {
+                lastSide2Overhang = value;
+                $("#side2OverhangSlider").slider({ "value": lastSide2Overhang });
+                app.setSide2Overhang(lastSide2Overhang);
+            }
+        });
+        txtEnd1Overhang.addEventListener("input", function() {
+            var value = parseFloat(txtEnd1Overhang.value);
+            if (!isNaN(value)) {
+                lastEnd1Overhang = value;
+                $("#end1OverhangSlider").slider({ "value": lastEnd1Overhang });
+                app.setEnd1Overhang(lastEnd1Overhang);
+            }
+        });
+        txtEnd2Overhang.addEventListener("input", function() {
+            var value = parseFloat(txtEnd2Overhang.value);
+            if (!isNaN(value)) {
+                lastEnd2Overhang = value;
+                $("#end2OverhangSlider").slider({ "value": lastEnd2Overhang });
+                app.setEnd2Overhang(lastEnd2Overhang);
+            }
+        });
+        chkDifferentOverhangs.addEventListener("change", function() {
+            if (chkDifferentOverhangs.checked) {
+                divCommonOverhang.style.display = "none";
+                divDifferentOverhangs.style.display = "block";
+                app.setSide1Overhang(lastSide1Overhang);
+                app.setSide2Overhang(lastSide2Overhang);
+                app.setEnd1Overhang(lastEnd1Overhang);
+                app.setEnd2Overhang(lastEnd2Overhang);
+            } else {
+                divCommonOverhang.style.display = "block";
+                divDifferentOverhangs.style.display = "none";
+                app.setOverhang(lastOverhang);
+            }
+        });
+    })();
+    //
     var cNumSideBays = app.building.cSideBayMarkers.map(function(x) { return x.length - 1; });
     var chkShowSideBaySizes = document.getElementById("chkShowSideBaySizes");
     var txtNumSideBays = document.getElementById("txtNumSideBays");

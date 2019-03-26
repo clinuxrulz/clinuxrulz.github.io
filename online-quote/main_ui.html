@@ -7,7 +7,7 @@
         <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')" style="display:none">Quote</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('saveAndShareProperties'); updateShareLink();" style="display:none">Save & Share</button>
     </div>
-    <div>
+    <div style="flex-shrink:0; overflow-x:hidden; overflow-y:scroll;">
         <div id="shedTypeProperties" class="properties" w3-include-html="building_properties.html">
         </div>
         <div id="addProperties" class="properties" style="display:none">
@@ -57,7 +57,7 @@
             </div>
         </div>
     </div>
-    <div style="width:100%;position:relative">
+    <div style="flex-shrink:1; flex-grow:1; position:relative">
         <canvas id="canvas"></canvas>
     </div>
 </div>
