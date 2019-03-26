@@ -32,6 +32,10 @@ var initRoofEndProperties = (function() {
         var roofEndTypeDutchGableId = genId();
         radRoofEndTypeDutchGable.id = roofEndTypeDutchGableId;
         findElementByClassNameOfParent(div, "lblRoofEndTypeDutchGable").setAttribute("for", roofEndTypeDutchGableId);
+        var radRoofEndTypeCreeper = findElementByClassNameOfParent(div, "radRoofEndTypeCreeper");
+        var roofEndTypeCreeperId = genId();
+        radRoofEndTypeCreeper.id = roofEndTypeCreeperId;
+        findElementByClassNameOfParent(div, "lblRoofEndTypeCreeper").setAttribute("for", roofEndTypeCreeperId);
         var divDutchGableDistIn = findElementByClassNameOfParent(div, "divDutchGableDistIn");
         var txtDutchGableDistIn = findElementByClassNameOfParent(div, "txtDutchGableDistIn");
         var dutchGableDistInSlider = findElementByClassNameOfParent(div, "dutchGableDistInSlider");
@@ -71,6 +75,12 @@ var initRoofEndProperties = (function() {
                 callbacks.setRoofEndToDutchGable();
             }
         });
+        radRoofEndTypeCreeper.addEventListener("change", function() {
+            if (radRoofEndTypeCreeper.checked) {
+                divDutchGableDistIn.style.display = "none";
+                callbacks.setRoofEndToCreeper();
+            }
+        });
     };
 })();
 
@@ -88,6 +98,9 @@ initRoofEndProperties(
         },
         setRoofEndDutchGableDistIn: function(distIn) {
             app.setEnd1RoofEndDutchGableDistIn(distIn);
+        },
+        setRoofEndToCreeper: function() {
+            app.setEnd1RoofEndToCreeper();
         }
     }
 );
@@ -106,6 +119,9 @@ initRoofEndProperties(
         },
         setRoofEndDutchGableDistIn: function(distIn) {
             app.setEnd2RoofEndDutchGableDistIn(distIn);
+        },
+        setRoofEndToCreeper: function() {
+            app.setEnd2RoofEndToCreeper();
         }
     }
 );
