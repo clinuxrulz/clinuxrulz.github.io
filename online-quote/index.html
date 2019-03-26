@@ -18,9 +18,9 @@
     <body>
         <script  type="text/javascript" src="online-quote.js"></script>
 
-        <div id="shedDesignerApp" style="width:100%;height:100%;"></div>
+        <div id="shedDesignerApp" style="width:100vw;height:100vh;"></div>
         <script>
-            loadShedDesignerApp("http://clinuxrulz.github.io/online-quote", document.getElementById("shedDesignerApp"), function(app) {
+            loadShedDesignerApp("./", document.getElementById("shedDesignerApp"), function(app) {
                 window.app = app;
             });
         </script>
