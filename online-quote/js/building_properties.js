@@ -206,11 +206,12 @@
         });
     })();
     //
-    var cNumSideBays = app.building.cSideBayMarkers.map(function(x) { return x.length - 1; });
+    var cSideBayMarkers = app.sodium.Cell.switchC(app.cBuildingOp.map(function(buildingOp) { return buildingOp.map(function(building) { return building.cSideBayMarkers; }).orSome_(function() { return []; }); }));
+    var cNumSideBays = cSideBayMarkers.map(function(x) { return x.length - 1; });
     var chkShowSideBaySizes = document.getElementById("chkShowSideBaySizes");
     var txtNumSideBays = document.getElementById("txtNumSideBays");
     var btnNumSideBaysReset = document.getElementById("btnNumSideBaysReset");
-    var cPreferredNumSideBaysOp = app.cBuildingData.map(function(buildingData) { return buildingData.preferredNumSideBaysOp; });
+    var cPreferredNumSideBaysOp = app.cBuildingDataOp.map(function(buildingDataOp) { return buildingDataOp.bind(function(buildingData) { return buildingData.preferredNumSideBaysOp; }); });
     cPreferredNumSideBaysOp.listen(function(preferredNumSideBaysOp) { btnNumSideBaysReset.style.display = preferredNumSideBaysOp.isSome ? "block" : "none"; });
     cNumSideBays.listen(function(numSideBays) { return txtNumSideBays.value = "" + numSideBays; });
     txtNumSideBays.addEventListener("input", function() {

@@ -99,13 +99,16 @@ function appLoaded(app) {
         cboRidgeColour.addEventListener("change", function() {
             app.setRidgeColour(cboRidgeColour.value);
         });
-        cboWallSheetingProfile.value = app.claddingData.wallSheetingProfile;
-        cboRoofSheetingProfile.value = app.claddingData.roofSheetingProfile;
-        cboWallSheetingColour.value = app.claddingData.wallSheetingColour;
-        cboRoofSheetingColour.value = app.claddingData.roofSheetingColour;
-        cboGutterColour.value = app.claddingData.gutterColour;
-        cboBargeColour.value = app.claddingData.bargeColour;
-        cboRidgeColour.value = app.claddingData.ridgeColour;
+        if (app.claddingDataOp.isSome) {
+            let claddingData = app.claddingDataOp.fromSome();
+            cboWallSheetingProfile.value = claddingData.wallSheetingProfile;
+            cboRoofSheetingProfile.value = claddingData.roofSheetingProfile;
+            cboWallSheetingColour.value = claddingData.wallSheetingColour;
+            cboRoofSheetingColour.value = claddingData.roofSheetingColour;
+            cboGutterColour.value = claddingData.gutterColour;
+            cboBargeColour.value = claddingData.bargeColour;
+            cboRidgeColour.value = claddingData.ridgeColour;
+        }
         updateCboColour(cboWallSheetingColour);
         updateCboColour(cboRoofSheetingColour);
         updateCboColour(cboGutterColour);
@@ -119,7 +122,8 @@ function initUI(app) {
     $(function() {
         new cScriptLoader([
             appPath + "/js/building_properties.js",
-            appPath + "/js/roof_end_properties.js"
+            appPath + "/js/roof_end_properties.js",
+            appPath + "/js/insert_building.js"
         ]).loadFiles();
         // floor system properties
         (function() {
@@ -454,6 +458,10 @@ function initUI(app) {
             var btnInsertMezzanine = document.getElementById("btnInsertMezzanine");
             btnInsertMezzanine.addEventListener("click", function() {
                 app.insertMezzanine();
+            });
+            var btnInsertBuilding = document.getElementById("btnInsertBuilding");
+            btnInsertBuilding.addEventListener("click", function() {
+                app.insertBuilding();
             });
             var txtLeanToSpan = document.getElementById("txtLeanToSpan");
             var txtLeanToHeight = document.getElementById("txtLeanToHeight");
