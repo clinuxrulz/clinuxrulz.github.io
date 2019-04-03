@@ -1,4 +1,5 @@
 (function() {
+    var sInitBuildingData = app.SodiumUtil.streamFilterOption(app.sodium.Operational.defer(app.sFocusedBuildingIdOpChanged).snapshot1(app.cBuildingDataOp));
     var cboBuildingType = document.getElementById("cboBuildingType");
     var divBarnProperties = document.getElementById("barnProperties");
     cboBuildingType.addEventListener("change", function(ev) {
@@ -79,6 +80,17 @@
             $("#pitchSlider").slider("value", value);
             app.setPitch(value);
         }
+    });
+    sInitBuildingData.listen(function(x) {
+        cboBuildingType.value = x.buildingType;
+        $("#spanSlider").slider({ "value": x.span });
+        $("#lengthSlider").slider({ "value": x.length });
+        $("#heightSlider").slider({ "value": x.height });
+        $("#pitchSlider").slider({ "value": x.pitch });
+        txtSpan.value = "" + x.span;
+        txtLength.value = "" + x.length;
+        txtHeight.value = "" + x.height;
+        txtPitch.value = "" + x.pitch;
     });
     // Overhangs
     (function() {
@@ -204,9 +216,35 @@
                 app.setOverhang(lastOverhang);
             }
         });
+        sInitBuildingData.listen(function(x) {
+            var side1Overhang = x.side1Overhang;
+            var side2Overhang = x.side2Overhang;
+            var end1Overhang = x.end1Overhang;
+            var end2Overhang = x.end2Overhang;
+            if (side1Overhang == side2Overhang && side2Overhang == end1Overhang && end1Overhang == end2Overhang) {
+                var overhang = side1Overhang;
+                chkDifferentOverhangs.checked = false;
+                divCommonOverhang.style.display = "block";
+                divDifferentOverhangs.style.display = "none";
+                $("#overhangSlider").slider({ "value": overhang });
+                txtOverhang.value = "" + overhang;
+            } else {
+                chkDifferentOverhangs.checked = true;
+                divCommonOverhang.style.display = "none";
+                divDifferentOverhangs.style.display = "block";
+                $("#side1OverhangSlider").slider({ "value": side1Overhang });
+                $("#side2OverhangSlider").slider({ "value": side2Overhang });
+                $("#end1OverhangSlider").slider({ "value": end1Overhang });
+                $("#end2OverhangSlider").slider({ "value": end2Overhang });
+                txtSide1Overhang.value = "" + side1Overhang;
+                txtSide2Overhang.value = "" + side2Overhang;
+                txtEnd1Overhang.value = "" + end1Overhang;
+                txtEnd2Overhang.value = "" + end2Overhang;
+            }
+        });
     })();
     //
-    var cSideBayMarkers = app.sodium.Cell.switchC(app.cBuildingOp.map(function(buildingOp) { return buildingOp.map(function(building) { return building.cSideBayMarkers; }).orSome_(function() { return []; }); }));
+    var cSideBayMarkers = app.sodium.Cell.switchC(app.cBuildingOp.map(function(buildingOp) { return buildingOp.map(function(building) { return building.cSideBayMarkers; }).orSome_(function() { return new app.sodium.Cell([]); }); }));
     var cNumSideBays = cSideBayMarkers.map(function(x) { return x.length - 1; });
     var chkShowSideBaySizes = document.getElementById("chkShowSideBaySizes");
     var txtNumSideBays = document.getElementById("txtNumSideBays");

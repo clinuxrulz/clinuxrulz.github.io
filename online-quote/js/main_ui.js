@@ -71,6 +71,7 @@ function updateCboColour(cboColour) {
 function appLoaded(app) {
     w3.includeHTML(function() {
         uiLoadedCallback();
+        var sInitCladdingData = app.SodiumUtil.streamFilterOption(app.sodium.Operational.defer(app.sFocusedBuildingIdOpChanged).snapshot1(app.cBuildingDataOp)).map(function(x) { return x.claddingData; });
         var cboWallSheetingProfile = document.getElementById("cboWallSheetingProfile");
         var cboRoofSheetingProfile = document.getElementById("cboRoofSheetingProfile");
         var cboWallSheetingColour = document.getElementById("cboWallSheetingColour");
@@ -100,7 +101,7 @@ function appLoaded(app) {
             app.setRidgeColour(cboRidgeColour.value);
         });
         if (app.claddingDataOp.isSome) {
-            let claddingData = app.claddingDataOp.fromSome();
+            var claddingData = app.claddingDataOp.fromSome();
             cboWallSheetingProfile.value = claddingData.wallSheetingProfile;
             cboRoofSheetingProfile.value = claddingData.roofSheetingProfile;
             cboWallSheetingColour.value = claddingData.wallSheetingColour;
@@ -109,6 +110,20 @@ function appLoaded(app) {
             cboBargeColour.value = claddingData.bargeColour;
             cboRidgeColour.value = claddingData.ridgeColour;
         }
+        sInitCladdingData.listen(function(claddingData) {
+            cboWallSheetingProfile.value = claddingData.wallSheetingProfile;
+            cboRoofSheetingProfile.value = claddingData.roofSheetingProfile;
+            cboWallSheetingColour.value = claddingData.wallSheetingColour;
+            cboRoofSheetingColour.value = claddingData.roofSheetingColour;
+            cboGutterColour.value = claddingData.gutterColour;
+            cboBargeColour.value = claddingData.bargeColour;
+            cboRidgeColour.value = claddingData.ridgeColour;
+            updateCboColour(cboWallSheetingColour);
+            updateCboColour(cboRoofSheetingColour);
+            updateCboColour(cboGutterColour);
+            updateCboColour(cboBargeColour);
+            updateCboColour(cboRidgeColour);
+        });
         updateCboColour(cboWallSheetingColour);
         updateCboColour(cboRoofSheetingColour);
         updateCboColour(cboGutterColour);

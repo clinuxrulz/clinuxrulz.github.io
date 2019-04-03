@@ -81,12 +81,44 @@ var initRoofEndProperties = (function() {
                 callbacks.setRoofEndToCreeper();
             }
         });
+        callbacks.listenToRoofEndData(function(roofEndData) {
+            roofEndData.partialMatch(function() {}, {
+                gable: function() { return function() {
+                    radRoofEndTypeGable.checked = true;
+                    divDutchGableDistIn.style.display = "none";
+                }; },
+                hip: function() { return function() {
+                    radRoofEndTypeHip.checked = true;
+                    divDutchGableDistIn.style.display = "none";
+                }; },
+                dutchGable: function(distIn) { return function() {
+                    radRoofEndTypeDutchGable.checked = true;
+                    divDutchGableDistIn.style.display = "block";
+                    txtDutchGableDistIn.value = "" + distIn;
+                    $(dutchGableDistInSlider).value = distIn;
+                }; },
+                creeper: function() { return function() {
+                    radRoofEndTypeCreeper.checked = true;
+                    divDutchGableDistIn.style.display = "none";
+                }; }
+            })();
+        });
     };
 })();
 
 initRoofEndProperties(
     document.getElementById("divEnd1RoofEndProperties"),
     {
+        listenToRoofEndData: function(callback) {
+            return app.SodiumUtil
+                .streamFilterOption(
+                    app.sodium.Operational
+                        .defer(app.sFocusedBuildingIdOpChanged)
+                        .snapshot1(app.cBuildingDataOp)
+                )
+                .map(x => x.end1RoofEndData)
+                .listen(callback);
+        },
         setRoofEndToGable: function() {
             app.setEnd1RoofEndToGable();
         },
@@ -108,6 +140,16 @@ initRoofEndProperties(
 initRoofEndProperties(
     document.getElementById("divEnd2RoofEndProperties"),
     {
+        listenToRoofEndData: function(callback) {
+            return app.SodiumUtil
+                .streamFilterOption(
+                    app.sodium.Operational
+                        .defer(app.sFocusedBuildingIdOpChanged)
+                        .snapshot1(app.cBuildingDataOp)
+                )
+                .map(x => x.end2RoofEndData)
+                .listen(callback);
+        },
         setRoofEndToGable: function() {
             app.setEnd2RoofEndToGable();
         },
