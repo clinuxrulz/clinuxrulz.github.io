@@ -1,10 +1,10 @@
 <div class="flex-container" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden">
     <div class="flex-container flex-vertical">
-        <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Shed Type</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Size</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('addProperties')">Add</button>
-        <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')">Colours & Claddings</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')">Colours</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('optionsProperties')" style="display:none">Options</button>
-        <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')" style="display:none">Quote</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('saveAndShareProperties'); updateShareLink();" style="display:none">Save & Share</button>
     </div>
     <div style="flex-shrink:0; overflow-x:hidden; overflow-y:scroll;">
@@ -15,14 +15,19 @@
                 <button id="btnAddPADoor" onclick="addOpeningButtonClickCallback('paDoor')">PA Door</button>
                 <button id="btnAddWindow" onclick="addOpeningButtonClickCallback('window')">Window</button>
                 <button id="btnAddRollerDoor" onclick="addOpeningButtonClickCallback('rollerDoor')">Roller Door</button>
-                <button id="btnToggleBays" onclick="toggleBaysButtonClickCallback()">Toggle Bays</button>
-                <button id="btnToggleWalls" onclick="toggleWallsButtonClickCallback('toggleWalls')">Toggle Walls</button>
-                <button id="btnSheetingStyle">Sheeting Style</button>
+                <button id="btnToggleBays" onclick="toggleBaysButtonClickCallback()">Open Bays</button>
+                <button id="btnToggleWalls" onclick="toggleWallsButtonClickCallback('toggleWalls')">Internal Walls</button>
+                <button id="btnSheetingStyle">Partial Cladding</button>
                 <button id="btnAddSkylight">Skylight</button>
                 <button id="btnAddWhirlybird">Whirlybird</button>
                 <button id="btnToggleLeanTo">Toggle Lean-To</button>
-                <button id="btnInsertMezzanine">Mezzanine</button>
+                <button id="btnInsertMezzanine">Mezz</button>
                 <button id="btnInsertBuilding">Building</button>
+
+                <input id="chkFloorSystemEnabled" type="checkbox"><label for="chkFloorSystemEnabled">Floor System Enabled</label><br/>
+                <div id="divFloorSystemProperties" style="display:none">
+                    Floor System Height: <div id="floorSystemHeightSlider"></div> <input id="txtFloorSystemHeight" type="text"/><br/>
+                </div>
             </div>
             <div id="toggleLeanToProperties" style="display:block">
                 Lean-To Properties: <br/>

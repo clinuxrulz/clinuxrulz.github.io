@@ -20,22 +20,8 @@ var initRoofEndProperties = (function() {
         return undefined;
     };
     return function(div, callbacks) {
-        var radRoofEndTypeGable = findElementByClassNameOfParent(div, "radRoofEndTypeGable");
-        var roofEndTypeGableId = genId();
-        radRoofEndTypeGable.id = roofEndTypeGableId;
-        findElementByClassNameOfParent(div, "lblRoofEndTypeGable").setAttribute("for", roofEndTypeGableId);
-        var radRoofEndTypeHip = findElementByClassNameOfParent(div, "radRoofEndTypeHip");
-        var roofEndTypeHipId = genId();
-        radRoofEndTypeHip.id = roofEndTypeHipId;
-        findElementByClassNameOfParent(div, "lblRoofEndTypeHip").setAttribute("for", roofEndTypeHipId);
-        var radRoofEndTypeDutchGable = findElementByClassNameOfParent(div, "radRoofEndTypeDutchGable");
-        var roofEndTypeDutchGableId = genId();
-        radRoofEndTypeDutchGable.id = roofEndTypeDutchGableId;
-        findElementByClassNameOfParent(div, "lblRoofEndTypeDutchGable").setAttribute("for", roofEndTypeDutchGableId);
-        var radRoofEndTypeCreeper = findElementByClassNameOfParent(div, "radRoofEndTypeCreeper");
-        var roofEndTypeCreeperId = genId();
-        radRoofEndTypeCreeper.id = roofEndTypeCreeperId;
-        findElementByClassNameOfParent(div, "lblRoofEndTypeCreeper").setAttribute("for", roofEndTypeCreeperId);
+        var cboRoofEndType = findElementByClassNameOfParent(div, "cboRoofEndType");
+        cboRoofEndType.id = genId();
         var divDutchGableDistIn = findElementByClassNameOfParent(div, "divDutchGableDistIn");
         var txtDutchGableDistIn = findElementByClassNameOfParent(div, "txtDutchGableDistIn");
         var dutchGableDistInSlider = findElementByClassNameOfParent(div, "dutchGableDistInSlider");
@@ -57,48 +43,43 @@ var initRoofEndProperties = (function() {
                 callbacks.setRoofEndDutchGableDistIn(value);
             }
         });
-        radRoofEndTypeGable.addEventListener("change", function() {
-            if (radRoofEndTypeGable.checked) {
-                divDutchGableDistIn.style.display = "none";
-                callbacks.setRoofEndToGable();
-            }
-        });
-        radRoofEndTypeHip.addEventListener("change", function() {
-            if (radRoofEndTypeHip.checked) {
-                divDutchGableDistIn.style.display = "none";
-                callbacks.setRoofEndToHip();
-            }
-        });
-        radRoofEndTypeDutchGable.addEventListener("change", function() {
-            if (radRoofEndTypeDutchGable.checked) {
-                divDutchGableDistIn.style.display = "block";
-                callbacks.setRoofEndToDutchGable();
-            }
-        });
-        radRoofEndTypeCreeper.addEventListener("change", function() {
-            if (radRoofEndTypeCreeper.checked) {
-                divDutchGableDistIn.style.display = "none";
-                callbacks.setRoofEndToCreeper();
+        cboRoofEndType.addEventListener("change", function() {
+            divDutchGableDistIn.style.display = cboRoofEndType.value == "dutchGable" ? "block" : "none";
+            switch (cboRoofEndType.value) {
+                case "gable":
+                    callbacks.setRoofEndToGable();
+                    break;
+                case "hip":
+                    callbacks.setRoofEndToHip();
+                    break;
+                case "dutchGable":
+                    callbacks.setRoofEndToDutchGable();
+                    break;
+                case "creeper":
+                    callbacks.setRoofEndToCreeper();
+                    break;
+                default:
+                    break;
             }
         });
         callbacks.listenToRoofEndData(function(roofEndData) {
             roofEndData.partialMatch(function() {}, {
                 gable: function() { return function() {
-                    radRoofEndTypeGable.checked = true;
+                    cboRoofEndType.value = "gable";
                     divDutchGableDistIn.style.display = "none";
                 }; },
                 hip: function() { return function() {
-                    radRoofEndTypeHip.checked = true;
+                    cboRoofEndType.value = "hip";
                     divDutchGableDistIn.style.display = "none";
                 }; },
                 dutchGable: function(distIn) { return function() {
-                    radRoofEndTypeDutchGable.checked = true;
+                    cboRoofEndType.value = "dutchGable";
                     divDutchGableDistIn.style.display = "block";
                     txtDutchGableDistIn.value = "" + distIn;
                     $(dutchGableDistInSlider).value = distIn;
                 }; },
                 creeper: function() { return function() {
-                    radRoofEndTypeCreeper.checked = true;
+                    cboRoofEndType.value = "creeper";
                     divDutchGableDistIn.style.display = "none";
                 }; }
             })();

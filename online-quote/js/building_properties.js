@@ -92,6 +92,11 @@
         txtHeight.value = "" + x.height;
         txtPitch.value = "" + x.pitch;
     });
+    $("#divBuildingPropertiesAdvanceOptions").accordion({
+        collapsible: true,
+        heightStyle: "content",
+        active: false
+    });
     // Overhangs
     (function() {
         var chkDifferentOverhangs = document.getElementById("chkDifferentOverhangs");
