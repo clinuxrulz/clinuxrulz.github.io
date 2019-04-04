@@ -1,4 +1,5 @@
-Roof Type:
+<div class="form-group">
+<label class="control-label">Roof Type:</label>
 <select id="cboBuildingType">
     <option value="gableRoofGarage">Gable Roof Garage</option>
     <option value="skillionRoofGarage">Skillion Roof Garage</option>
@@ -7,16 +8,38 @@ Roof Type:
     <option value="barn">Barn</option>
     <option value="skillionBarn">Skillion Barn</option>
     <option value="quakerBarn">Quaker Barn</option>
-</select><br/>
-Width: <div id="spanSlider"></div> <input id="txtSpan" type="text" value="6000"/><br/>
-Length: <div id="lengthSlider"></div> <input id="txtLength" type="text" value="12000"/><br/>
-Height: <div id="heightSlider"></div> <input id="txtHeight" type="text" value="2400"/><br/>
-Roof Pitch: <div id="pitchSlider"></div> <input id="txtPitch" type="text" value="15"/><br/>
+</select>
+</div>
+<div class="form-group">
+<label class="control-label">Width:</label>
+<div id="spanSlider"></div> <input id="txtSpan" type="text" value="6000"/>
+</div>
+<div class="form-group">
+<label class="control-label">Length:</label> <div id="lengthSlider"></div> <input id="txtLength" type="text" value="12000"/>
+</div>
+<div class="form-group">
+<label class="control-label">Height:</label> <div id="heightSlider"></div> <input id="txtHeight" type="text" value="2400"/>
+</div>
+<div class="form-group">
+<label class="control-label">Roof Pitch:</label> <div id="pitchSlider"></div> <input id="txtPitch" type="text" value="15"/>
+</div>
+<div class="form-group">
+<input id="chkFloorSystemEnabled" type="checkbox"><label for="chkFloorSystemEnabled">Floor System Enabled</label>
+</div>
+<div id="divFloorSystemProperties" style="display:none">
+<div class="form-group">
+<label class="control-label">Floor System Height: </label><div id="floorSystemHeightSlider"></div> <input id="txtFloorSystemHeight" type="text"/>
+</div>
+</div>
 <div id="barnProperties" style="display:none" w3-include-html="barn_properties.html">
 </div>
-<label for="chkShowSideBaySizes">Custom Bay Sizes: </label><input id="chkShowSideBaySizes" type="checkbox"><br/>
+<div class="form-group">
+<label class="control-label">Bay Sizes: </label><input id="chkShowSideBaySizes" type="checkbox"><label for="chkShowSideBaySizes"> Show</label>
+</div>
 <div id="sideBaySizes" style="display:none">
-    Num Bays: <input id="txtNumSideBays" type="text"><button id="btnNumSideBaysReset" style="display:none">Reset</button><br/>
+<div class="form-group">
+<label class="control-label"> Num Bays: </label><input id="txtNumSideBays" type="text"><button id="btnNumSideBaysReset" style="display:none">Reset</button>
+</div>
     <table id="tblSideBaySizes">
         <tr>
             <td>Bay Size</td><td></td>
@@ -26,15 +49,27 @@ Roof Pitch: <div id="pitchSlider"></div> <input id="txtPitch" type="text" value=
 <div id="divBuildingPropertiesAdvanceOptions">
     <h3>Advance Options</h3>
     <div>
-        <input id="chkDifferentOverhangs" type="checkbox"/><label for="chkDifferentOverhangs">Different Overhangs for each side</label><br/>
+        <div class="form-group">
+        <input id="chkDifferentOverhangs" type="checkbox"/><label for="chkDifferentOverhangs">Different Overhangs for each side</label>
+        </div>
+        <div class="form-group">
         <div id="divCommonOverhang" style="display:block">
-            Overhang: <div id="overhangSlider"></div> <input id="txtOverhang" type="text" value="0"/><br/>
+        <label class="control-label">Overhang:</label> <div id="overhangSlider"></div> <input id="txtOverhang" type="text" value="0"/><br/>
+        </div>
         </div>
         <div id="divDifferentOverhangs" style="display:none">
-            Side 1 Overhang: <div id="side1OverhangSlider"></div> <input id="txtSide1Overhang" type="text" value="0"/><br/>
-            Side 2 Overhang: <div id="side2OverhangSlider"></div> <input id="txtSide2Overhang" type="text" value="0"/><br/>
-            End 1 Overhang: <div id="end1OverhangSlider"></div> <input id="txtEnd1Overhang" type="text" value="0"/><br/>
-            End 2 Overhang: <div id="end2OverhangSlider"></div> <input id="txtEnd2Overhang" type="text" value="0"/><br/>
+        <div class="form-group">
+        <label class="control-label">Side 1 Overhang:</label> <div id="side1OverhangSlider"></div> <input id="txtSide1Overhang" type="text" value="0"/>
+        </div>
+        <div class="form-group">
+        <label class="control-label">Side 2 Overhang:</label> <div id="side2OverhangSlider"></div> <input id="txtSide2Overhang" type="text" value="0"/>
+        </div>
+        <div class="form-group">
+        <label class="control-label">End 1 Overhang: </label><div id="end1OverhangSlider"></div> <input id="txtEnd1Overhang" type="text" value="0"/>
+        </div>
+        <div class="form-group">
+        <label class="control-label">End 2 Overhang: </label><div id="end2OverhangSlider"></div> <input id="txtEnd2Overhang" type="text" value="0"/>
+        </div>
         </div>
         End 1 Roof Type:
         <div id="divEnd1RoofEndProperties" w3-include-html="roof_end_properties.html"></div>

@@ -1,14 +1,98 @@
-<div class="flex-container" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden">
-    <div class="flex-container flex-vertical">
+<div class="flex-container" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden"><style>
+.w3-bar-item.w3-button{width: 100px;
+    height: 61px;
+    background-color: #efefef;
+    -webkit-box-shadow: inset 0 -1px 0 #ddd;
+    box-shadow: inset 0 -1px 0 #ddd;
+    padding: 7px 11px;
+    color: #313131;
+    border: none;
+    font-weight: 600;}
+	
+.firsttbs,.propcontainer{border-top: 1px solid #dddddd;}
+
+    .propcontainer{
+    overflow: auto;
+    overflow-x: hidden;
+    position: relative;
+	
+    border-left: 1px solid #dddddd;
+	}
+	
+.properties{
+    padding: 10px;
+	width: 300px;
+	}
+#addOpeningProperties,#mezzanineProperties,#bayEditProperties,#wallSheetingStyleProperties{padding: 10px;}
+.ui-slider{
+ -webkit-appearance: none;
+    height: 7px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: opacity .15s ease-in-out;
+    transition: opacity .15s ease-in-out;
+	}
+.ui-slider .ui-slider-handle{    border-radius: 50%;
+    width: 18px;
+    height: 18px;}
+input[type=text]{
+    margin-top: 10px;
+    width: 80px;}
+.ui-slider-horizontal .ui-slider-handle{top: -7px;border: 2px solid #ef7f1a}
+#tblSideBaySizes td{padding-bottom: 20px;}
+
+.propcontainer select{border: 1px solid #ccc;
+    color: #333;
+    border-collapse: separate;
+    height: 36px;
+    overflow: hidden;
+    width: 100%;
+    background-color: #fbf5f5;
+    border-radius: 7px;
+    padding-left: 10px;
+	}
+	
+.propcontainer button {
+background-color: #ddd;
+    padding: 7px 11px;
+    color: #666;
+    border: 1px solid darkgrey;
+    margin:2px 0px;
+	}
+	
+#shedQuotesnow input[type=text]{ width:100%;}
+#shedQuotesnow button{    color: #fff;
+    background-color: #ef7f1a;
+    border-color: #ef7f1a;}
+#close {   position: absolute;
+    right: 10px;
+    top: 2px;    opacity: .6;}
+#addProperties{padding-top: 30px;}
+.bottompart .ui-slider{margin-top: 10px;}
+.bottompart input[type=text]{margin-bottom: 10px;}
+/*
+// do not want this at the moment
+@media (max-width:1111px)
+{
+.flex-container {
+    display: block ! important;
+}
+}
+*/
+</style>
+    <div class="flex-container flex-vertical firsttbs">
         <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')">Size</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('addProperties')">Add</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')">Colours</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('optionsProperties')" style="display:none">Options</button>
-        <button class="w3-bar-item w3-button" onclick="openProperties('todoProperties')">Quote</button>
         <button class="w3-bar-item w3-button" onclick="openProperties('saveAndShareProperties'); updateShareLink();" style="display:none">Save & Share</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('shedQuotesnow');">Quote</button>
+        <!-- <button class="w3-bar-item w3-button" onclick="return thendnf()">Quote</button> -->
     </div>
-    <div style="flex-shrink:0; overflow-x:hidden; overflow-y:scroll;">
-        <div id="shedTypeProperties" class="properties" w3-include-html="building_properties.html">
+    <div class="propcontainer" style="flex-shrink:0; overflow-x:hidden; overflow-y:scroll;"><span class="close" id="close" onclick="return closeSide()">x</span>
+        <div style="display:none" id="shedTypeProperties" class="properties" w3-include-html="building_properties.html">
         </div>
         <div id="addProperties" class="properties" style="display:none">
             <div class="flex-container flex-vertical">
@@ -23,11 +107,6 @@
                 <button id="btnToggleLeanTo">Toggle Lean-To</button>
                 <button id="btnInsertMezzanine">Mezz</button>
                 <button id="btnInsertBuilding">Building</button>
-
-                <input id="chkFloorSystemEnabled" type="checkbox"><label for="chkFloorSystemEnabled">Floor System Enabled</label><br/>
-                <div id="divFloorSystemProperties" style="display:none">
-                    Floor System Height: <div id="floorSystemHeightSlider"></div> <input id="txtFloorSystemHeight" type="text"/><br/>
-                </div>
             </div>
             <div id="toggleLeanToProperties" style="display:block">
                 Lean-To Properties: <br/>
@@ -48,10 +127,19 @@
             <a id="shareLink" href="">link</a>
             <button id="btnDownload" type="button" onclick="download()">Download</button>
         </div>
+        <div id="shedQuotesnow" class="properties" style="display:none">
+           <div class="form-group">
+           <label class="control-label">Site Address: </label>
+           <textarea style="width:100%" type="text" id="site_address" name="site_address"></textarea>
+           </div>
+           <div style="text-align:center" class="form-group">
+           <button class="btn" onclick="return thendnf()">Proceed</button>
+           </div>
+        </div>
         <div id="todoProperties" class="properties" style="display:none">
             TODO
         </div>
-        <div>
+        <div class="bottompart">
             <hr>
             <div id="addOpeningProperties" style="display:none" w3-include-html="opening_properties.html">
             </div>

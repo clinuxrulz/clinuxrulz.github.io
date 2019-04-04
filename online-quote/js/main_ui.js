@@ -1,4 +1,21 @@
 
+if (closeSide == undefined) {
+    function closeSide() {
+        var buttons = document.querySelectorAll('.properties');
+        for (var i=0; i<buttons.length; i++) {
+            buttons[i].style.display = 'none';
+        }
+        var buttons = document.querySelectorAll('#addOpeningProperties,#mezzanineProperties,#bayEditProperties,#wallSheetingStyleProperties');
+        for (var i=0; i<buttons.length; i++) {
+            buttons[i].style.display = 'none';
+        }
+        var buttons = document.querySelectorAll('.propcontainer');
+        for (var i=0; i<buttons.length; i++) {
+            buttons[i].style.overflow = 'auto';
+        }
+    }
+}
+
 var openPropertiesAppCallback = function(propertiesName) {};
 var addOpeningButtonClickCallback = function(openingType) {};
 var toggleBaysButtonClickCallback = function() {};
@@ -7,7 +24,13 @@ var uiLoadedCallback = function() {};
 function openProperties(propertiesName) {
     var i;
     var x = document.getElementsByClassName("properties");
-    for (i = 0; i < x.length; i++) {
+    // toggle behavour
+    if (document.getElementById(propertiesName).style.display != "none") {
+        document.getElementById(propertiesName).style.display = "none";
+        return;
+    }
+    //
+    for (i = 0; i < x.length; ++i) {
         x[i].style.display = "none"; 
     }
     document.getElementById(propertiesName).style.display = "block";
