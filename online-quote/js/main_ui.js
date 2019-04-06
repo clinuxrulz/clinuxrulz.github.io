@@ -546,7 +546,7 @@ function initUI(app) {
 function doLoadFromAddressBar(app) {
     var appPath = window["shedDesignerAppPath"];
     var data = window.location.search.substring(1);
-    if (data.length != 0) {
+    if (data.length != 0 && data != 'm') {
         app.loadBuildingFromCompressedBase64(data);
     }
     var scriptLoader = new cScriptLoader([appPath + "/js/GLTFExporter.js"]);
