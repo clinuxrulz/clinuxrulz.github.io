@@ -1,0 +1,43 @@
+<div class="mainTabs flex-container flex-horizontal">
+    <button class="cadMainTab">Cad</button>
+    <button class="cadPluginsTab">Plugins</button>
+</div>
+<div class="mainTabsView" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden;">
+    <div class="cadMainTabView mainTab flex-container flex-horizontal" style="width:100%;height:100%;">
+        <div>
+            <button class="w3-bar-item w3-button">Draw</button>
+        </div>
+        <div>
+            <div id="drawProperties" class="cadProperties">
+                <button class="btnDrawLine">Line</button><br/>
+                <button class="btnDrawCircle">Circle</button><br/>
+                <button class="btnFillet">Fillet</button><br/>
+                <button class="btnCrossSection">Cross Section</button><br/>
+            </div>
+            <div id="todoProperties" class="cadProperties" style="display:none">
+                TODO
+            </div>
+            <div class="divDocuments">
+                Documents:
+                <ol class="lstDocuments selectable" style="padding-left: 20px">
+                    <!-- documents get listed here-->
+                    <!--
+                    example
+                    <li class="ui-widget-content">Document 1</li>
+                    <li class="ui-widget-content">Document 2</li>
+                    <li class="ui-widget-content">Document 3</li>
+                    -->
+                </ol>
+                <button class="btnAddDocument">Add Document</button>
+            </div>
+        </div>
+        <div style="position:relative;width:100%;height:100%;">
+            <canvas class="canvas" style="border-style:solid;"></canvas>
+        </div>
+    </div>
+    <div class="cadPluginsTabView mainTab" style="display:none">
+        <div class="divPlugins">
+            <!-- plugins get loaded here -->
+        </div>
+    </div>
+</div>
