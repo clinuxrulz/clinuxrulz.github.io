@@ -7,6 +7,5 @@ var r=require("./bundle-url").getBundleURL;function e(r){Array.isArray(r)||(r=[r
 },{"./bundle-url":"ARet"}],"ZgCQ":[function(require,module,exports) {
 module.exports=function(t){return fetch(t).then(function(t){return WebAssembly.instantiateStreaming?WebAssembly.instantiateStreaming(t):t.arrayBuffer().then(function(t){return WebAssembly.instantiate(t)})}).then(function(t){return t.instance.exports})};
 },{}],0:[function(require,module,exports) {
-var b=require("yU0Q");b.register("wasm",require("ZgCQ"));b.load([["lib.2d27f9fa.wasm","EB98"]]).then(function(){require("qEo3");});
+var b=require("yU0Q");b.register("wasm",require("ZgCQ"));b.load([["lib.3aaa0518.wasm","EB98"]]).then(function(){require("qEo3");});
 },{}]},{},[0], null)
-//# sourceMappingURL=/rust.75e1f34e.js.map
