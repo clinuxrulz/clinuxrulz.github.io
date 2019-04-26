@@ -99,3 +99,5 @@ var cScriptLoader = (function () {
     }
     return cScriptLoader;
 })();
+
+window["cScriptLoader"] = cScriptLoader;
