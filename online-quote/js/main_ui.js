@@ -523,7 +523,7 @@ function initUI(app) {
             var scriptLoader = new cScriptLoader([appPath + "/js/wall_sheeting_style_properties.js"]);
             scriptLoader.loadFiles();
         })();
-        doLoadFromAddressBar(app);
+        //doLoadFromAddressBar(app);
     });
 }
 function doLoadFromAddressBar(app) {

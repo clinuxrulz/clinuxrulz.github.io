@@ -68,7 +68,8 @@ var cScriptLoader = (function () {
             // this.log(this.m_js_files);
             for (var i = 0; i < _this.m_css_files.length; ++i)
                 _this.loadStyle(_this.m_css_files[i]);
-            _this.loadScript(0, on_all_scripts_loaded);
+            if (_this.m_js_files.length != 0)
+                _this.loadScript(0, on_all_scripts_loaded);
         };
         this.m_js_files = [];
         this.m_css_files = [];
