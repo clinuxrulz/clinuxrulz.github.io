@@ -1,21 +1,4 @@
 
-if (closeSide == undefined) {
-    function closeSide() {
-        var buttons = document.querySelectorAll('.properties');
-        for (var i=0; i<buttons.length; i++) {
-            buttons[i].style.display = 'none';
-        }
-        var buttons = document.querySelectorAll('#addOpeningProperties,#mezzanineProperties,#bayEditProperties,#wallSheetingStyleProperties');
-        for (var i=0; i<buttons.length; i++) {
-            buttons[i].style.display = 'none';
-        }
-        var buttons = document.querySelectorAll('.propcontainer');
-        for (var i=0; i<buttons.length; i++) {
-            buttons[i].style.overflow = 'auto';
-        }
-    }
-}
-
 var openPropertiesAppCallback = function(propertiesName) {};
 var addOpeningButtonClickCallback = function(openingType) {};
 var toggleBaysButtonClickCallback = function() {};
@@ -563,4 +546,19 @@ function updateShareLink() {
 }
 function download() {
     app.downloadGLTF();
+}
+
+function closeSide() {
+    var buttons = document.querySelectorAll('.properties');
+    for (var i=0; i<buttons.length; i++) {
+        buttons[i].style.display = 'none';
+    }
+    var buttons = document.querySelectorAll('#addOpeningProperties,#mezzanineProperties,#bayEditProperties,#wallSheetingStyleProperties');
+    for (var i=0; i<buttons.length; i++) {
+        buttons[i].style.display = 'none';
+    }
+    var buttons = document.querySelectorAll('.propcontainer');
+    for (var i=0; i<buttons.length; i++) {
+        buttons[i].style.overflow = 'auto';
+    }
 }
