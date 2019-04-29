@@ -142,7 +142,7 @@ function cadAppMainUI(app) {
     // plugins
     (function() {
         var divPlugins = $(".divPlugins", app.appDiv)[0];
-        fetch(app.appPath + "./config.json")
+        fetch(app.appPath + "/config.json")
             .then(responce => responce.json())
             .then(config => {
                 var plugins = config.plugins;

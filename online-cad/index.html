@@ -1,1 +1,26 @@
-<!DOCTYPE html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body,html{height:100%;width:100%;margin:0;overflow:hidden}</style><link rel="stylesheet" href="jquery-ui.min.4f06c42d.css"><link rel="stylesheet" href="main_ui.b3e7448c.css"><script src="jquery.min.d87f193b.js"></script><script src="script_loader.7c5808c2.js"></script><script src="w3.3bafea78.js"></script></head><body> <script src="rust.a3cec950.js"></script> <script src="main.58bee451.js"></script> <div id="cadApp" style="width:100vw;height:100vh;"></div> <script>loadCADApp("/online-cad/",document.getElementById("cadApp"),function(d){window.cadApp=d});</script> </body></html>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
+        </style>
+        <link rel="stylesheet" href="js/jquery-ui.min.css">
+        <link rel="stylesheet" href="css/main_ui.css">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <script src="js/jquery.min.js"></script>
+        <script src="js/jquery-ui.min.js"></script>
+        <script src="js/script_loader.js"></script>
+        <script src="js/w3.js"></script>
+    </head>
+    <body>
+        <div id="cadApp" style="width:100vw;height:100vh;"></div>
+        <script>
+            $(window).on("load", function() {
+                loadCADApp("./", document.getElementById("cadApp"), function(cadApp) {
+                    window.cadApp = cadApp;
+                });
+            });
+        </script>
+    <script type="text/javascript" src="/bundle.js?cc6835a3afd1923c819c"></script></body>
+</html>
