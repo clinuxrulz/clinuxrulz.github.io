@@ -139,6 +139,18 @@ function cadAppMainUI(app) {
         };
         app._addTab = addTab;
     })();
+    // message above canvas
+    (function() {
+        var divMessage = $(".divMessage", app.appDiv)[0];
+        app.appModel.cMessageOp.listen(function(messageOp) {
+            if (messageOp.isSome) {
+                var message = messageOp.fromSome();
+                divMessage.innerText = message;
+            } else {
+                divMessage.innerText = "";
+            }
+        });
+    })();
     // plugins
     (function() {
         var divPlugins = $(".divPlugins", app.appDiv)[0];
