@@ -2,6 +2,7 @@ function cadAppMainUI(app) {
     var btnDrawLine = app.findElementWithClassName(app.appDiv, "btnDrawLine");
     var btnDrawCircle = app.findElementWithClassName(app.appDiv, "btnDrawCircle");
     var btnFillet = app.findElementWithClassName(app.appDiv, "btnFillet");
+    var btnTrim = $(".btnTrim", app.appDiv)[0];
     var btnCrossSection = app.findElementWithClassName(app.appDiv, "btnCrossSection");
     var btnAddDimension = $(".btnAddDimension", app.appDiv)[0];
     var btnPrintPage = $(".btnPrintPage", app.appDiv)[0];
@@ -13,6 +14,9 @@ function cadAppMainUI(app) {
     });
     btnFillet.addEventListener("click", function() {
         app.doOperation(app.Operation.fillet());
+    });
+    btnTrim.addEventListener("click", function() {
+        app.doOperation(app.Operation.trim());
     });
     btnCrossSection.addEventListener("click", function() {
         app.doOperation(app.Operation.crossSection());
