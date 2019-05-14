@@ -1,4 +1,5 @@
 function cadAppMainUI(app) {
+    var btnDrawCurve = $(".btnDrawCurve", app.appDiv)[0];
     var btnDrawLine = app.findElementWithClassName(app.appDiv, "btnDrawLine");
     var btnDrawCircle = app.findElementWithClassName(app.appDiv, "btnDrawCircle");
     var btnFillet = app.findElementWithClassName(app.appDiv, "btnFillet");
@@ -8,8 +9,12 @@ function cadAppMainUI(app) {
     var btnScale = $(".btnScale", app.appDiv)[0];
     var btnRotate = $(".btnRotate", app.appDiv)[0];
     var btnCrossSection = app.findElementWithClassName(app.appDiv, "btnCrossSection");
+    var btnAddDetail = $(".btnAddDetail", app.appDiv)[0];
     var btnAddDimension = $(".btnAddDimension", app.appDiv)[0];
     var btnPrintPage = $(".btnPrintPage", app.appDiv)[0];
+    btnDrawCurve.addEventListener("click", function() {
+        app.doOperation(app.Operation.drawCurve());
+    });
     btnDrawLine.addEventListener("click", function() {
         app.doOperation(app.Operation.drawLine());
     });
@@ -36,6 +41,9 @@ function cadAppMainUI(app) {
     });
     btnCrossSection.addEventListener("click", function() {
         app.doOperation(app.Operation.crossSection());
+    });
+    btnAddDetail.addEventListener("click", function() {
+        app.doOperation(app.Operation.addDetail());
     });
     btnAddDimension.addEventListener("click", function() {
         app.doOperation(app.Operation.addDimension());
