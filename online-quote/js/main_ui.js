@@ -448,6 +448,12 @@ function initUI(app) {
         })();
         //
         (function() {
+            var btnEditBays = document.getElementById("btnEditBays");
+            btnEditBays.addEventListener("click", function() {
+                app.editBays();
+            });
+        })();
+        (function() {
             var btnSheetingStyle = document.getElementById("btnSheetingStyle");
             btnSheetingStyle.addEventListener("click", function() {
                 app.insertSheetingStyle();
@@ -520,7 +526,12 @@ function initUI(app) {
         })();
         //
         (function() {
-            var scriptLoader = new cScriptLoader([appPath + "/js/wall_sheeting_style_properties.js"]);
+            var scriptLoader = new cScriptLoader(
+                [
+                    appPath + "/js/bay_edit_properties.js",
+                    appPath + "/js/wall_sheeting_style_properties.js"
+                ]
+            );
             scriptLoader.loadFiles();
         })();
         //doLoadFromAddressBar(app);
