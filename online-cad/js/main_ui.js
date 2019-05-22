@@ -1,4 +1,17 @@
 function cadAppMainUI(app) {
+    // debug leak
+    (function() {
+        var lblSodiumObjectCount = $(".lblSodiumObjectCount", app.appDiv)[0];
+        var lastCount = 0;
+        window.setInterval(function() {
+            var count = app.numSodiumObjects;
+            if (count != lastCount) {
+                lblSodiumObjectCount.innerText = "sodium object count: " + count;
+                lastCount = count;
+            }
+        }, 500);
+    }());
+    //
     var btnDrawCurve = $(".btnDrawCurve", app.appDiv)[0];
     var btnDrawLine = app.findElementWithClassName(app.appDiv, "btnDrawLine");
     var btnDrawCircle = app.findElementWithClassName(app.appDiv, "btnDrawCircle");
@@ -11,6 +24,7 @@ function cadAppMainUI(app) {
     var btnCrossSection = app.findElementWithClassName(app.appDiv, "btnCrossSection");
     var btnAddDetail = $(".btnAddDetail", app.appDiv)[0];
     var btnAddDimension = $(".btnAddDimension", app.appDiv)[0];
+    var btnAddText = $(".btnAddText", app.appDiv)[0];
     var btnPrintPage = $(".btnPrintPage", app.appDiv)[0];
     btnDrawCurve.addEventListener("click", function() {
         app.doOperation(app.Operation.drawCurve());
@@ -47,6 +61,9 @@ function cadAppMainUI(app) {
     });
     btnAddDimension.addEventListener("click", function() {
         app.doOperation(app.Operation.addDimension());
+    });
+    btnAddText.addEventListener("click", function() {
+        app.doOperation(app.Operation.addText());
     });
     btnPrintPage.addEventListener("click", function() {
         app.printPage();
