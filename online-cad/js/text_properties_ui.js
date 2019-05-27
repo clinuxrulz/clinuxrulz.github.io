@@ -32,6 +32,11 @@ function cadAppInitTextProperties(app) {
     var cboFontStyle = $(".cboFontStyle", divTextProperties)[0];
     cboFontStyle.id = fontStyleId;
     lblFontStyle.htmlFor = fontStyleId;
+    var fontColourId = mkId();
+    var lblFontColour = $(".lblFontColour", divTextProperties)[0];
+    var fontColourSelector = $(".fontColourSelector", divTextProperties)[0];
+    fontColourSelector.id = fontColourId;
+    lblFontColour.htmlFor = fontColourId;
     var setFontWeight = function(fontWeight) {
         var options = cboFontWeight.options;
         for (var i = 0; i < options.length; ++i) {
@@ -74,6 +79,19 @@ function cadAppInitTextProperties(app) {
             comboBox.removeEventListener("change", listener);
         };
     };
+    var observeColourValue = function(colourPicker, callback) {
+        var listener = function() {
+            var colourOp = app.Colour.fromHex(colourPicker.value.substr(1));
+            if (colourOp.isSome) {
+                var colour = colourOp.fromSome();
+                callback(colour);
+            }
+        };
+        colourPicker.addEventListener("change", listener);
+        return function() {
+            colourPicker.removeEventListener("change", listener);
+        };
+    };
     var cleanups = [];
     cFormOp.listen(function(formOp) {
         cleanups.forEach(cleanup => cleanup());
@@ -88,6 +106,7 @@ function cadAppInitTextProperties(app) {
         txtFontSize.value = "" + form.cFontSizeOp.sample().orSome("");
         setFontWeight(form.cFontWeightOp.sample().orSome(""));
         setFontStyle(form.cFontStyleOp.sample().orSome(""));
+        fontColourSelector.value = form.cFontColourOp.sample().map(function(colour) { return "#" + colour.toHex(); }).orSome("");
         cleanups.push(
             observeTextFieldValue(
                 txtText,
@@ -138,5 +157,16 @@ function cadAppInitTextProperties(app) {
                 }
             )
         );
+        cleanups.push(
+            observeColourValue(
+                fontColourSelector,
+                function(fontColour) {
+                    if (fontColour == undefined) {
+                        return;
+                    }
+                    form.setFontColour(fontColour);
+                }
+            )
+        )
     });
 }
