@@ -5,20 +5,7 @@ function cadAppInitTextProperties(app) {
             return "cadAppTextPropertiesId" + (counter++);
         };
     })();
-    var cFormOp =
-        app.appModel.cFormOp.map(
-            function(formOp) {
-                return formOp.bind(
-                    function(form) {
-                        return form.partialMatch(app.Option.none(), {
-                            textForm: function(form) {
-                                return app.Option.some(form);
-                            }
-                        });
-                    }
-                );
-            }
-        );
+    var cFormOp = app.appModel.cTextFormOp;
     var divTextProperties = $(".divTextProperties", app.appDiv)[0];
     var textId = mkId();
     var lblText = $(".lblText", divTextProperties)[0];
@@ -96,36 +83,11 @@ function cadAppInitTextProperties(app) {
             return;
         }
         var form = formOp.fromSome();
-        txtText.value = form.cText.sample();
-        txtFontFamily = form.cFontFamily.sample();
-        txtFontSize = "" + form.cFontSize.sample();
-        setFontWeight(form.cFontWeight.sample());
-        setFontStyle(form.cFontStyle.sample());
-        cleanups.push(
-            form.sTextChangedBySystem.listen(function(text) {
-                txtText.value = text;
-            })
-        );
-        cleanups.push(
-            form.sFontFamilyChangedBySystem.listen(function(fontFamily) {
-                txtFontFamily.value = fontFamily;
-            })
-        );
-        cleanups.push(
-            form.sFontSizeChangedBySystem.listen(function(fontSize) {
-                txtFontSize.value = "" + fontSize;
-            })
-        );
-        cleanups.push(
-            form.sFontWeightChangedBySystem.listen(function(fontWeight) {
-                setFontWeight(fontWeight);
-            })
-        );
-        cleanups.push(
-            font.sFontStyleChangedBySystem.listen(function(fontStyle) {
-                setFontStyle(fontStyle);
-            })
-        );
+        txtText.value = form.cTextOp.sample().orSome("");
+        txtFontFamily.value = form.cFontFamilyOp.sample().orSome("");
+        txtFontSize.value = "" + form.cFontSizeOp.sample().orSome("");
+        setFontWeight(form.cFontWeightOp.sample().orSome(""));
+        setFontStyle(form.cFontStyleOp.sample().orSome(""));
         cleanups.push(
             observeTextFieldValue(
                 txtText,
@@ -139,6 +101,18 @@ function cadAppInitTextProperties(app) {
                 txtFontFamily,
                 function(fontFamily) {
                     form.setFontFamily(fontFamily);
+                }
+            )
+        );
+        cleanups.push(
+            observeTextFieldValue(
+                txtFontSize,
+                function(fontSize) {
+                    var fontSize2 = Number.parseFloat(fontSize);
+                    if (Number.isNaN(fontSize2)) {
+                        return;
+                    }
+                    form.setFontSize(fontSize2);
                 }
             )
         );

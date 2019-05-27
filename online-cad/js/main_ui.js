@@ -16,6 +16,7 @@ function cadAppMainUI(app) {
     var btnDrawLine = app.findElementWithClassName(app.appDiv, "btnDrawLine");
     var btnDrawCircle = app.findElementWithClassName(app.appDiv, "btnDrawCircle");
     var btnFillet = app.findElementWithClassName(app.appDiv, "btnFillet");
+    var btnExtend = $(".btnExtend", app.appDiv)[0];
     var btnTrim = $(".btnTrim", app.appDiv)[0];
     var btnOffset = $(".btnOffset", app.appDiv)[0];
     var btnMove = $(".btnMove", app.appDiv)[0];
@@ -37,6 +38,9 @@ function cadAppMainUI(app) {
     });
     btnFillet.addEventListener("click", function() {
         app.doOperation(app.Operation.fillet());
+    });
+    btnExtend.addEventListener("click", function() {
+        app.doOperation(app.Operation.extend());
     });
     btnTrim.addEventListener("click", function() {
         app.doOperation(app.Operation.trim());
