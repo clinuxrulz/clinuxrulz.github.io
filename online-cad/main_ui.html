@@ -24,6 +24,7 @@
                 <button class="btnAddDetail">Add Detail</button>
                 <button class="btnAddDimension">Dimension</button>
                 <button class="btnAddText">Text</button>
+                <button class="btnCalcScale">Calc Scale</button>
                 <button class="btnPrintPage">Print Page</button>
             </div>
             <div id="todoProperties" class="cadProperties" style="display:none">
@@ -40,11 +41,16 @@
                     <li class="ui-widget-content">Document 3</li>
                     -->
                 </ol>
+            </div>
+            <div class="flex-container flex-vertical">
                 <button class="btnAddDocument">Add Document</button>
+                <button class="btnDeleteDocument">Delete Document</button>
+                <button class="btnRenameDocument">Rename Document</button>
             </div>
             <hr/>
             <div>
                 <div class="divTextProperties" w3-include-html="text_properties_ui.html" style="display:none"></div>
+                <div class="divStrokeProperties" w3-include-html="stroke_properties_ui.html" style="display:none"></div>
             </div>
         </div>
         <div style="position:relative;width:100%;height:100%;">

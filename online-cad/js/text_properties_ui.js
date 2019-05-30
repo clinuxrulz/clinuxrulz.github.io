@@ -14,8 +14,8 @@ function cadAppInitTextProperties(app) {
     lblText.htmlFor = textId;
     var fontFamilyId = mkId();
     var lblFontFamily = $(".lblFontFamily", divTextProperties)[0];
-    var txtFontFamily = $(".txtFontFamily", divTextProperties)[0];
-    txtFontFamily.id = fontFamilyId;
+    var cboFontFamily = $(".cboFontFamily", divTextProperties)[0];
+    cboFontFamily.id = fontFamilyId;
     lblFontFamily.htmlFor = fontFamilyId;
     var fontSizeId = mkId();
     var lblFontSize = $(".lblFontSize", divTextProperties)[0];
@@ -37,6 +37,16 @@ function cadAppInitTextProperties(app) {
     var fontColourSelector = $(".fontColourSelector", divTextProperties)[0];
     fontColourSelector.id = fontColourId;
     lblFontColour.htmlFor = fontColourId;
+    var setFontFamily = function(fontFamily) {
+        var options = cboFontFamily.options;
+        for (var i = 0; i < options.length; ++i) {
+            var option = options[i];
+            if (option.value == fontFamily) {
+                option.selected = true;
+                break;
+            }
+        }
+    };
     var setFontWeight = function(fontWeight) {
         var options = cboFontWeight.options;
         for (var i = 0; i < options.length; ++i) {
@@ -94,7 +104,7 @@ function cadAppInitTextProperties(app) {
     };
     var cleanups = [];
     cFormOp.listen(function(formOp) {
-        cleanups.forEach(cleanup => cleanup());
+        cleanups.forEach(function(cleanup) { cleanup(); });
         cleanups = [];
         divTextProperties.style.display = formOp.isSome ? "block" : "none";
         if (formOp.isNone) {
@@ -102,7 +112,7 @@ function cadAppInitTextProperties(app) {
         }
         var form = formOp.fromSome();
         txtText.value = form.cTextOp.sample().orSome("");
-        txtFontFamily.value = form.cFontFamilyOp.sample().orSome("");
+        setFontFamily(form.cFontFamilyOp.sample().orSome(""));
         txtFontSize.value = "" + form.cFontSizeOp.sample().orSome("");
         setFontWeight(form.cFontWeightOp.sample().orSome(""));
         setFontStyle(form.cFontStyleOp.sample().orSome(""));
@@ -116,9 +126,12 @@ function cadAppInitTextProperties(app) {
             )
         );
         cleanups.push(
-            observeTextFieldValue(
-                txtFontFamily,
+            observeComboBoxValue(
+                cboFontFamily,
                 function(fontFamily) {
+                    if (fontFamily == undefined) {
+                        return;
+                    }
                     form.setFontFamily(fontFamily);
                 }
             )

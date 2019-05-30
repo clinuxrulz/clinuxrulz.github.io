@@ -26,6 +26,7 @@ function cadAppMainUI(app) {
     var btnAddDetail = $(".btnAddDetail", app.appDiv)[0];
     var btnAddDimension = $(".btnAddDimension", app.appDiv)[0];
     var btnAddText = $(".btnAddText", app.appDiv)[0];
+    var btnCalcScale = $(".btnCalcScale", app.appDiv)[0];
     var btnPrintPage = $(".btnPrintPage", app.appDiv)[0];
     btnDrawCurve.addEventListener("click", function() {
         app.doOperation(app.Operation.drawCurve());
@@ -66,6 +67,9 @@ function cadAppMainUI(app) {
     btnAddDimension.addEventListener("click", function() {
         app.doOperation(app.Operation.addDimension());
     });
+    btnCalcScale.addEventListener("click", function() {
+        app.doOperation(app.Operation.calcScale());
+    });
     btnAddText.addEventListener("click", function() {
         app.doOperation(app.Operation.addText());
     });
@@ -76,6 +80,8 @@ function cadAppMainUI(app) {
     (function() {
         var lstDocuments = app.findElementWithClassName(app.appDiv, "lstDocuments");
         var btnAddDocument = app.findElementWithClassName(app.appDiv, "btnAddDocument");
+        var btnDeleteDocument = $(".btnDeleteDocument", app.appDiv)[0];
+        var btnRenameDocument = $(".btnRenameDocument", app.appDiv)[0];
         $(lstDocuments).selectable({
             stop: function() {
                 var documentId = $(".ui-selected", this).attr("data-documentId");
@@ -95,10 +101,73 @@ function cadAppMainUI(app) {
                 app.appModel.testAddDocument("Document " + (++counter));
             };
         })());
+        btnDeleteDocument.addEventListener("click", function() {
+            var docOp = app.appModel.cCurrentDocumentOp.sample();
+            if (docOp.isNone) {
+                return;
+            }
+            var doc = docOp.fromSome();
+            app.appModel.deleteDocument(doc.documentId);
+        });
+        var doRenameDocument =
+            function() {
+                var targetLis = $("li.ui-selected", lstDocuments);
+                if (targetLis.length == 0) {
+                    return;
+                }
+                var targetLi = targetLis[0];
+                var documentId = Number.parseInt(targetLi.getAttribute("data-documentId"));
+                if (Number.isNaN(documentId)) {
+                    return;
+                }
+                var documentName = targetLi.getAttribute("data-documentName");
+                while (targetLi.lastChild) {
+                    targetLi.removeChild(targetLi.lastChild);
+                }
+                var txtNewName = document.createElement("input");
+                txtNewName.type = "text";
+                txtNewName.value = documentName;
+                txtNewName.style.color = "black";
+                targetLi.appendChild(txtNewName);
+                txtNewName.focus();
+                txtNewName.select();
+                var canceled = false;
+                var finishEdit = function() {
+                    if (canceled) {
+                        return;
+                    }
+                    targetLi.setAttribute("data-documentName", txtNewName.value);
+                    window.setTimeout(function() {
+                        app.appModel.renameDocument(documentId, txtNewName.value);
+                    });
+                };
+                var cancelEdit = function() {
+                    canceled = true;
+                    targetLi.innerText = documentName;
+                };
+                txtNewName.addEventListener("keydown", function(ev) {
+                    var e = ev || window.event;
+                    if (e.key == "Enter") {
+                        finishEdit();
+                    } else if (e.key == "Escape") {
+                        cancelEdit();
+                    }
+                });
+                txtNewName.addEventListener("focusout", function(ev) {
+                    finishEdit();
+                });
+            };
+        btnRenameDocument.addEventListener("click", doRenameDocument);
+        app.appModel.cCurrentDocumentOp.listen(function(currentDocumentOp) {
+            btnDeleteDocument.disabled = currentDocumentOp.isNone;
+            btnRenameDocument.disabled = currentDocumentOp.isNone;
+        });
         app.appModel.documentsModel.cDocuments.listen(
             (function() {
                 var innerCleanups = [];
                 return function(documents) {
+                    var lastLis = $("li.ui-selected", lstDocuments);
+                    var documentIdSelected = lastLis.length != 0 ? lastLis[0].getAttribute("data-documentId") : undefined;
                     while (lstDocuments.lastChild) {
                         lstDocuments.removeChild(lstDocuments.lastChild);
                     }
@@ -107,8 +176,25 @@ function cadAppMainUI(app) {
                     for (let i = 0; i < documents.length; ++i) {
                         let document2 = documents[i];
                         let li = document.createElement("li");
+                        li.addEventListener("mousedown", (function() {
+                            var lastTime = undefined;
+                            return function() {
+                                var time = new Date();
+                                if (lastTime != undefined) {
+                                    var diff = time - lastTime;
+                                    if (diff < 500.0) {
+                                        doRenameDocument();
+                                    }
+                                }
+                                lastTime = time;
+                            };
+                        })());
                         li.setAttribute("data-documentId", "" + document2.documentId);
+                        li.setAttribute("data-documentName", document2.cDocumentOp.sample().map(function(doc) { return doc.documentName; }).orSome(""));
                         li.classList.add("ui-widget-content");
+                        if (documentIdSelected != undefined && documentIdSelected == document2.documentId) {
+                            li.classList.add("ui-selected");
+                        }
                         innerCleanups.push(
                             document2
                                 .cDocumentOp
