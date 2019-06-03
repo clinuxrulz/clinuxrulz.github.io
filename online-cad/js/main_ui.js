@@ -12,6 +12,8 @@ function cadAppMainUI(app) {
         }, 500);
     }());
     //
+    var btnUndo = $(".btnUndo", app.appDiv)[0];
+    var btnRedo = $(".btnRedo", app.appDiv)[0];
     var btnDrawCurve = $(".btnDrawCurve", app.appDiv)[0];
     var btnDrawLine = app.findElementWithClassName(app.appDiv, "btnDrawLine");
     var btnDrawCircle = app.findElementWithClassName(app.appDiv, "btnDrawCircle");
@@ -28,6 +30,18 @@ function cadAppMainUI(app) {
     var btnAddText = $(".btnAddText", app.appDiv)[0];
     var btnCalcScale = $(".btnCalcScale", app.appDiv)[0];
     var btnPrintPage = $(".btnPrintPage", app.appDiv)[0];
+    app.appModel.cHasUndo.listen(function(hasUndo) {
+        btnUndo.disabled = !hasUndo;
+    });
+    app.appModel.cHasRedo.listen(function(hasRedo) {
+        btnRedo.disabled = !hasRedo;
+    });
+    btnUndo.addEventListener("click", function() {
+        app.doOperation(app.Operation.undo());
+    });
+    btnRedo.addEventListener("click", function() {
+        app.doOperation(app.Operation.redo());
+    });
     btnDrawCurve.addEventListener("click", function() {
         app.doOperation(app.Operation.drawCurve());
     });

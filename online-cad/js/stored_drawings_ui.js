@@ -1,0 +1,3 @@
+function cadAppInitStoredDrawings(app) {
+
+}
