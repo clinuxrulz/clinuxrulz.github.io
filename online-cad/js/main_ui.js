@@ -28,6 +28,7 @@ function cadAppMainUI(app) {
     var btnAddDetail = $(".btnAddDetail", app.appDiv)[0];
     var btnAddDimension = $(".btnAddDimension", app.appDiv)[0];
     var btnAddText = $(".btnAddText", app.appDiv)[0];
+    var btnCropImages = $(".btnCropImages", app.appDiv)[0];
     var btnCalcScale = $(".btnCalcScale", app.appDiv)[0];
     var btnPrintPage = $(".btnPrintPage", app.appDiv)[0];
     app.appModel.cHasUndo.listen(function(hasUndo) {
@@ -80,6 +81,9 @@ function cadAppMainUI(app) {
     });
     btnAddDimension.addEventListener("click", function() {
         app.doOperation(app.Operation.addDimension());
+    });
+    btnCropImages.addEventListener("click", function() {
+        app.doOperation(app.Operation.cropImages());
     });
     btnCalcScale.addEventListener("click", function() {
         app.doOperation(app.Operation.calcScale());
