@@ -1,16 +1,24 @@
 <div class="fullUI flex-container flex-vertical" style="width:100vw;height:100vh;">
+    <div class="divLogIn" w3-include-html="login_ui.html"></div>
     <div class="mainTabs flex-container flex-horizontal">
+        <button class="cadQuotesTab">Quotes</button>
         <button class="cadMainTab">Cad</button>
         <button class="cadPluginsTab">Plugins</button>
         <label class="lblSodiumObjectCount" style="margin-left:auto"></label>
     </div>
     <div class="mainTabsView" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden;">
+        <div class="cadQuotesTabView mainTab" style="display:none;width:100%;height:100%;">
+            <div class="divQuotes" w3-include-html="quotes_ui.html" style="width:100%;height:100%;"></div>
+        </div>
         <div class="cadMainTabView mainTab flex-container flex-horizontal" style="width:100%;height:100%;">
             <div>
                 <button class="w3-bar-item w3-button">Draw</button>
             </div>
             <div style="overflow-y:auto">
                 <div id="drawProperties" class="cadProperties flex-container flex-vertical">
+                    <button class="btnNew">New</button>
+                    <button class="btnSave">Save</button>
+                    <button class="btnSaveAs">Save As...</button>
                     <button class="btnUndo">Undo</button>
                     <button class="btnRedo">Redo</button>
                     <button class="btnDrawLine">Line</button>
@@ -23,6 +31,7 @@
                     <button class="btnMove">Move</button>
                     <button class="btnScale">Scale</button>
                     <button class="btnRotate">Rotate</button>
+                    <button class="btnExtrude">Extrude</button>
                     <button class="btnCrossSection">Cross Section</button>
                     <button class="btnAddDetail">Add Detail</button>
                     <button class="btnAddDimension">Dimension</button>
@@ -35,7 +44,7 @@
                     TODO
                 </div>
                 <div class="divDocuments">
-                    Documents:
+                    <label>Documents:</label>
                     <ol class="lstDocuments selectable" style="padding-left: 20px">
                         <!-- documents get listed here-->
                         <!--
@@ -51,11 +60,14 @@
                     <button class="btnDeleteDocument">Delete Document</button>
                     <button class="btnRenameDocument">Rename Document</button>
                 </div>
+                <div class="divScenes" w3-include-html="scene_list_ui.html">
+                </div>
                 <hr/>
                 <div>
                     <div class="divTextProperties" w3-include-html="text_properties_ui.html" style="display:none"></div>
                     <div class="divStrokeProperties" w3-include-html="stroke_properties_ui.html" style="display:none"></div>
                     <div class="divDimensionProperties" w3-include-html="dimension_properties_ui.html" style="display:none"></div>
+                    <div class="divFaceProperties" w3-include-html="face_properties_ui.html" style="display:none"></div>
                     <div class="divStoredDrawings" w3-include-html="stored_drawings_ui.html" style="display:block"></div>
                 </div>
             </div>

@@ -12,6 +12,9 @@ function cadAppMainUI(app) {
         }, 500);
     }());
     //
+    var btnNew = $(".btnNew", app.appDiv)[0];
+    var btnSave = $(".btnSave", app.appDiv)[0];
+    var btnSaveAs = $(".btnSaveAs", app.appDiv)[0];
     var btnUndo = $(".btnUndo", app.appDiv)[0];
     var btnRedo = $(".btnRedo", app.appDiv)[0];
     var btnDrawCurve = $(".btnDrawCurve", app.appDiv)[0];
@@ -24,6 +27,7 @@ function cadAppMainUI(app) {
     var btnMove = $(".btnMove", app.appDiv)[0];
     var btnScale = $(".btnScale", app.appDiv)[0];
     var btnRotate = $(".btnRotate", app.appDiv)[0];
+    var btnExtrude = $(".btnExtrude", app.appDiv)[0];
     var btnCrossSection = app.findElementWithClassName(app.appDiv, "btnCrossSection");
     var btnAddDetail = $(".btnAddDetail", app.appDiv)[0];
     var btnAddDimension = $(".btnAddDimension", app.appDiv)[0];
@@ -36,6 +40,18 @@ function cadAppMainUI(app) {
     });
     app.appModel.cHasRedo.listen(function(hasRedo) {
         btnRedo.disabled = !hasRedo;
+    });
+    app.appModel.cCurrentSceneOp.listen(function(currentSceneOp) {
+        btnExtrude.disabled = currentSceneOp.isNone;
+    });
+    btnNew.addEventListener("click", function() {
+        app.new_();
+    });
+    btnSave.addEventListener("click", function() {
+        app.save();
+    });
+    btnSaveAs.addEventListener("click", function() {
+        app.saveAs();
     });
     btnUndo.addEventListener("click", function() {
         app.doOperation(app.Operation.undo());
@@ -72,6 +88,9 @@ function cadAppMainUI(app) {
     });
     btnRotate.addEventListener("click", function() {
         app.doOperation(app.Operation.rotate());
+    });
+    btnExtrude.addEventListener("click", function() {
+        app.doOperation(app.Operation.extrude());
     });
     btnCrossSection.addEventListener("click", function() {
         app.doOperation(app.Operation.crossSection());
@@ -111,6 +130,11 @@ function cadAppMainUI(app) {
                 } else {
                     app.deselectDocument();
                 }
+            }
+        });
+        app.appModel.cCurrentSceneOp.listen(function(currentSceneOp) {
+            if (currentSceneOp.isSome) {
+                $("li", lstDocuments).removeClass("ui-selected");
             }
         });
         btnAddDocument.addEventListener("click", (function() {
@@ -179,6 +203,25 @@ function cadAppMainUI(app) {
         app.appModel.cCurrentDocumentOp.listen(function(currentDocumentOp) {
             btnDeleteDocument.disabled = currentDocumentOp.isNone;
             btnRenameDocument.disabled = currentDocumentOp.isNone;
+        });
+        app.sShowOpenQuote.listen(function() {
+            var documents = app.appModel.documentsModel.cDocuments.sample();
+            if (documents.length == 0) {
+                return;
+            }
+            var document = documents[0];
+            for (let i = 0; i < lstDocuments.childNodes.length; ++i) {
+                let childNode = lstDocuments.childNodes[i];
+                if (childNode.classList.contains("ui-widget-content")) {
+                    var documentId = childNode.getAttribute("data-documentId");
+                    if (documentId == document.documentId) {
+                        childNode.classList.add("ui-selected");
+                    } else {
+                        childNode.classList.remove("ui-selected");
+                    }
+                }
+            }
+            app.selectDocumentId(document.documentId);
         });
         app.appModel.documentsModel.cDocuments.listen(
             (function() {
@@ -265,8 +308,12 @@ function cadAppMainUI(app) {
                 button.removeEventListener("click", clickCallback);
             };
         };
+        initTabButton(app.findElementWithClassName(mainTabs, "cadQuotesTab"), "cadQuotesTabView");
         initTabButton(app.findElementWithClassName(mainTabs, "cadMainTab"), "cadMainTabView");
         initTabButton(app.findElementWithClassName(mainTabs, "cadPluginsTab"), "cadPluginsTabView");
+        app.sShowOpenQuote.listen(function() {
+            showMainTab("cadMainTabView");
+        });
         var genTabName = (function() {
             var nextTabId = 1;
             return function() {
@@ -318,6 +365,9 @@ function cadAppMainUI(app) {
         fetch(app.appPath + "/config.json")
             .then(responce => responce.json())
             .then(config => {
+                if (config.serverApiUrl) {
+                    app.serverApiUrl = config.serverApiUrl;
+                }
                 var plugins = config.plugins;
                 for (var i = 0; i < plugins.length; ++i) {
                     (function() {
