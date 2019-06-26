@@ -23,6 +23,46 @@ function cadAppInitFaceProperties(app) {
     lblMaterialTypeTexture.htmlFor = materialTypeTextureId;
     //
     var cFormOp = app.appModel.cFacePropertiesFormOp;
+    var observeColourValue = function(colourPicker, callback) {
+        var listener = function() {
+            var colourOp = app.Colour.fromHex(colourPicker.value.substr(1));
+            if (colourOp.isSome) {
+                var colour = colourOp.fromSome();
+                callback(colour);
+            }
+        };
+        colourPicker.addEventListener("change", listener);
+        return function() {
+            colourPicker.removeEventListener("change", listener);
+        };
+    };
+    var observeImageFile = function(fileSelector, callback) {
+        var listener = function() {
+            var files = fileSelector.files;
+            if (files.length == 0) {
+                callback(undefined);
+                return;
+            }
+            var file = files[0];
+            if (file.type.match("image/.*")) {
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    if (evt.target.readyState == FileReader.DONE) {
+                        var image = document.createElement("img");
+                        image.src = event.target.result;
+                        callback(image);
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else {
+                window.alert("Not an image.");
+            }
+        };
+        fileSelector.addEventListener("change", listener);
+        return function() {
+            fileSelector.removeEventListener("change", listener);
+        };
+    };
     var cleanups = [];
     cFormOp.listen(function(formOp) {
         cleanups.forEach(cleanup => cleanup());
@@ -32,6 +72,37 @@ function cadAppInitFaceProperties(app) {
             return;
         }
         var form = formOp.fromSome();
-        
+        var initUsingColour = form.cColourOpOp.sample().map(x => x.isSome).orSome(false);
+        let initUsingTexture = form.cTextureOpOp.sample().map(x => x.isSome).orSome(false);
+        if (initUsingColour) {
+            radMaterialTypeSolidColour.checked = true;
+        }
+        if (initUsingTexture) {
+            radMaterialTypeTexture.checked = true;
+        }
+        cleanups.push(
+            observeColourValue(
+                colourSelectorMaterial,
+                function(materialColour) {
+                    if (materialColour == undefined) {
+                        return;
+                    }
+                    radMaterialTypeSolidColour.checked = true;
+                    form.useColour(materialColour);
+                }
+            )
+        );
+        cleanups.push(
+            observeImageFile(
+                fileSelectorMaterial,
+                function(image) {
+                    if (image == undefined) {
+                        return;
+                    }
+                    radMaterialTypeTexture.checked = true;
+                    form.useTexture(image);
+                }
+            )
+        );
     });
 }
