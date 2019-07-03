@@ -358,6 +358,17 @@ function cadAppMainUI(app) {
                 divMessage.innerText = "";
             }
         });
+        var divCameraMessage = $(".divCameraMessage", app.appDiv)[0];
+        app.appModel.cCameraMessageOp.listen(function(messageOp) {
+            if (messageOp.isSome) {
+                var message = messageOp.fromSome();
+                divCameraMessage.innerHTML = message;
+            } else {
+                while (divCameraMessage.lastChild) {
+                    divCameraMessage.removeChild(divCameraMessage.lastChild);
+                }
+            }
+        });
     })();
     // plugins
     (function() {
