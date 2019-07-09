@@ -28,6 +28,7 @@ function cadAppMainUI(app) {
     var btnScale = $(".btnScale", app.appDiv)[0];
     var btnRotate = $(".btnRotate", app.appDiv)[0];
     var btnExtrude = $(".btnExtrude", app.appDiv)[0];
+    var btnAddViewport = $(".btnAddViewport", app.appDiv)[0];
     var btnCrossSection = app.findElementWithClassName(app.appDiv, "btnCrossSection");
     var btnAddDetail = $(".btnAddDetail", app.appDiv)[0];
     var btnAddDimension = $(".btnAddDimension", app.appDiv)[0];
@@ -91,6 +92,9 @@ function cadAppMainUI(app) {
     });
     btnExtrude.addEventListener("click", function() {
         app.doOperation(app.Operation.extrude());
+    });
+    btnAddViewport.addEventListener("click", function() {
+        app.doOperation(app.Operation.addViewport());
     });
     btnCrossSection.addEventListener("click", function() {
         app.doOperation(app.Operation.crossSection());
