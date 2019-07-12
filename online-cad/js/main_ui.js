@@ -49,10 +49,36 @@ function cadAppMainUI(app) {
         app.new_();
     });
     btnSave.addEventListener("click", function() {
-        app.save();
+        let resultOp = app.save();
+        if (resultOp.isSome) {
+            let result = resultOp.fromSome();
+            result
+                .then(function(pass) {
+                    if (!pass) {
+                        window.alert("Failed to save.");
+                    }
+                })
+                .catch(function(e) {
+                    window.alert("Failed to save.");
+                    console.log(e);
+                });
+        }
     });
     btnSaveAs.addEventListener("click", function() {
-        app.saveAs();
+        let resultOp = app.saveAs();
+        if (resultOp.isSome) {
+            let result = resultOp.fromSome();
+            result
+                .then(function(pass) {
+                    if (!pass) {
+                        window.alert("Failed to save.");
+                    }
+                })
+                .catch(function(e) {
+                    window.alert("Failed to save.");
+                    console.log(e);
+                });
+        }
     });
     btnUndo.addEventListener("click", function() {
         app.doOperation(app.Operation.undo());

@@ -62,14 +62,16 @@ function cadAppInitQuotes(app) {
                             btnDelete.type = "button";
                             btnDelete.value = "Delete";
                             btnDelete.addEventListener("click", function() {
-                                app.deleteQuote(quoteServerId)
-                                    .then(function(success) {
-                                        if (success) {
-                                            refillQuotesTable(username, password);
-                                        } else {
-                                            window.alert("Failed to delete quote.");
-                                        }
-                                    });
+                                if (window.confirm("Are you sure you want to delete \"" + name + "\"?")) {
+                                    app.deleteQuote(quoteServerId)
+                                        .then(function(success) {
+                                            if (success) {
+                                                refillQuotesTable(username, password);
+                                            } else {
+                                                window.alert("Failed to delete quote.");
+                                            }
+                                        });
+                                }
                             });
                             td.appendChild(btnOpen);
                             td.appendChild(btnDelete);
