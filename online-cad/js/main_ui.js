@@ -36,6 +36,8 @@ function cadAppMainUI(app) {
     var btnCropImages = $(".btnCropImages", app.appDiv)[0];
     var btnCalcScale = $(".btnCalcScale", app.appDiv)[0];
     var btnPrintPage = $(".btnPrintPage", app.appDiv)[0];
+    var btnRepairGeometry = $(".btnRepairGeometry", app.appDiv)[0];
+    var btnInsertWall = $(".btnInsertWall", app.appDiv)[0];
     app.appModel.cHasUndo.listen(function(hasUndo) {
         btnUndo.disabled = !hasUndo;
     });
@@ -142,6 +144,12 @@ function cadAppMainUI(app) {
     });
     btnPrintPage.addEventListener("click", function() {
         app.printPage();
+    });
+    btnRepairGeometry.addEventListener("click", function() {
+        app.repairGeometry();
+    });
+    btnInsertWall.addEventListener("click", function() {
+        app.doOperation(app.Operation.insertWall());
     });
     // documents
     (function() {
