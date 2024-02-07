@@ -1,0 +1,15 @@
+<html>
+    <head></head>
+    <body>
+        <script type="module">
+            import init, { run_game } from "./flying_shooter_lib.js";
+
+            async function start() {
+                await init();
+                run_game();
+            }
+
+            start();
+        </script>
+    </body>
+</html>
