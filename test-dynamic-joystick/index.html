@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="module">
+      import wasm, { run_app } from "./test_dynamic_joystick.js";
+      async function run() {
+        await wasm();
+        run_app();
+      }
+      run();
+    </script>
+  </head>
+  <body style="margin: 0; padding: 0">
+  </body>
+</html>
