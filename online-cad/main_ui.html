@@ -1,0 +1,91 @@
+<div class="fullUI flex-container flex-vertical" style="width:100vw;height:100vh;">
+    <div class="divLogIn" w3-include-html="login_ui.html"></div>
+    <div class="mainTabs flex-container flex-horizontal">
+        <button class="cadQuotesTab">Quotes</button>
+        <button class="cadMainTab">Cad</button>
+        <button class="cadPluginsTab">Plugins</button>
+        <label class="lblSodiumObjectCount" style="margin-left:auto"></label>
+    </div>
+    <div class="mainTabsView" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden;">
+        <div class="cadQuotesTabView mainTab" style="display:none;width:100%;height:100%;">
+            <div class="divQuotes" w3-include-html="quotes_ui.html" style="width:100%;height:100%;"></div>
+        </div>
+        <div class="cadMainTabView mainTab flex-container flex-horizontal" style="width:100%;height:100%;">
+            <div>
+                <button class="w3-bar-item w3-button">Draw</button>
+            </div>
+            <div style="overflow-y:auto">
+                <div id="drawProperties" class="cadProperties flex-container flex-vertical">
+                    <button class="btnNew">New</button>
+                    <button class="btnSave">Save</button>
+                    <button class="btnSaveAs">Save As...</button>
+                    <button class="btnUndo">Undo</button>
+                    <button class="btnRedo">Redo</button>
+                    <button class="btnDrawLine">Line</button>
+                    <button class="btnDrawCircle">Circle</button>
+                    <button class="btnDrawCurve" style="color: gray">Curve (experimental)</button>
+                    <button class="btnFillet">Fillet</button>
+                    <button class="btnExtend">Extend</button>
+                    <button class="btnTrim">Trim</button>
+                    <button class="btnOffset">Offset</button>
+                    <button class="btnMove">Move</button>
+                    <button class="btnScale">Scale</button>
+                    <button class="btnRotate">Rotate</button>
+                    <button class="btnExtrude">Extrude</button>
+                    <button class="btnAddViewport">Viewport</button>
+                    <button class="btnCrossSection">Cross Section</button>
+                    <button class="btnAddDetail">Add Detail</button>
+                    <button class="btnAddDimension">Dimension</button>
+                    <button class="btnAddText">Text</button>
+                    <button class="btnCropImages">Crop Images</button>
+                    <button class="btnCalcScale">Calc Scale</button>
+                    <button class="btnPrintPage">Print Page</button>
+                    <button class="btnRepairGeometry">Repair Geometry</button>
+                    <button class="btnInsertWall">Insert Wall</button>
+                </div>
+                <div id="todoProperties" class="cadProperties" style="display:none">
+                    TODO
+                </div>
+                <div class="divDocuments">
+                    <label>Documents:</label>
+                    <ol class="lstDocuments selectable" style="padding-left: 20px">
+                        <!-- documents get listed here-->
+                        <!--
+                        example
+                        <li class="ui-widget-content">Document 1</li>
+                        <li class="ui-widget-content">Document 2</li>
+                        <li class="ui-widget-content">Document 3</li>
+                        -->
+                    </ol>
+                </div>
+                <div class="flex-container flex-vertical">
+                    <button class="btnAddDocument">Add Document</button>
+                    <button class="btnDeleteDocument">Delete Document</button>
+                    <button class="btnRenameDocument">Rename Document</button>
+                </div>
+                <div class="divScenes" w3-include-html="scene_list_ui.html">
+                </div>
+                <hr/>
+                <div>
+                    <div class="divTextProperties" w3-include-html="text_properties_ui.html" style="display:none"></div>
+                    <div class="divStrokeProperties" w3-include-html="stroke_properties_ui.html" style="display:none"></div>
+                    <div class="divDimensionProperties" w3-include-html="dimension_properties_ui.html" style="display:none"></div>
+                    <div class="divFaceProperties" w3-include-html="face_properties_ui.html" style="display:none"></div>
+                    <div class="divLayers" w3-include-html="layers_properties_ui.html" style="display:none"></div>
+                    <div class="divStoredDrawings" w3-include-html="stored_drawings_ui.html" style="display:block"></div>
+                </div>
+            </div>
+            <div style="position:relative;width:100%;height:100%;">
+                <canvas class="canvas" style="border-style:solid;"></canvas>
+                <div class="divMessage" style="position:absolute;left:20px;top:20px;color:blue"></div>
+                <div class="divCameraMessage" style="position:absolute;right:20px;top:20px;color:blue"></div>
+            </div>
+            <div class="dlgLayers" title="Layers" w3-include-html="layers_table_ui.html" style="display:none"></div>
+        </div>
+        <div class="cadPluginsTabView mainTab" style="display:none">
+            <div class="divPlugins">
+                <!-- plugins get loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
