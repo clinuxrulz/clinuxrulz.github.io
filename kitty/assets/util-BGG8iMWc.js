@@ -1,1 +1,0 @@
-import{g as n,c as u,a as d,o as l}from"./index-BUh6aBMf.js";function v(o,t){let e,a=()=>{},s=0;return()=>{if(n()==null)return o();if(e==null){let{cache:c,dispose:r}=u(i=>({cache:d(o),dispose:i}));e=c,a=r,s=1}else++s;return l(()=>{--s==0&&(a(),a=()=>{},t?.(),e=void 0)}),e()}}class f{value;constructor(t){this.value=t}}export{f as N,v as m};
