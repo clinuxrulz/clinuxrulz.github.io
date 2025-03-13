@@ -1,1 +1,0 @@
-import{g as n,f as u,a as d,o as l}from"./index-CfJJCKiT.js";function p(o,t){let e,a=()=>{},s=0;return()=>{if(n()==null)return o();if(e==null){let{cache:r,dispose:c}=u(i=>({cache:d(o),dispose:i}));e=r,a=c,s=1}else++s;return l(()=>{--s==0&&(a(),a=()=>{},t?.(),e=void 0)}),e()}}class v{value;constructor(t){this.value=t}}export{v as N,p as m};
