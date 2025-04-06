@@ -1,4 +1,4 @@
-import{F as Ee,u as Oe,k as te,M as v,G as Fe,v as He,E as d,e as E,x as re,S as Le,y as g,z as ze,H as y,R as O,I as F,J as se,K as We,t as m,a as f,h as U,w as ae,L as q,N as Ve,b as K,B as C,i as G,O as S,j as T,Q as w,V as Ne,C as P,W as ne,X as ie,Y as oe,Z as le,_ as de,$ as je,P as $e,c as qe,T as Y,D as ue,a0 as J,a1 as Ke,a2 as Ye,a3 as Je}from"./KittyDemo-BdY5sHHE.js";import{E as Xe}from"./index-BFFgCjkN.js";import{B as ce,c as Qe}from"./colorToUniform-KTpA7KSL.js";var Ze=`in vec2 vMaskCoord;
+import{F as Ee,u as Oe,k as te,M as v,G as Fe,v as He,E as d,e as E,x as re,S as Le,y as g,z as ze,H as y,R as O,I as F,J as se,K as We,t as m,a as f,h as U,w as ae,L as q,N as Ve,b as K,B as C,i as G,O as S,j as T,Q as w,V as Ne,C as P,W as ne,X as ie,Y as oe,Z as le,_ as de,$ as je,P as $e,c as qe,T as Y,D as ue,a0 as J,a1 as Ke,a2 as Ye,a3 as Je}from"./KittyDemo-CgGIlIcX.js";import{E as Xe}from"./index-tZHkuO1w.js";import{B as ce,c as Qe}from"./colorToUniform-KTpA7KSL.js";var Ze=`in vec2 vMaskCoord;
 in vec2 vTextureCoord;
 
 uniform sampler2D uTexture;
