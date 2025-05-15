@@ -1,4 +1,4 @@
-const l={name:"local-uniform-bit",vertex:{header:`
+const n={name:"local-uniform-bit",vertex:{header:`
 
             struct LocalUniforms {
                 uTransformMatrix:mat3x3<f32>,
@@ -15,7 +15,7 @@ const l={name:"local-uniform-bit",vertex:{header:`
             {
                 vPosition = vec4(roundPixels(vPosition.xy, globalUniforms.uResolution), vPosition.zw);
             }
-        `}},e={...l,vertex:{...l.vertex,header:l.vertex.header.replace("group(1)","group(2)")}},n={name:"local-uniform-bit",vertex:{header:`
+        `}},t={...n,vertex:{...n.vertex,header:n.vertex.header.replace("group(1)","group(2)")}},e={name:"local-uniform-bit",vertex:{header:`
 
             uniform mat3 uTransformMatrix;
             uniform vec4 uColor;
@@ -28,4 +28,4 @@ const l={name:"local-uniform-bit",vertex:{header:`
             {
                 gl_Position.xy = roundPixels(gl_Position.xy, uResolution);
             }
-        `}};class a{constructor(){this.batcherName="default",this.topology="triangle-list",this.attributeSize=4,this.indexSize=6,this.packAsQuad=!0,this.roundPixels=0,this._attributeStart=0,this._batcher=null,this._batch=null}get blendMode(){return this.renderable.groupBlendMode}get color(){return this.renderable.groupColorAlpha}reset(){this.renderable=null,this.texture=null,this._batcher=null,this._batch=null,this.bounds=null}}function s(o,r,i){const t=(o>>24&255)/255;r[i++]=(o&255)/255*t,r[i++]=(o>>8&255)/255*t,r[i++]=(o>>16&255)/255*t,r[i++]=t}export{a as B,l as a,n as b,s as c,e as l};
+        `}};class a{constructor(){this.batcherName="default",this.topology="triangle-list",this.attributeSize=4,this.indexSize=6,this.packAsQuad=!0,this.roundPixels=0,this._attributeStart=0,this._batcher=null,this._batch=null}get blendMode(){return this.renderable.groupBlendMode}get color(){return this.renderable.groupColorAlpha}reset(){this.renderable=null,this.texture=null,this._batcher=null,this._batch=null,this.bounds=null}}function s(o,l,r,i){r[i++]=(o>>16&255)/255,r[i++]=(o>>8&255)/255,r[i++]=(o&255)/255,r[i++]=l}function u(o,l,r){const i=(o>>24&255)/255;l[r++]=(o&255)/255*i,l[r++]=(o>>8&255)/255*i,l[r++]=(o>>16&255)/255*i,l[r++]=i}export{a as B,n as a,e as b,u as c,s as d,t as l};
