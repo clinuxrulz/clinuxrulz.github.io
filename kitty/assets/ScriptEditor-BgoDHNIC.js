@@ -1,4 +1,4 @@
-import{n as q,u as Y,t as J,P as $}from"./lib-C64wo73Z.js";import{O as R,c as G,Q,m,J as Z,N as v,Y as ee,q as ne}from"./dev-B9-ass9r.js";import"./index-MToNTAa1.js";import"./dev-CC7pdsS5.js";const te=`import { Result } from 'control-flow-as-value';
+import{n as q,u as Y,t as J,P as $}from"./lib-BY0E6V59.js";import{O as R,c as G,Q,m,J as Z,N as v,Y as ee,q as ne}from"./dev-B9-ass9r.js";import"./index-MToNTAa1.js";import"./dev-CC7pdsS5.js";const te=`import { Result } from 'control-flow-as-value';
 import { Accessor, EffectFunction } from 'solid-js';
 type ResultOkType<A> = A extends {
     type: "Ok";
@@ -8,6 +8,12 @@ export declare class Cont<A> {
     private fn;
     private constructor();
     static of<A>(fn: (k: (a: A) => void) => void): Cont<A>;
+    /**
+     * Lifts a plain value into a Cont.
+     * @param a the value to lift into a Cont.
+     * @returns \`Cont<A>\`
+     */
+    static unit<A>(a: A): Cont<A>;
     /**
      * Lifts a promise into a Cont.
      * @param a the promise to lift into a Cont
@@ -135,7 +141,27 @@ export type Transform2DState = {
 export declare const transform2DComponentType: EcsComponentType<Transform2DState>;
 `,de=`import { EcsRegistry } from '../ecs/EcsRegistry';
 export declare const registry: EcsRegistry;
-`,pe=`import { SetStoreFunction, Store } from 'solid-js/store';
+`,pe=`import { Cont } from './Cont';
+/**
+ * Do notation for Cont
+ */
+export declare function do_<A>(fn: () => A): Cont<A>;
+/**
+ * Adds an instruction to the computation for
+ * the Cont do-notation block.
+ * @param instr The instruction to add.
+ */
+export declare function exec(instr: Cont<void>): void;
+/**
+ * Utility to read a monadic handle to a value
+ */
+export declare function read<A>(a: Cont<A>, fn: (a: A) => Cont<void>): void;
+/**
+ * Similiar to \`exec\` but returns a monadic handle to a result.
+ * @param instr The instruction to add that has a result.
+ */
+export declare function execR<A>(instr: Cont<A>): Cont<A>;
+`,ce=`import { SetStoreFunction, Store } from 'solid-js/store';
 import { Result } from '../kitty-demo/Result';
 import { TypeSchema } from '../TypeSchema';
 import { Accessor } from 'solid-js';
@@ -166,13 +192,13 @@ export declare class EcsComponent<S extends object> implements IsEcsComponent {
         setState: SetStoreFunction<S>;
     });
 }
-`,ce=`import { IsEcsComponentType } from './EcsComponent';
+`,ue=`import { IsEcsComponentType } from './EcsComponent';
 export declare class EcsRegistry {
     componentTypes: IsEcsComponentType[];
     componentTypeMap: Map<string, IsEcsComponentType>;
     constructor(componentTypes: IsEcsComponentType[]);
 }
-`,ue=`import { EcsComponent, EcsComponentType, IsEcsComponent, IsEcsComponentType } from './EcsComponent';
+`,me=`import { EcsComponent, EcsComponentType, IsEcsComponent, IsEcsComponentType } from './EcsComponent';
 import { Result } from '../kitty-demo/Result';
 import { EcsRegistry } from './EcsRegistry';
 import { IEcsWorld } from './IEcsWorld';
@@ -195,7 +221,7 @@ export declare class EcsWorld implements IEcsWorld {
     toJson(): any;
     static fromJson(registry: EcsRegistry, x: any): Result<EcsWorld>;
 }
-`,me=`import { Doc, DocHandle } from '@automerge/automerge-repo';
+`,he=`import { Doc, DocHandle } from '@automerge/automerge-repo';
 import { IsEcsComponentType, IsEcsComponent, EcsComponentType, EcsComponent } from './EcsComponent';
 import { IEcsWorld } from './IEcsWorld';
 import { EcsRegistry } from './EcsRegistry';
@@ -220,7 +246,7 @@ export declare class EcsWorldAutomergeProjection implements IEcsWorld {
     unsetComponents(entityId: string, componentTypes: IsEcsComponentType[]): void;
     debugInfo(): string;
 }
-`,he=`import { EcsComponent, EcsComponentType, IsEcsComponent, IsEcsComponentType } from './EcsComponent';
+`,fe=`import { EcsComponent, EcsComponentType, IsEcsComponent, IsEcsComponentType } from './EcsComponent';
 export interface IEcsWorld {
     entities(): string[];
     entitiesWithComponentType(componentType: IsEcsComponentType): string[];
@@ -233,24 +259,24 @@ export interface IEcsWorld {
     unsetComponents(entityId: string, componentTypes: IsEcsComponentType[]): void;
     debugInfo?(): string;
 }
-`,fe=`import { EcsComponentType } from '../EcsComponent';
+`,be=`import { EcsComponentType } from '../EcsComponent';
 export type ChildrenState = {
     childIds: string[];
 };
 export declare const childrenComponentType: EcsComponentType<ChildrenState>;
-`,be=`import { EcsComponentType } from '../EcsComponent';
+`,ge=`import { EcsComponentType } from '../EcsComponent';
 export type ParentState = {
     parentId: string;
 };
 export declare const parentComponentType: EcsComponentType<ParentState>;
-`,ge=`import { EcsComponentType } from '../EcsComponent';
+`,ye=`import { EcsComponentType } from '../EcsComponent';
 export type SortOrderIndexState = {
     orderIndex: number;
 };
 export declare const sortOrderIndexComponentType: EcsComponentType<SortOrderIndexState>;
-`,ye=`import { EcsRegistry } from '../EcsRegistry';
+`,xe=`import { EcsRegistry } from '../EcsRegistry';
 export declare const registry: EcsRegistry;
-`,xe=`import { DocHandle } from '@automerge/automerge-repo';
+`,ve=`import { DocHandle } from '@automerge/automerge-repo';
 import { EcsWorld } from '../EcsWorld';
 import { EcsRegistry } from '../EcsRegistry';
 import { Result } from '../../kitty-demo/Result';
@@ -261,9 +287,9 @@ export declare function createAutomergeEcsSyncSystem(params: {
 }): Result<{
     dispose: () => void;
 }>;
-`,ve=`export {}
 `,Te=`export {}
-`,Se=`import { Accessor } from 'solid-js';
+`,Se=`export {}
+`,we=`import { Accessor } from 'solid-js';
 import { EcsWorld } from './lib';
 import { AutomergeVfsFolder, AutomergeVirtualFileSystem } from 'solid-fs-automerge';
 import { AsyncResult } from 'control-flow-as-value';
@@ -276,6 +302,7 @@ export * from './TypeSchema';
 export { PixiRenderSystem } from './systems/PixiRenderSystem';
 export * from 'solid-js';
 export * from './Cont';
+export * from './cont-do';
 declare let systems: {
     PixiRenderSystem: (params: {
         world: EcsWorld;
@@ -317,7 +344,7 @@ export declare const createTextureAtlasWithImageAndFramesList: () => Accessor<As
         frame: FrameState;
     }[];
 }[]>>;
-`,we=`import { Vec2 } from './Vec2';
+`,_e=`import { Vec2 } from './Vec2';
 export declare class Complex {
     readonly x: number;
     readonly y: number;
@@ -335,7 +362,7 @@ export declare class Complex {
     rotate(p: Vec2): Vec2;
     getAngle(): number;
 }
-`,_e=`import { Vec2 } from './Vec2';
+`,Ee=`import { Vec2 } from './Vec2';
 import { Complex } from './Complex';
 export declare class Transform2D {
     readonly origin: Vec2;
@@ -352,7 +379,7 @@ export declare class Transform2D {
     transformFromSpace(a: Transform2D): Transform2D;
     transformToSpace(a: Transform2D): Transform2D;
 }
-`,Ee=`export declare class Vec2 {
+`,Pe=`export declare class Vec2 {
     x: number;
     y: number;
     private constructor();
@@ -371,17 +398,17 @@ export declare class Transform2D {
     length(): number;
     normalize(): this;
 }
-`,Pe=`export {}
 `,Ae=`export {}
 `,Ce=`export {}
 `,Re=`export {}
-`,Ge=`import { EcsWorld } from '../ecs/EcsWorld';
+`,Ge=`export {}
+`,Me=`import { EcsWorld } from '../ecs/EcsWorld';
 export declare class CollisionSystem {
     constructor(params: {
         world: EcsWorld;
     });
 }
-`,Me=`export type { JSX } from "./jsx.d.ts";
+`,ke=`export type { JSX } from "./jsx.d.ts";
 import type { JSX } from "./jsx.d.ts";
 declare function Fragment(props: { children: JSX.Element }): JSX.Element;
 declare function jsx(
@@ -395,7 +422,7 @@ declare function jsx(
       [key: string]: any;
     })[];
 export { jsx, jsx as jsxs, jsx as jsxDEV, Fragment };
-`,ke=`import * as csstype from "csstype";
+`,Fe=`import * as csstype from "csstype";
 
 /**
  * Based on JSX types for Surplus and Inferno and adapted for \`dom-expressions\`.
@@ -2671,7 +2698,7 @@ export namespace JSX {
   }
   interface IntrinsicElements extends HTMLElementTags, HTMLElementDeprecatedTags, SVGElementTags {}
 }
-`,Fe=`type MountableElement = Element | Document | ShadowRoot | DocumentFragment | Node;
+`,Oe=`type MountableElement = Element | Document | ShadowRoot | DocumentFragment | Node;
 interface Runtime {
   insert(parent: MountableElement, accessor: any, marker?: Node | null, init?: any): any;
   spread(node: Element, accessor: any, isSVG?: Boolean, skipChildren?: Boolean): void;
@@ -2691,13 +2718,13 @@ export type HyperScript = {
 };
 export declare function createHyperScript(r: Runtime): HyperScript;
 export {};
-`,Oe=`import type { HyperScript } from "./hyperscript.js";
+`,Ie=`import type { HyperScript } from "./hyperscript.js";
 declare const h: HyperScript;
 export default h;
-`,Ie=`import type { HTMLTag } from "./lit.js";
+`,Le=`import type { HTMLTag } from "./lit.js";
 declare const html: HTMLTag;
 export default html;
-`,Le=`type MountableElement = Element | Document | ShadowRoot | DocumentFragment | Node;
+`,Be=`type MountableElement = Element | Document | ShadowRoot | DocumentFragment | Node;
 interface Runtime {
   effect<T>(fn: (prev?: T) => T, init?: T): any;
   untrack<T>(fn: () => T): T;
@@ -2757,8 +2784,8 @@ export declare function createHTML(
   }
 ): HTMLTag;
 export {};
-`,Be=`export * from "./types/jsx";
-`,De=`export { $RAW, createStore, unwrap } from "./store.js";
+`,De=`export * from "./types/jsx";
+`,Ue=`export { $RAW, createStore, unwrap } from "./store.js";
 export type {
   ArrayFilterFn,
   DeepMutable,
@@ -2784,7 +2811,7 @@ export declare const DEV:
       };
     }
   | undefined;
-`,Ue=`export type ReconcileOptions = {
+`,je=`export type ReconcileOptions = {
   key?: string | null;
   merge?: boolean;
 };
@@ -2793,7 +2820,7 @@ export declare function reconcile<T extends U, U>(
   options?: ReconcileOptions
 ): (state: U) => T;
 export declare function produce<T>(fn: (state: T) => void): (state: T) => T;
-`,je=`import { StoreNode } from "./store.js";
+`,We=`import { StoreNode } from "./store.js";
 export declare function createMutable<T extends StoreNode>(
   state: T,
   options?: {
@@ -2801,7 +2828,7 @@ export declare function createMutable<T extends StoreNode>(
   }
 ): T;
 export declare function modifyMutable<T>(state: T, modifier: (state: T) => T): void;
-`,We=`import type { SetStoreFunction, Store } from "./store.js";
+`,He=`import type { SetStoreFunction, Store } from "./store.js";
 export type {
   ArrayFilterFn,
   DeepMutable,
@@ -2838,7 +2865,7 @@ export declare function reconcile<T extends U, U extends object>(
 ): (state: U) => T;
 export declare function produce<T>(fn: (state: T) => void): (state: T) => T;
 export declare const DEV: undefined;
-`,He=`export declare const $RAW: unique symbol,
+`,Ve=`export declare const $RAW: unique symbol,
   $NODE: unique symbol,
   $HAS: unique symbol,
   $SELF: unique symbol;
@@ -3101,7 +3128,7 @@ export declare function createStore<T extends object = {}>(
       ]
 ): [get: Store<T>, set: SetStoreFunction<T>];
 export {};
-`,Ve=`export {
+`,Ne=`export {
   $DEVCOMP,
   $PROXY,
   $TRACK,
@@ -3188,7 +3215,7 @@ export declare const DEV:
 declare global {
   var Solid$$: boolean;
 }
-`,Ne=`import * as csstype from "csstype";
+`,ze=`import * as csstype from "csstype";
 
 /**
  * Based on JSX types for Surplus and Inferno and adapted for \`dom-expressions\`.
@@ -5581,7 +5608,7 @@ export namespace JSX {
   }
   interface IntrinsicElements extends HTMLElementTags, HTMLElementDeprecatedTags, SVGElementTags {}
 }
-`,ze=`import { Accessor } from "./signal.js";
+`,Xe=`import { Accessor } from "./signal.js";
 /**
 The MIT License (MIT)
 
@@ -5633,7 +5660,7 @@ export declare function indexArray<T, U>(
     fallback?: Accessor<any>;
   }
 ): () => U[];
-`,Xe=`import { Accessor, Setter } from "./signal.js";
+`,Ke=`import { Accessor, Setter } from "./signal.js";
 declare global {
   interface SymbolConstructor {
     readonly observable: symbol;
@@ -5675,7 +5702,7 @@ export declare function from<T>(
       }
 ): Accessor<T | undefined>;
 export {};
-`,Ke=`export interface Task {
+`,qe=`export interface Task {
   id: number;
   fn: ((didTimeout: boolean) => void) | null;
   startTime: number;
@@ -5688,7 +5715,7 @@ export declare function requestCallback(
   }
 ): Task;
 export declare function cancelCallback(task: Task): void;
-`,qe=`/**
+`,Ye=`/**
 The MIT License (MIT)
 
 Copyright (c) 2017 Adam Haile
@@ -6352,7 +6379,7 @@ export declare function writeSignal(
  */
 export declare function onError(fn: (err: Error) => void): void;
 export {};
-`,Ye=`import type { JSX } from "../jsx.js";
+`,Je=`import type { JSX } from "../jsx.js";
 /**
  * **[experimental]** Controls the order in which suspended content is rendered
  *
@@ -6378,7 +6405,7 @@ export declare function Suspense(props: {
   fallback?: JSX.Element;
   children: JSX.Element;
 }): JSX.Element;
-`,Je=`import type { JSX } from "../jsx.js";
+`,$e=`import type { JSX } from "../jsx.js";
 export declare function enableHydration(): void;
 /**
  * A general \`Component\` has no implicit \`children\` prop.  If desired, you can
@@ -6525,7 +6552,7 @@ export declare function lazy<T extends Component<any>>(
 };
 export declare function createUniqueId(): string;
 export {};
-`,$e=`import { Accessor } from "../reactive/signal.js";
+`,Qe=`import { Accessor } from "../reactive/signal.js";
 import type { JSX } from "../jsx.js";
 /**
  * Creates a list elements from a list
@@ -6655,7 +6682,7 @@ export declare function ErrorBoundary(props: {
   children: JSX.Element;
 }): JSX.Element;
 export {};
-`,Qe=`import { Computation } from "../reactive/signal.js";
+`,Ze=`import { Computation } from "../reactive/signal.js";
 export type HydrationContext = {
   id: string;
   count: number;
@@ -6679,11 +6706,11 @@ export declare const sharedConfig: SharedConfig;
 export declare function setHydrateContext(context?: HydrationContext): void;
 export declare function nextHydrateContext(): HydrationContext | undefined;
 export {};
-`,Ze=`export * from "./component.js";
+`,en=`export * from "./component.js";
 export * from "./flow.js";
 export * from "./Suspense.js";
 export { sharedConfig } from "./hydration.js";
-`,en=`export {
+`,nn=`export {
   catchError,
   createRoot,
   createSignal,
@@ -6741,7 +6768,7 @@ export {
   sharedConfig
 } from "./rendering.js";
 export type { Component, Resource } from "./rendering.js";
-`,nn=`export declare const equalFn: <T>(a: T, b: T) => boolean;
+`,tn=`export declare const equalFn: <T>(a: T, b: T) => boolean;
 export declare const $PROXY: unique symbol;
 export declare const $TRACK: unique symbol;
 export declare const $DEVCOMP: unique symbol;
@@ -6865,7 +6892,7 @@ export declare function enableExternalSource(factory: any): void;
  */
 export declare function onError(fn: (err: Error) => void): void;
 export {};
-`,tn=`import { Accessor, Setter, Signal } from "./reactive.js";
+`,rn=`import { Accessor, Setter, Signal } from "./reactive.js";
 import type { JSX } from "../jsx.js";
 export type Component<P = {}> = (props: P) => JSX.Element;
 export type VoidProps<P = {}> = P & {
@@ -7095,11 +7122,11 @@ export declare function Suspense(props: { fallback?: string; children: string })
   | null
   | undefined;
 export {};
-`,rn=`import type { RendererOptions, Renderer } from "./universal.js";
+`,on=`import type { RendererOptions, Renderer } from "./universal.js";
 export declare function createRenderer<NodeType>(
   options: RendererOptions<NodeType>
 ): Renderer<NodeType>;
-`,on=`export interface RendererOptions<NodeType> {
+`,an=`export interface RendererOptions<NodeType> {
   createElement(tag: string): NodeType;
   createTextNode(value: string): NodeType;
   replaceText(textNode: NodeType, value: string): void;
@@ -7128,9 +7155,9 @@ export interface Renderer<NodeType> {
 }
 
 export function createRenderer<NodeType>(options: RendererOptions<NodeType>): Renderer<NodeType>;
-`,an=`import type { RequestEvent } from "solid-js/web";
+`,sn=`import type { RequestEvent } from "solid-js/web";
 export declare function provideRequestEvent<T extends RequestEvent, U>(init: T, cb: () => U): U;
-`,sn=`import { JSX } from "./jsx.js";
+`,ln=`import { JSX } from "./jsx.js";
 export const Aliases: Record<string, string>;
 export const Properties: Set<string>;
 export const ChildProperties: Set<string>;
@@ -7209,7 +7236,7 @@ export interface RequestEvent {
 export declare const RequestContext: unique symbol;
 export function getRequestEvent(): RequestEvent | undefined;
 export function runHydrationEvents(): void;
-`,ln=`export {
+`,dn=`export {
   getOwner,
   createComponent,
   createRoot as root,
@@ -7219,7 +7246,7 @@ export function runHydrationEvents(): void;
   untrack,
   mergeProps
 } from "solid-js";
-`,dn=`import { hydrate as hydrateCore } from "./client.js";
+`,pn=`import { hydrate as hydrateCore } from "./client.js";
 import { JSX, ComponentProps, ValidComponent } from "solid-js";
 export * from "./client.js";
 export {
@@ -7273,8 +7300,8 @@ export type DynamicProps<T extends ValidComponent, P = ComponentProps<T>> = {
  * @description https://docs.solidjs.com/reference/components/dynamic
  */
 export declare function Dynamic<T extends ValidComponent>(props: DynamicProps<T>): JSX.Element;
-`,pn=`export type { JSX } from "../../types/jsx.js";
-`,cn=`export declare function renderToString<T>(
+`,cn=`export type { JSX } from "../../types/jsx.js";
+`,un=`export declare function renderToString<T>(
   fn: () => T,
   options?: {
     nonce?: string;
@@ -7354,7 +7381,7 @@ export declare function pipeToNodeWritable<T>(
     onCompleteAll?: () => void;
   }
 ): void;
-`,un=`import { JSX } from "./jsx.js";
+`,mn=`import { JSX } from "./jsx.js";
 export const Aliases: Record<string, string>;
 export const Properties: Set<string>;
 export const ChildProperties: Set<string>;
@@ -7531,7 +7558,7 @@ export function getNextElement(template?: HTMLTemplateElement): Element;
 export function getNextMatch(start: Node, elementName: string): Element;
 /** @deprecated not supported on the server side */
 export function getNextMarker(start: Node): [Node, Array<Node>];
-`,mn=`// Generated by dts-bundle-generator v9.5.1
+`,hn=`// Generated by dts-bundle-generator v9.5.1
 
 /**
  * Minimal \`EventEmitter\` interface that is molded against the Node.js
@@ -32638,7 +32665,7 @@ export {
 export as namespace PIXI;
 
 export {};
-`,hn=`/// <reference types="@webgpu/types" />
+`,fn=`/// <reference types="@webgpu/types" />
 
 declare module '*.wgsl'
 {
@@ -32660,7 +32687,7 @@ declare module '*.frag'
 
     export default shader;
 }
-`,fn=`declare global
+`,bn=`declare global
 {
     namespace PixiMixins
     {
@@ -32679,7 +32706,7 @@ declare module '*.frag'
 }
 
 export {};
-`,bn=`import { ExtensionType } from '../extensions/Extensions';
+`,gn=`import { ExtensionType } from '../extensions/Extensions';
 import type { System } from '../rendering/renderers/shared/system/System';
 import type { Renderer } from '../rendering/renderers/types';
 import type { isMobileResult } from '../utils/browser/isMobile';
@@ -32887,7 +32914,7 @@ export declare class AccessibilitySystem implements System<AccessibilitySystemOp
      */
     setAccessibilityEnabled(enabled: boolean): void;
 }
-`,gn=`import type { Container } from '../scene/container/Container';
+`,yn=`import type { Container } from '../scene/container/Container';
 /**
  * The type of the pointer event to listen for.
  * Can be any of the following:
@@ -32975,10 +33002,10 @@ export interface AccessibleHTMLElement extends HTMLElement {
  * Object.assign(MyObject.prototype, accessibleTarget);
  */
 export declare const accessibilityTarget: AccessibleTarget;
-`,yn=`export * from './AccessibilitySystem';
+`,xn=`export * from './AccessibilitySystem';
 export * from './accessibilityTarget';
-`,xn=`export {};
-`,vn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,vn=`export {};
+`,Tn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'color'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -32995,7 +33022,7 @@ export declare class ColorBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Tn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Sn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Looks at the color information in each channel and darkens the base color to
@@ -33015,7 +33042,7 @@ export declare class ColorBurnBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Sn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,wn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Looks at the color information in each channel and brightens the base color to reflect the blend color by decreasing contrast between the two.
@@ -33033,7 +33060,7 @@ export declare class ColorDodgeBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,wn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,_n=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Uses each color channel to select the darker of the following two values; base or blend color
@@ -33051,7 +33078,7 @@ export declare class DarkenBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,_n=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,En=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'difference'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33068,7 +33095,7 @@ export declare class DifferenceBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,En=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Pn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Divides the blend from the base color using each color channel
@@ -33086,7 +33113,7 @@ export declare class DivideBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Pn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,An=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'exclusion'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33103,7 +33130,7 @@ export declare class ExclusionBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,An=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Cn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'hard-light'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33120,7 +33147,7 @@ export declare class HardLightBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Cn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Rn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Hard defines each of the color channel values of the blend color to the RGB values of the base color.
@@ -33140,7 +33167,7 @@ export declare class HardMixBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Rn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Gn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'lighten'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33157,7 +33184,7 @@ export declare class LightenBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Gn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Mn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Looks at the color information in each channel and darkens the base color to
@@ -33177,7 +33204,7 @@ export declare class LinearBurnBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Mn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,kn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Looks at the color information in each channel and brightens the base color to reflect the blend color by decreasing contrast between the two.
@@ -33195,7 +33222,7 @@ export declare class LinearDodgeBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,kn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Fn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Increase or decrease brightness by burning or dodging color values, based on the blend color
@@ -33213,7 +33240,7 @@ export declare class LinearLightBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Fn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,On=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'luminosity'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33230,7 +33257,7 @@ export declare class LuminosityBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,On=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,In=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'negation'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33246,7 +33273,7 @@ export declare class NegationBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,In=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Ln=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'overlay'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33262,7 +33289,7 @@ export declare class OverlayBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Ln=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Bn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Replaces colors based on the blend color.
@@ -33280,7 +33307,7 @@ export declare class PinLightBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Bn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Dn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'saturation'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33296,7 +33323,7 @@ export declare class SaturationBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Dn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Un=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'soft-light'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33312,7 +33339,7 @@ export declare class SoftLightBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Un=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,jn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Subtracts the blend from the base color using each color channel
@@ -33330,7 +33357,7 @@ export declare class SubtractBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,jn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
+`,Wn=`import { BlendModeFilter } from '../filters/blend-modes/BlendModeFilter';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Available as \`container.blendMode = 'vivid-light'\` after importing \`pixi.js/advanced-blend-modes\`.
@@ -33346,7 +33373,7 @@ export declare class VividLightBlend extends BlendModeFilter {
     static extension: ExtensionMetadata;
     constructor();
 }
-`,Wn=`export * from './ColorBlend';
+`,Hn=`export * from './ColorBlend';
 export * from './ColorBurnBlend';
 export * from './ColorDodgeBlend';
 export * from './DarkenBlend';
@@ -33367,8 +33394,8 @@ export * from './SaturationBlend';
 export * from './SoftLightBlend';
 export * from './SubtractBlend';
 export * from './VividLightBlend';
-`,Hn=`export {};
-`,Vn=`import { Container } from '../scene/container/Container';
+`,Vn=`export {};
+`,Nn=`import { Container } from '../scene/container/Container';
 import type { Rectangle } from '../maths/shapes/Rectangle';
 import type { AutoDetectOptions } from '../rendering/renderers/autoDetectRenderer';
 import type { RendererDestroyOptions } from '../rendering/renderers/shared/system/AbstractRenderer';
@@ -33517,7 +33544,7 @@ export declare class Application<R extends Renderer = Renderer> {
      */
     destroy(rendererDestroyOptions?: RendererDestroyOptions, options?: DestroyOptions): void;
 }
-`,Nn=`import type { Ticker } from '../ticker/Ticker';
+`,zn=`import type { Ticker } from '../ticker/Ticker';
 import type { ResizePluginOptions } from './ResizePlugin';
 import type { TickerPluginOptions } from './TickerPlugin';
 
@@ -33544,7 +33571,7 @@ declare global
 }
 
 export {};
-`,zn=`import type { ExtensionMetadata } from '../extensions/Extensions';
+`,Xn=`import type { ExtensionMetadata } from '../extensions/Extensions';
 import type { Renderer } from '../rendering/renderers/types';
 type ResizeableRenderer = Pick<Renderer, 'resize'>;
 /**
@@ -33599,7 +33626,7 @@ export declare class ResizePlugin {
     static destroy(): void;
 }
 export {};
-`,Xn=`import { Ticker } from '../ticker/Ticker';
+`,Kn=`import { Ticker } from '../ticker/Ticker';
 import type { ExtensionMetadata } from '../extensions/Extensions';
 /**
  * Application options for the {@link app.TickerPlugin}.
@@ -33663,11 +33690,11 @@ export declare class TickerPlugin {
      */
     static destroy(): void;
 }
-`,Kn=`export * from './Application';
+`,qn=`export * from './Application';
 export * from './ResizePlugin';
 export * from './TickerPlugin';
-`,qn=`export {};
-`,Yn=`import type { ExtensionType } from '../extensions/Extensions';
+`,Yn=`export {};
+`,Jn=`import type { ExtensionType } from '../extensions/Extensions';
 import type { CacheParser } from './cache/CacheParser';
 import type { FormatDetectionParser } from './detections/types';
 import type { LoaderParserAdvanced } from './loader/parsers/LoaderParser';
@@ -33747,7 +33774,7 @@ interface AssetExtensionAdvanced<ASSET = any, PARSED_ASSET = ASSET, UNLOAD_ASSET
 interface AssetExtension<ASSET = any, META_DATA = any> extends AssetExtensionAdvanced<ASSET, META_DATA> {
 }
 export type { AssetExtension, AssetExtensionAdvanced };
-`,Jn=`import { Cache } from './cache/Cache';
+`,$n=`import { Cache } from './cache/Cache';
 import { Loader } from './loader/Loader';
 import { type LoadTextureConfig } from './loader/parsers/textures/loadTextures';
 import { Resolver } from './resolver/Resolver';
@@ -34288,7 +34315,7 @@ export declare class AssetsClass {
     setPreferences(preferences: Partial<AssetsPreferences>): void;
 }
 export declare const Assets: AssetsClass;
-`,$n=`declare global
+`,Qn=`declare global
 {
     namespace PixiMixins
     {
@@ -34302,7 +34329,7 @@ export declare const Assets: AssetsClass;
 }
 
 export {};
-`,Qn=`import type { Loader } from './loader/Loader';
+`,Zn=`import type { Loader } from './loader/Loader';
 import type { ResolvedAsset } from './types';
 /**
  * Quietly Loads assets in the background.
@@ -34343,7 +34370,7 @@ export declare class BackgroundLoader {
     get active(): boolean;
     set active(value: boolean);
 }
-`,Zn=`import type { CacheParser } from './CacheParser';
+`,et=`import type { CacheParser } from './CacheParser';
 /**
  * A single Cache for all assets.
  *
@@ -34397,7 +34424,7 @@ declare class CacheClass {
 }
 export declare const Cache: CacheClass;
 export {};
-`,et=`import type { ExtensionMetadata } from '../../extensions/Extensions';
+`,nt=`import type { ExtensionMetadata } from '../../extensions/Extensions';
 /**
  * For every asset that is cached, it will call the parsers test function
  * the flow is as follows:
@@ -34429,50 +34456,50 @@ export interface CacheParser<T = any> {
      */
     getCacheableAssets: (keys: string[], asset: T) => Record<string, any>;
 }
-`,nt=`import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
+`,tt=`import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 import type { CacheParser } from '../CacheParser';
 /**
  * Returns an object of textures from an array of textures to be cached
  * @memberof assets
  */
 export declare const cacheTextureArray: CacheParser<Texture[]>;
-`,tt=`import type { FormatDetectionParser } from '../types';
+`,rt=`import type { FormatDetectionParser } from '../types';
 /**
  * Detects if the browser supports the AVIF image format.
  * @memberof assets
  */
 export declare const detectAvif: FormatDetectionParser;
-`,rt=`import type { FormatDetectionParser } from '../types';
+`,ot=`import type { FormatDetectionParser } from '../types';
 /**
  * Adds some default image formats to the detection parser
  * @memberof assets
  */
 export declare const detectDefaults: FormatDetectionParser;
-`,ot=`import type { FormatDetectionParser } from '../types';
+`,at=`import type { FormatDetectionParser } from '../types';
 /**
  * Detects if the browser supports the MP4 video format.
  * @memberof assets
  */
 export declare const detectMp4: FormatDetectionParser;
-`,at=`import type { FormatDetectionParser } from '../types';
+`,it=`import type { FormatDetectionParser } from '../types';
 /**
  * Detects if the browser supports the OGV video format.
  * @memberof assets
  */
 export declare const detectOgv: FormatDetectionParser;
-`,it=`import type { FormatDetectionParser } from '../types';
+`,st=`import type { FormatDetectionParser } from '../types';
 /**
  * Detects if the browser supports the WebM video format.
  * @memberof assets
  */
 export declare const detectWebm: FormatDetectionParser;
-`,st=`import type { FormatDetectionParser } from '../types';
+`,lt=`import type { FormatDetectionParser } from '../types';
 /**
  * Detects if the browser supports the WebP image format.
  * @memberof assets
  */
 export declare const detectWebp: FormatDetectionParser;
-`,lt=`import type { ExtensionMetadata } from '../../extensions/Extensions';
+`,dt=`import type { ExtensionMetadata } from '../../extensions/Extensions';
 /**
  * Format detection is useful for detecting feature support on the current platform.
  * @memberof assets
@@ -34496,9 +34523,9 @@ export interface FormatDetectionParser {
      */
     remove: (formats: string[]) => Promise<string[]>;
 }
-`,dt=`export declare function testImageFormat(imageData: string): Promise<boolean>;
-`,pt=`export declare function testVideoFormat(mimeType: string): boolean;
-`,ct=`export * from './AssetExtension';
+`,pt=`export declare function testImageFormat(imageData: string): Promise<boolean>;
+`,ct=`export declare function testVideoFormat(mimeType: string): boolean;
+`,ut=`export * from './AssetExtension';
 export * from './Assets';
 export * from './BackgroundLoader';
 export * from './cache/Cache';
@@ -34535,7 +34562,7 @@ export * from './utils/convertToList';
 export * from './utils/copySearchParams';
 export * from './utils/createStringVariations';
 export * from './utils/isSingleItem';
-`,ut=`import type { ResolvedAsset } from '../types';
+`,mt=`import type { ResolvedAsset } from '../types';
 import type { LoaderParser } from './parsers/LoaderParser';
 import type { PromiseAndParser } from './types';
 /**
@@ -34602,7 +34629,7 @@ export declare class Loader {
     /** validates our parsers, right now it only checks for name conflicts but we can add more here as required! */
     private _validateParsers;
 }
-`,mt=`import type { ExtensionMetadata } from '../../../extensions/Extensions';
+`,ht=`import type { ExtensionMetadata } from '../../../extensions/Extensions';
 import type { ResolvedAsset } from '../../types';
 import type { Loader } from '../Loader';
 /**
@@ -34688,7 +34715,7 @@ export interface LoaderParserAdvanced<ASSET = any, PARSED_ASSET = ASSET, UNLOAD_
  */
 export interface LoaderParser<ASSET = any, META_DATA = any, CONFIG = Record<string, any>> extends LoaderParserAdvanced<ASSET, ASSET, ASSET, META_DATA, CONFIG> {
 }
-`,ht=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ft=`import { ExtensionType } from '../../../extensions/Extensions';
 import { LoaderParserPriority } from './LoaderParser';
 /**
  * A simple loader plugin for loading json data
@@ -34703,7 +34730,7 @@ export declare const loadJson: {
     test(url: string): boolean;
     load<T>(url: string): Promise<T>;
 };
-`,ft=`import { ExtensionType } from '../../../extensions/Extensions';
+`,bt=`import { ExtensionType } from '../../../extensions/Extensions';
 import { LoaderParserPriority } from './LoaderParser';
 /**
  * A simple loader plugin for loading text data
@@ -34719,7 +34746,7 @@ export declare const loadTxt: {
     test(url: string): boolean;
     load<T>(url: string): Promise<string>;
 };
-`,bt=`import { ExtensionType } from '../../../extensions/Extensions';
+`,gt=`import { ExtensionType } from '../../../extensions/Extensions';
 import { LoaderParserPriority } from './LoaderParser';
 import type { ResolvedAsset } from '../../types';
 /**
@@ -34782,7 +34809,7 @@ export declare const loadWebFont: {
     load<T>(url: string, options?: ResolvedAsset<LoadFontData>): Promise<FontFace | FontFace[]>;
     unload(font: FontFace | FontFace[]): void;
 };
-`,gt=`import { GraphicsContext } from '../../../../scene/graphics/shared/GraphicsContext';
+`,yt=`import { GraphicsContext } from '../../../../scene/graphics/shared/GraphicsContext';
 import { type LoaderParser } from '../LoaderParser';
 import type { TextureSourceOptions } from '../../../../rendering/renderers/shared/texture/sources/TextureSource';
 import type { Texture } from '../../../../rendering/renderers/shared/texture/Texture';
@@ -34808,7 +34835,7 @@ export interface LoadSVGConfig {
  * @memberof assets
  */
 export declare const loadSvg: LoaderParser<Texture | GraphicsContext, TextureSourceOptions & LoadSVGConfig, LoadSVGConfig>;
-`,yt=`import type { TextureSourceOptions } from '../../../../rendering/renderers/shared/texture/sources/TextureSource';
+`,xt=`import type { TextureSourceOptions } from '../../../../rendering/renderers/shared/texture/sources/TextureSource';
 import type { Texture } from '../../../../rendering/renderers/shared/texture/Texture';
 import type { ResolvedAsset } from '../../../types';
 import type { LoaderParser } from '../LoaderParser';
@@ -34870,7 +34897,7 @@ export declare function loadImageBitmap(url: string, asset?: ResolvedAsset<Textu
  * @memberof assets
  */
 export declare const loadTextures: LoaderParser<Texture, TextureSourceOptions, LoadTextureConfig>;
-`,xt=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,vt=`import { ExtensionType } from '../../../../extensions/Extensions';
 import type { VideoSourceOptions } from '../../../../rendering/renderers/shared/texture/sources/VideoSource';
 import type { Texture } from '../../../../rendering/renderers/shared/texture/Texture';
 import type { ResolvedAsset } from '../../../types';
@@ -34927,7 +34954,7 @@ export declare const loadVideoTextures: {
     load<T>(url: string, asset: ResolvedAsset<VideoSourceOptions>, loader: Loader): Promise<Texture>;
     unload(texture: Texture): void;
 };
-`,vt=`import { Texture } from '../../../../../rendering/renderers/shared/texture/Texture';
+`,Tt=`import { Texture } from '../../../../../rendering/renderers/shared/texture/Texture';
 import type { TextureSource } from '../../../../../rendering/renderers/shared/texture/sources/TextureSource';
 import type { Loader } from '../../../Loader';
 /**
@@ -34938,7 +34965,7 @@ import type { Loader } from '../../../Loader';
  * @ignore
  */
 export declare function createTexture(source: TextureSource, loader: Loader, url: string): Texture<TextureSource<any>>;
-`,Tt=`import type { LoaderParser } from './parsers/LoaderParser';
+`,St=`import type { LoaderParser } from './parsers/LoaderParser';
 /**
  * A promise and parser pair
  * @memberof assets
@@ -34949,7 +34976,7 @@ export interface PromiseAndParser {
     /** the parser that is loading the asset */
     parser: LoaderParser;
 }
-`,St=`import type { TextureSourceOptions } from '../../../rendering/renderers/shared/texture/sources/TextureSource';
+`,wt=`import type { TextureSourceOptions } from '../../../rendering/renderers/shared/texture/sources/TextureSource';
 import type { ResolvedAsset } from '../../types';
 declare class WorkerManagerClass {
     worker: Worker;
@@ -34971,15 +34998,15 @@ declare class WorkerManagerClass {
 }
 declare const WorkerManager: WorkerManagerClass;
 export { WorkerManager, };
-`,wt=`declare const WHITE_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+`,_t=`declare const WHITE_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 declare function checkImageBitmap(): Promise<boolean>;
-`,_t=`interface MessageData {
+`,Et=`interface MessageData {
     data: any[];
     uuid: number;
     id: string;
 }
 declare function loadImageBitmap(url: string, alphaMode?: string): Promise<ImageBitmap>;
-`,Et=`import type { ArrayOr, AssetsBundle, AssetsManifest, ResolvedAsset, UnresolvedAsset } from '../types';
+`,Pt=`import type { ArrayOr, AssetsBundle, AssetsManifest, ResolvedAsset, UnresolvedAsset } from '../types';
 import type { PreferOrder, ResolveURLParser } from './types';
 /**
  * Options for how the resolver deals with generating bundle ids
@@ -35313,7 +35340,7 @@ export declare class Resolver {
     private _buildResolvedAsset;
 }
 export declare function getUrlExtension(url: string): string;
-`,Pt=`import { ExtensionType } from '../../../extensions/Extensions';
+`,At=`import { ExtensionType } from '../../../extensions/Extensions';
 /**
  * A parser that will resolve a json urls resolution for spritesheets
  * e.g. \`assets/spritesheet@1x.json\`
@@ -35332,7 +35359,7 @@ export declare const resolveJsonUrl: {
         src: string;
     };
 };
-`,At=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Ct=`import { ExtensionType } from '../../../extensions/Extensions';
 /**
  * A parser that will resolve a texture url
  * @memberof assets
@@ -35349,7 +35376,7 @@ export declare const resolveTextureUrl: {
         src: string;
     };
 };
-`,Ct=`import type { ExtensionMetadata } from '../../extensions/Extensions';
+`,Rt=`import type { ExtensionMetadata } from '../../extensions/Extensions';
 import type { ResolvedAsset } from '../types';
 /**
  * A prefer order lets the resolver know which assets to prefer depending on the various parameters passed to it.
@@ -35377,7 +35404,7 @@ export interface ResolveURLParser {
         [key: string]: any;
     };
 }
-`,Rt=`export type ArrayOr<T> = T | T[];
+`,Gt=`export type ArrayOr<T> = T | T[];
 /**
  * Names of the parsers that are built into PixiJS.
  * Can be any of the following defaults:
@@ -35453,17 +35480,17 @@ export interface AssetsManifest {
     /** array of bundles */
     bundles: AssetsBundle[];
 }
-`,Gt=`export declare function checkDataUrl(url: string, mimes: string | string[]): boolean;
-`,Mt=`export declare function checkExtension(url: string, extension: string | string[]): boolean;
-`,kt=`export declare const convertToList: <T>(input: string | T | (string | T)[], transform?: (input: string) => T, forceTransform?: boolean) => T[];
-`,Ft=`/**
+`,Mt=`export declare function checkDataUrl(url: string, mimes: string | string[]): boolean;
+`,kt=`export declare function checkExtension(url: string, extension: string | string[]): boolean;
+`,Ft=`export declare const convertToList: <T>(input: string | T | (string | T)[], transform?: (input: string) => T, forceTransform?: boolean) => T[];
+`,Ot=`/**
  * Copies the search params from one url to another
  * @param targetUrl - the url to copy the search params to
  * @param sourceUrl - the url container the search params we want to copy
  * @returns the url with the search params copied
  */
 export declare const copySearchParams: (targetUrl: string, sourceUrl: string) => string;
-`,Ot=`/**
+`,It=`/**
  * Creates a list of all possible combinations of the given strings.
  * @example
  * const out2 = createStringVariations('name is {chicken,wolf,sheep}');
@@ -35471,12 +35498,12 @@ export declare const copySearchParams: (targetUrl: string, sourceUrl: string) =>
  * @param string - The string to process
  */
 export declare function createStringVariations(string: string): string[];
-`,It=`/**
+`,Lt=`/**
  * Checks if the given value is an array.
  * @param item - The item to test
  */
 export declare const isSingleItem: (item: unknown) => boolean;
-`,Lt=`import type { HslaColor, HslColor, HsvaColor, HsvColor, RgbaColor, RgbColor } from '@pixi/colord';
+`,Bt=`import type { HslaColor, HslColor, HsvaColor, HsvColor, RgbaColor, RgbColor } from '@pixi/colord';
 /**
  * Pixi supports multiple color formats, including CSS color strings, hex, numbers, and arrays.
  *
@@ -35773,11 +35800,11 @@ export declare class Color {
      */
     static isColorLike(value: unknown): value is ColorSource;
 }
-`,Bt=`export * from './Color';
-`,Dt=`import type { FormatDetectionParser } from '../../assets/detections/types';
+`,Dt=`export * from './Color';
+`,Ut=`import type { FormatDetectionParser } from '../../assets/detections/types';
 export declare const detectBasis: FormatDetectionParser;
-`,Ut=`export {};
-`,jt=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
+`,jt=`export {};
+`,Wt=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
 import { ExtensionType } from '../../extensions/Extensions';
 import type { Loader } from '../../assets/loader/Loader';
 import type { ResolvedAsset } from '../../assets/types';
@@ -35794,7 +35821,7 @@ export declare const loadBasis: {
     load<T>(url: string, _asset: ResolvedAsset, loader: Loader): Promise<Texture | Texture[]>;
     unload(texture: Texture | Texture[]): void;
 };
-`,Wt=`export type BASISModuleCreator = (config: {
+`,Ht=`export type BASISModuleCreator = (config: {
     locateFile: (file: string) => string;
 }) => {
     then: (result: (libktx: BASISModule) => void) => void;
@@ -35813,19 +35840,19 @@ export interface BasisTexture {
     getImageTranscodedSizeInBytes(imageIndex: number, levelIndex: number, format: number): number;
     transcodeImage(buffer: Uint8Array, imageIndex: number, levelIndex: number, format: number, unused: number, getAlphaForOpaqueFormats: number): boolean;
 }
-`,Ht=`import type { BasisTexture } from '../types';
+`,Vt=`import type { BasisTexture } from '../types';
 export declare function createLevelBuffers(basisTexture: BasisTexture, basisTranscoderFormat: number): Uint8Array[];
-`,Vt=`export declare function gpuFormatToBasisTranscoderFormat(transcoderFormat: string): number;
-`,Nt=`export declare const basisTranscoderUrls: {
+`,Nt=`export declare function gpuFormatToBasisTranscoderFormat(transcoderFormat: string): number;
+`,zt=`export declare const basisTranscoderUrls: {
     jsUrl: string;
     wasmUrl: string;
 };
 export declare function setBasisTranscoderPath(config: Partial<typeof basisTranscoderUrls>): void;
-`,zt=`export {};
-`,Xt=`import type { TEXTURE_FORMATS } from '../../../rendering/renderers/shared/texture/const';
+`,Xt=`export {};
+`,Kt=`import type { TEXTURE_FORMATS } from '../../../rendering/renderers/shared/texture/const';
 import type { TextureSourceOptions } from '../../../rendering/renderers/shared/texture/sources/TextureSource';
 export declare function loadBasisOnWorker(url: string, supportedTextures: TEXTURE_FORMATS[]): Promise<TextureSourceOptions>;
-`,Kt=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
+`,qt=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
 /**
  * @see https://docs.microsoft.com/en-us/windows/win32/api/dxgiformat/ne-dxgiformat-dxgi_format
  * This is way over-blown for us! Lend us a hand, and remove the ones that aren't used (but set the remaining
@@ -36081,8 +36108,8 @@ export declare const DDS: {
     D3DFMT: typeof D3DFMT;
 };
 export declare const TEXTURE_FORMAT_BLOCK_SIZE: Record<string, number>;
-`,qt=`export {};
-`,Yt=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
+`,Yt=`export {};
+`,Jt=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
 import { ExtensionType } from '../../extensions/Extensions';
 import type { Loader } from '../../assets/loader/Loader';
 import type { ResolvedAsset } from '../../assets/types';
@@ -36099,10 +36126,10 @@ export declare const loadDDS: {
     load<T>(url: string, _asset: ResolvedAsset, loader: Loader): Promise<Texture | Texture[]>;
     unload(texture: Texture | Texture[]): void;
 };
-`,Jt=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
+`,$t=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
 import type { TextureSourceOptions } from '../../rendering/renderers/shared/texture/sources/TextureSource';
 export declare function parseDDS(arrayBuffer: ArrayBuffer, supportedFormats: TEXTURE_FORMATS[]): TextureSourceOptions<Uint8Array[]>;
-`,$t=`export * from './basis/detectBasis';
+`,Qt=`export * from './basis/detectBasis';
 export * from './basis/loadBasis';
 export * from './basis/types';
 export * from './basis/utils/createLevelBuffers';
@@ -36127,8 +36154,8 @@ export * from './ktx2/utils/vkFormatToGPUFormat';
 export * from './ktx2/worker/loadKTX2onWorker';
 export * from './shared/detectCompressed';
 export * from './shared/resolveCompressedTextureUrl';
-`,Qt=`export {};
-`,Zt=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
+`,Zt=`export {};
+`,er=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
 import { ExtensionType } from '../../extensions/Extensions';
 import type { Loader } from '../../assets/loader/Loader';
 import type { ResolvedAsset } from '../../assets/types';
@@ -36145,10 +36172,10 @@ export declare const loadKTX: {
     load<T>(url: string, _asset: ResolvedAsset, loader: Loader): Promise<Texture | Texture[]>;
     unload(texture: Texture | Texture[]): void;
 };
-`,er=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
+`,nr=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
 import type { TextureSourceOptions } from '../../rendering/renderers/shared/texture/sources/TextureSource';
 export declare function parseKTX(arrayBuffer: ArrayBuffer, supportedFormats: TEXTURE_FORMATS[]): TextureSourceOptions<Uint8Array[]>;
-`,nr=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
+`,tr=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
 export declare enum GL_INTERNAL_FORMAT {
     RGBA8_SNORM = 36759,
     RGBA = 6408,
@@ -36247,8 +36274,8 @@ export declare const KTX: {
     };
     ENDIANNESS: number;
 };
-`,tr=`export {};
-`,rr=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
+`,rr=`export {};
+`,or=`import { LoaderParserPriority } from '../../assets/loader/parsers/LoaderParser';
 import { ExtensionType } from '../../extensions/Extensions';
 import type { Loader } from '../../assets/loader/Loader';
 import type { ResolvedAsset } from '../../assets/types';
@@ -36265,7 +36292,7 @@ export declare const loadKTX2: {
     load<T>(url: string, _asset: ResolvedAsset, loader: Loader): Promise<Texture | Texture[]>;
     unload(texture: Texture | Texture[]): Promise<void>;
 };
-`,or=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
+`,ar=`import type { TEXTURE_FORMATS } from '../../rendering/renderers/shared/texture/const';
 export type LIBKTXModuleCreator = (config: {
     locateFile: (file: string) => string;
 }) => {
@@ -36288,29 +36315,29 @@ export interface LIBKTXModule {
     ktxTexture: new (data: Uint8Array) => KTXTexture;
 }
 export type COMPRESSED_TEXTURE_FORMATS = TEXTURE_FORMATS | 'rgb8unorm' | 'rgb8unorm-srgb';
-`,ar=`import type { TextureSourceOptions } from '../../../rendering/renderers/shared/texture/sources/TextureSource';
+`,ir=`import type { TextureSourceOptions } from '../../../rendering/renderers/shared/texture/sources/TextureSource';
 export declare function convertFormatIfRequired(textureOptions: TextureSourceOptions): void;
-`,ir=`import type { KTXTexture } from '../types';
+`,sr=`import type { KTXTexture } from '../types';
 export declare function createLevelBuffersFromKTX(ktxTexture: KTXTexture): Uint8Array[];
-`,sr=`import type { COMPRESSED_TEXTURE_FORMATS, KTXTexture } from '../types';
+`,lr=`import type { COMPRESSED_TEXTURE_FORMATS, KTXTexture } from '../types';
 export declare function getTextureFormatFromKTXTexture(ktxTexture: KTXTexture): COMPRESSED_TEXTURE_FORMATS;
-`,lr=`import type { COMPRESSED_TEXTURE_FORMATS } from '../types';
+`,dr=`import type { COMPRESSED_TEXTURE_FORMATS } from '../types';
 export declare function glFormatToGPUFormat(glInternalFormat: number): COMPRESSED_TEXTURE_FORMATS;
-`,dr=`export declare function gpuFormatToKTXBasisTranscoderFormat(transcoderFormat: string): string;
-`,pr=`export declare const ktxTranscoderUrls: {
+`,pr=`export declare function gpuFormatToKTXBasisTranscoderFormat(transcoderFormat: string): string;
+`,cr=`export declare const ktxTranscoderUrls: {
     jsUrl: string;
     wasmUrl: string;
 };
 export declare function setKTXTranscoderPath(config: Partial<typeof ktxTranscoderUrls>): void;
-`,cr=`import type { COMPRESSED_TEXTURE_FORMATS } from '../types';
+`,ur=`import type { COMPRESSED_TEXTURE_FORMATS } from '../types';
 export declare function vkFormatToGPUFormat(vkFormat: number): COMPRESSED_TEXTURE_FORMATS;
-`,ur=`export {};
-`,mr=`import type { TEXTURE_FORMATS } from '../../../rendering/renderers/shared/texture/const';
+`,mr=`export {};
+`,hr=`import type { TEXTURE_FORMATS } from '../../../rendering/renderers/shared/texture/const';
 import type { TextureSourceOptions } from '../../../rendering/renderers/shared/texture/sources/TextureSource';
 export declare function loadKTX2onWorker(url: string, supportedTextures: TEXTURE_FORMATS[]): Promise<TextureSourceOptions>;
-`,hr=`import type { FormatDetectionParser } from '../../assets/detections/types';
+`,fr=`import type { FormatDetectionParser } from '../../assets/detections/types';
 export declare const detectCompressed: FormatDetectionParser;
-`,fr=`import { ExtensionType } from '../../extensions/Extensions';
+`,br=`import { ExtensionType } from '../../extensions/Extensions';
 export declare const validFormats: string[];
 export declare const resolveCompressedTextureUrl: {
     extension: ExtensionType.ResolveParser;
@@ -36321,7 +36348,7 @@ export declare const resolveCompressedTextureUrl: {
         src: string;
     };
 };
-`,br=`import type { Container } from '../scene/container/Container';
+`,gr=`import type { Container } from '../scene/container/Container';
 type RectangleLike = {
     x: number;
     y: number;
@@ -36360,7 +36387,7 @@ export declare class Culler {
     static shared: Culler;
 }
 export {};
-`,gr=`import type { ExtensionMetadata } from '../extensions/Extensions';
+`,yr=`import type { ExtensionMetadata } from '../extensions/Extensions';
 import type { Renderer } from '../rendering/renderers/types';
 import type { Container } from '../scene/container/Container';
 /**
@@ -36382,7 +36409,7 @@ export declare class CullerPlugin {
     static init(): void;
     static destroy(): void;
 }
-`,yr=`declare global
+`,xr=`declare global
 {
     namespace PixiMixins
     {
@@ -36396,7 +36423,7 @@ export declare class CullerPlugin {
 }
 
 export {};
-`,xr=`import type { Rectangle } from '../maths/shapes/Rectangle';
+`,vr=`import type { Rectangle } from '../maths/shapes/Rectangle';
 export interface CullingMixinConstructor {
     /**
      * If set, this shape is used for culling instead of the bounds of this object.
@@ -36423,10 +36450,10 @@ export interface CullingMixinConstructor {
     cullableChildren: boolean;
 }
 export declare const cullingMixin: CullingMixinConstructor;
-`,vr=`export * from './Culler';
+`,Tr=`export * from './Culler';
 export * from './CullerPlugin';
 export * from './cullingMixin';
-`,Tr=`import { Point } from '../maths/point/Point';
+`,Sr=`import { Point } from '../maths/point/Point';
 import { ViewContainer, type ViewContainerOptions } from '../scene/view/ViewContainer';
 import type { PointData } from '../maths/point/PointData';
 /**
@@ -36506,7 +36533,7 @@ export declare class DOMContainer extends ViewContainer {
      */
     destroy(options?: boolean): void;
 }
-`,Sr=`declare global
+`,wr=`declare global
 {
     namespace PixiMixins
     {
@@ -36519,7 +36546,7 @@ export declare class DOMContainer extends ViewContainer {
 }
 
 export {};
-`,wr=`import { ExtensionType } from '../extensions/Extensions';
+`,_r=`import { ExtensionType } from '../extensions/Extensions';
 import { type DOMContainer } from './DOMContainer';
 import type { InstructionSet } from '../rendering/renderers/shared/instructions/InstructionSet';
 import type { RenderPipe } from '../rendering/renderers/shared/instructions/RenderPipe';
@@ -36575,10 +36602,10 @@ export declare class DOMPipe implements RenderPipe<DOMContainer> {
     /** Destroys the DOMPipe, removing all attached DOM elements and cleaning up resources. */
     destroy(): void;
 }
-`,_r=`export * from './DOMContainer';
+`,Er=`export * from './DOMContainer';
 export * from './DOMPipe';
-`,Er=`export * from './index';
-`,Pr=`import { type Adapter } from '../environment/adapter';
+`,Pr=`export * from './index';
+`,Ar=`import { type Adapter } from '../environment/adapter';
 /**
  * This is an implementation of the {@link environment.Adapter} interface.
  * It can be used to make Pixi work in the browser.
@@ -36595,7 +36622,7 @@ export * from './DOMPipe';
  * @property {Function} parseXML - Returns Document object that has been parsed from the given XML string.
  */
 export declare const BrowserAdapter: Adapter;
-`,Ar=`import '../accessibility/init';
+`,Cr=`import '../accessibility/init';
 import '../app/init';
 import '../events/init';
 import '../dom/init';
@@ -36610,7 +36637,7 @@ import '../scene/text-html/init';
 import '../scene/sprite-tiling/init';
 import '../scene/sprite-nine-slice/init';
 import '../filters/init';
-`,Cr=`import { ExtensionType } from '../extensions/Extensions';
+`,Rr=`import { ExtensionType } from '../extensions/Extensions';
 /**
  * Extension for the browser environment.
  * @memberof environment
@@ -36624,9 +36651,9 @@ export declare const browserExt: {
     test: () => boolean;
     load: () => Promise<void>;
 };
-`,Rr=`export * from './BrowserAdapter';
+`,Gr=`export * from './BrowserAdapter';
 export * from './browserExt';
-`,Gr=`import { type Adapter } from '../environment/adapter';
+`,Mr=`import { type Adapter } from '../environment/adapter';
 /**
  * This is an implementation of the {@link environment.Adapter} interface.
  * It can be used to make Pixi work in a Web Worker.
@@ -36642,9 +36669,9 @@ export * from './browserExt';
  * @memberof environment
  */
 export declare const WebWorkerAdapter: Adapter;
-`,Mr=`export * from './WebWorkerAdapter';
+`,kr=`export * from './WebWorkerAdapter';
 export * from './webworkerExt';
-`,kr=`import '../app/init';
+`,Fr=`import '../app/init';
 import '../spritesheet/init';
 import '../rendering/init';
 import '../scene/graphics/init';
@@ -36656,7 +36683,7 @@ import '../scene/text-html/init';
 import '../scene/sprite-tiling/init';
 import '../scene/sprite-nine-slice/init';
 import '../filters/init';
-`,Fr=`import { ExtensionType } from '../extensions/Extensions';
+`,Or=`import { ExtensionType } from '../extensions/Extensions';
 /**
  * Extension for the webworker environment.
  * @memberof environment
@@ -36670,7 +36697,7 @@ export declare const webworkerExt: {
     test: () => boolean;
     load: () => Promise<void>;
 };
-`,Or=`/// <reference types="@webgpu/types" />
+`,Ir=`/// <reference types="@webgpu/types" />
 import type { ICanvas } from './canvas/ICanvas';
 import type { ICanvasRenderingContext2D } from './canvas/ICanvasRenderingContext2D';
 /**
@@ -36753,7 +36780,7 @@ export declare const DOMAdapter: {
      */
     set(adapter: Adapter): void;
 };
-`,Ir=`/**
+`,Lr=`/**
  * Automatically detects the environment and loads the appropriate extensions.
  * @param skip - whether to skip loading the default extensions
  */
@@ -36763,7 +36790,7 @@ export declare function loadEnvironmentExtensions(skip: boolean): Promise<void>;
  * @deprecated since 8.1.6. Use \`loadEnvironmentExtensions\` instead
  */
 export declare function autoDetectEnvironment(add: boolean): Promise<void>;
-`,Lr=`/// <reference types="@webgpu/types" />
+`,Br=`/// <reference types="@webgpu/types" />
 import type { ICanvasRenderingContext2D } from './ICanvasRenderingContext2D';
 export type ContextIds = '2d' | 'bitmaprenderer' | 'webgl' | 'experimental-webgl' | 'webgl2' | 'experimental-webgl2' | 'webgpu';
 export type PredefinedColorSpace = 'srgb' | 'display-p3';
@@ -36903,7 +36930,7 @@ export interface ICanvas extends PixiMixins.ICanvas, Partial<EventTarget> {
      */
     getBoundingClientRect?(): ICanvasRect;
 }
-`,Br=`import type { ICanvas } from './ICanvas';
+`,Dr=`import type { ICanvas } from './ICanvas';
 /**
  * Common interface for CanvasRenderingContext2D, OffscreenCanvasRenderingContext2D, and other custom canvas 2D context.
  * @memberof environment
@@ -36920,11 +36947,11 @@ export interface ICanvasRenderingContext2D extends CanvasState, CanvasTransform,
     /** sets the horizontal spacing behavior between text characters. */
     textLetterSpacing?: string;
 }
-`,Dr=`export * from './adapter';
+`,Ur=`export * from './adapter';
 export * from './autoDetectEnvironment';
 export * from './canvas/ICanvas';
 export * from './canvas/ICanvasRenderingContext2D';
-`,Ur=`import EventEmitter from 'eventemitter3';
+`,jr=`import EventEmitter from 'eventemitter3';
 import { Point } from '../maths/point/Point';
 import { FederatedPointerEvent } from './FederatedPointerEvent';
 import { FederatedWheelEvent } from './FederatedWheelEvent';
@@ -37334,7 +37361,7 @@ export declare class EventBoundary {
      */
     private _notifyListeners;
 }
-`,jr=`import type { Container } from '../scene/container/Container';
+`,Wr=`import type { Container } from '../scene/container/Container';
 /**
  * The tracking data for each pointer held in the state of an {@link EventBoundary}.
  *
@@ -37884,7 +37911,7 @@ export {};
  * @event Container#wheelcapture
  * @type {FederatedWheelEvent}
  */
-`,Wr=`import { EventBoundary } from './EventBoundary';
+`,Hr=`import { EventBoundary } from './EventBoundary';
 import { FederatedPointerEvent } from './FederatedPointerEvent';
 import { FederatedWheelEvent } from './FederatedWheelEvent';
 import type { ExtensionMetadata } from '../extensions/Extensions';
@@ -38130,7 +38157,7 @@ export declare class EventSystem implements System<EventSystemOptions> {
      */
     private _transferMouseData;
 }
-`,Hr=`import type { EventSystem } from './EventSystem';
+`,Vr=`import type { EventSystem } from './EventSystem';
 /**
  * This class handles automatic firing of PointerEvents
  * in the case where the pointer is stationary for too long.
@@ -38177,7 +38204,7 @@ declare class EventsTickerClass {
 }
 export declare const EventsTicker: EventsTickerClass;
 export {};
-`,Vr=`import type { FederatedEventEmitterTypes } from './FederatedEventMap';
+`,Nr=`import type { FederatedEventEmitterTypes } from './FederatedEventMap';
 import type { FederatedOptions, IFederatedContainer } from './FederatedEventTarget';
 
 declare global
@@ -38216,7 +38243,7 @@ declare global
 }
 
 export {};
-`,Nr=`import { Point } from '../maths/point/Point';
+`,zr=`import { Point } from '../maths/point/Point';
 import type { Container } from '../scene/container/Container';
 import type { EventBoundary } from './EventBoundary';
 /**
@@ -38367,7 +38394,7 @@ export declare class FederatedEvent<N extends UIEvent | PixiTouch = UIEvent | Pi
     readonly AT_TARGET = 2;
     readonly BUBBLING_PHASE = 3;
 }
-`,zr=`import type { FederatedPointerEvent } from './FederatedPointerEvent';
+`,Xr=`import type { FederatedPointerEvent } from './FederatedPointerEvent';
 import type { FederatedWheelEvent } from './FederatedWheelEvent';
 export type FederatedEventMap = {
     click: FederatedPointerEvent;
@@ -38412,7 +38439,7 @@ export type FederatedEventEmitterTypes = {
 } & {
     [K in keyof GlobalFederatedEventMap]: [event: GlobalFederatedEventMap[K]];
 };
-`,Xr=`import { FederatedEvent } from './FederatedEvent';
+`,Kr=`import { FederatedEvent } from './FederatedEvent';
 import type { Container } from '../scene/container/Container';
 import type { AllFederatedEventMap } from './FederatedEventMap';
 import type { FederatedPointerEvent } from './FederatedPointerEvent';
@@ -38566,7 +38593,7 @@ export interface IFederatedContainer extends FederatedOptions {
 }
 export declare const FederatedContainer: IFederatedContainer;
 export {};
-`,Kr=`import { Point } from '../maths/point/Point';
+`,qr=`import { Point } from '../maths/point/Point';
 import { FederatedEvent } from './FederatedEvent';
 import type { PointData } from '../maths/point/PointData';
 import type { Container } from '../scene/container/Container';
@@ -38679,7 +38706,7 @@ export declare class FederatedMouseEvent extends FederatedEvent<MouseEvent | Poi
      */
     initMouseEvent(_typeArg: string, _canBubbleArg: boolean, _cancelableArg: boolean, _viewArg: Window, _detailArg: number, _screenXArg: number, _screenYArg: number, _clientXArg: number, _clientYArg: number, _ctrlKeyArg: boolean, _altKeyArg: boolean, _shiftKeyArg: boolean, _metaKeyArg: boolean, _buttonArg: number, _relatedTargetArg: EventTarget): void;
 }
-`,qr=`import { FederatedMouseEvent } from './FederatedMouseEvent';
+`,Yr=`import { FederatedMouseEvent } from './FederatedMouseEvent';
 /**
  * A {@link FederatedEvent} for pointer events.
  * @memberof events
@@ -38758,7 +38785,7 @@ export declare class FederatedPointerEvent extends FederatedMouseEvent implement
     getCoalescedEvents(): PointerEvent[];
     getPredictedEvents(): PointerEvent[];
 }
-`,Yr=`import { FederatedMouseEvent } from './FederatedMouseEvent';
+`,Jr=`import { FederatedMouseEvent } from './FederatedMouseEvent';
 /**
  * A {@link FederatedEvent} for wheel events.
  * @memberof events
@@ -38788,7 +38815,7 @@ export declare class FederatedWheelEvent extends FederatedMouseEvent implements 
     /** Units specified in pages. */
     readonly DOM_DELTA_PAGE = 2;
 }
-`,Jr=`import type EventEmitter from 'eventemitter3';
+`,$r=`import type EventEmitter from 'eventemitter3';
 import type { EventMode, FederatedOptions } from './FederatedEventTarget';
 /**
  * A simplified shape of an interactive object for the \`eventTarget\` property of a {@link FederatedEvent}
@@ -38806,7 +38833,7 @@ export interface FederatedEventTarget extends EventEmitter, EventTarget, Require
     /** Remove all listeners, or those of the specified event. */
     removeAllListeners(event?: string | symbol): this;
 }
-`,$r=`export * from './deprecatedTypes';
+`,Qr=`export * from './deprecatedTypes';
 export * from './EventBoundary';
 export * from './EventBoundaryTypes';
 export * from './EventSystem';
@@ -38817,8 +38844,8 @@ export * from './FederatedEventTarget';
 export * from './FederatedMouseEvent';
 export * from './FederatedPointerEvent';
 export * from './FederatedWheelEvent';
-`,Qr=`export {};
-`,Zr=`/**
+`,Zr=`export {};
+`,eo=`/**
  * \`extensions\` is a global object that holds all the extensions registered with PixiJS.
  * PixiJS uses a this extensions architecture a lot to make the library more modular and
  * flexible.
@@ -39033,8 +39060,8 @@ declare const extensions: {
 };
 export { extensions, ExtensionType, };
 export type { StrictExtensionFormat as ExtensionFormat, ExtensionFormat as ExtensionFormatLoose, ExtensionHandler, ExtensionMetadata, ExtensionMetadataDetails };
-`,eo=`export * from './Extensions';
-`,no=`import { Shader } from '../rendering/renderers/shared/shader/Shader';
+`,no=`export * from './Extensions';
+`,to=`import { Shader } from '../rendering/renderers/shared/shader/Shader';
 import { State } from '../rendering/renderers/shared/state/State';
 import type { RenderSurface } from '../rendering/renderers/shared/renderTarget/RenderTargetSystem';
 import type { IShaderWithResources, ShaderFromResources } from '../rendering/renderers/shared/shader/Shader';
@@ -39236,7 +39263,7 @@ export declare class Filter extends Shader {
      */
     static from(options: FilterOptions & ShaderFromResources): Filter;
 }
-`,to=`import type { Rectangle } from '../maths/shapes/Rectangle';
+`,ro=`import type { Rectangle } from '../maths/shapes/Rectangle';
 import type { Effect } from '../scene/container/Effect';
 import type { Filter } from './Filter';
 /**
@@ -39258,7 +39285,7 @@ export declare class FilterEffect implements Effect {
     priority: number;
     destroy(): void;
 }
-`,ro=`declare global
+`,oo=`declare global
 {
     namespace PixiMixins
     {
@@ -39275,7 +39302,7 @@ export declare class FilterEffect implements Effect {
 }
 
 export {};
-`,oo=`import { ExtensionType } from '../extensions/Extensions';
+`,ao=`import { ExtensionType } from '../extensions/Extensions';
 import type { InstructionSet } from '../rendering/renderers/shared/instructions/InstructionSet';
 import type { InstructionPipe } from '../rendering/renderers/shared/instructions/RenderPipe';
 import type { Renderer } from '../rendering/renderers/types';
@@ -39294,7 +39321,7 @@ export declare class FilterPipe implements InstructionPipe<FilterInstruction> {
     execute(instruction: FilterInstruction): void;
     destroy(): void;
 }
-`,ao=`import { ExtensionType } from '../extensions/Extensions';
+`,io=`import { ExtensionType } from '../extensions/Extensions';
 import { Matrix } from '../maths/matrix/Matrix';
 import { Texture } from '../rendering/renderers/shared/texture/Texture';
 import { type Renderer } from '../rendering/renderers/types';
@@ -39387,7 +39414,7 @@ export declare class FilterSystem implements System {
     destroy?: () => void;
 }
 export {};
-`,io=`import { Filter } from '../Filter';
+`,so=`import { Filter } from '../Filter';
 export interface BlendModeFilterOptions {
     source?: string;
     gpu?: {
@@ -39402,11 +39429,11 @@ export interface BlendModeFilterOptions {
 export declare class BlendModeFilter extends Filter {
     constructor(options: BlendModeFilterOptions);
 }
-`,so=`/** A helper object containing the hsl shader code for both glsl */
+`,lo=`/** A helper object containing the hsl shader code for both glsl */
 export declare const hslgl = "\\n\\tfloat getLuminosity(vec3 c) {\\n\\t\\treturn 0.3 * c.r + 0.59 * c.g + 0.11 * c.b;\\n\\t}\\n\\n\\tvec3 setLuminosity(vec3 c, float lum) {\\n\\t\\tfloat modLum = lum - getLuminosity(c);\\n\\t\\tvec3 color = c.rgb + vec3(modLum);\\n\\n\\t\\t// clip back into legal range\\n\\t\\tmodLum = getLuminosity(color);\\n\\t\\tvec3 modLumVec = vec3(modLum);\\n\\n\\t\\tfloat cMin = min(color.r, min(color.g, color.b));\\n\\t\\tfloat cMax = max(color.r, max(color.g, color.b));\\n\\n\\t\\tif(cMin < 0.0) {\\n\\t\\t\\tcolor = mix(modLumVec, color, modLum / (modLum - cMin));\\n\\t\\t}\\n\\n\\t\\tif(cMax > 1.0) {\\n\\t\\t\\tcolor = mix(modLumVec, color, (1.0 - modLum) / (cMax - modLum));\\n\\t\\t}\\n\\n\\t\\treturn color;\\n\\t}\\n\\n\\tfloat getSaturation(vec3 c) {\\n\\t\\treturn max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));\\n\\t}\\n\\n\\tvec3 setSaturationMinMidMax(vec3 cSorted, float s) {\\n\\t\\tvec3 colorSorted = cSorted;\\n\\n\\t\\tif(colorSorted.z > colorSorted.x) {\\n\\t\\t\\tcolorSorted.y = (((colorSorted.y - colorSorted.x) * s) / (colorSorted.z - colorSorted.x));\\n\\t\\t\\tcolorSorted.z = s;\\n\\t\\t}\\n\\t\\telse {\\n\\t\\t\\tcolorSorted.y = 0.0;\\n\\t\\t\\tcolorSorted.z = 0.0;\\n\\t\\t}\\n\\n\\t\\tcolorSorted.x = 0.0;\\n\\n\\t\\treturn colorSorted;\\n\\t}\\n\\n\\tvec3 setSaturation(vec3 c, float s) {\\n\\t\\tvec3 color = c;\\n\\n\\t\\tif(color.r <= color.g && color.r <= color.b) {\\n\\t\\t\\tif(color.g <= color.b) {\\n\\t\\t\\t\\tcolor = setSaturationMinMidMax(color.rgb, s).rgb;\\n\\t\\t\\t}\\n\\t\\t\\telse {\\n\\t\\t\\t\\tcolor = setSaturationMinMidMax(color.rbg, s).rbg;\\n\\t\\t\\t}\\n\\t\\t}\\n\\t\\telse if(color.g <= color.r && color.g <= color.b) {\\n\\t\\t\\tif(color.r <= color.b) {\\n\\t\\t\\t\\tcolor = setSaturationMinMidMax(color.grb, s).grb;\\n\\t\\t\\t}\\n\\t\\t\\telse {\\n\\t\\t\\t\\tcolor = setSaturationMinMidMax(color.gbr, s).gbr;\\n\\t\\t\\t}\\n\\t\\t}\\n\\t\\telse {\\n\\t\\t\\t// Using bgr for both fixes part of hue\\n\\t\\t\\tif(color.r <= color.g) {\\n\\t\\t\\t\\tcolor = setSaturationMinMidMax(color.brg, s).brg;\\n\\t\\t\\t}\\n\\t\\t\\telse {\\n\\t\\t\\t\\tcolor = setSaturationMinMidMax(color.bgr, s).bgr;\\n\\t\\t\\t}\\n\\t\\t}\\n\\n\\t\\treturn color;\\n\\t}\\n    ";
-`,lo=`/** A helper object containing the hsl shader code for wgsl */
+`,po=`/** A helper object containing the hsl shader code for wgsl */
 export declare const hslgpu = "\\n\\tfn getLuminosity(c: vec3<f32>) -> f32\\n\\t{\\n\\t\\treturn 0.3*c.r + 0.59*c.g + 0.11*c.b;\\n\\t}\\n\\n\\tfn setLuminosity(c: vec3<f32>, lum: f32) -> vec3<f32>\\n\\t{\\n\\t\\tvar modLum: f32 = lum - getLuminosity(c);\\n\\t\\tvar color: vec3<f32> = c.rgb + modLum;\\n\\n\\t\\t// clip back into legal range\\n\\t\\tmodLum = getLuminosity(color);\\n\\t\\tlet modLumVec = vec3<f32>(modLum);\\n\\n\\t\\tlet cMin: f32 = min(color.r, min(color.g, color.b));\\n\\t\\tlet cMax: f32 = max(color.r, max(color.g, color.b));\\n\\n\\t\\tif(cMin < 0.0)\\n\\t\\t{\\n\\t\\t\\tcolor = mix(modLumVec, color, modLum / (modLum - cMin));\\n\\t\\t}\\n\\n\\t\\tif(cMax > 1.0)\\n\\t\\t{\\n\\t\\t\\tcolor = mix(modLumVec, color, (1 - modLum) / (cMax - modLum));\\n\\t\\t}\\n\\n\\t\\treturn color;\\n\\t}\\n\\n\\tfn getSaturation(c: vec3<f32>) -> f32\\n\\t{\\n\\t\\treturn max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));\\n\\t}\\n\\n\\tfn setSaturationMinMidMax(cSorted: vec3<f32>, s: f32) -> vec3<f32>\\n\\t{\\n\\t\\tvar colorSorted = cSorted;\\n\\n\\t\\tif(colorSorted.z > colorSorted.x)\\n\\t\\t{\\n\\t\\t\\tcolorSorted.y = (((colorSorted.y - colorSorted.x) * s) / (colorSorted.z - colorSorted.x));\\n\\t\\t\\tcolorSorted.z = s;\\n\\t\\t}\\n\\t\\telse\\n\\t\\t{\\n\\t\\t\\tcolorSorted.y = 0;\\n\\t\\t\\tcolorSorted.z = 0;\\n\\t\\t}\\n\\n\\t\\tcolorSorted.x = 0;\\n\\n\\t\\treturn colorSorted;\\n\\t}\\n\\n\\tfn setSaturation(c: vec3<f32>, s: f32) -> vec3<f32>\\n\\t{\\n\\t\\tvar color = c;\\n\\n\\t\\tif (color.r <= color.g && color.r <= color.b)\\n\\t\\t{\\n\\t\\t\\tif (color.g <= color.b)\\n\\t\\t\\t{\\n\\t\\t\\t\\tcolor = vec3<f32>(setSaturationMinMidMax(color.rgb, s)).rgb;\\n\\t\\t\\t}\\n\\t\\t\\telse\\n\\t\\t\\t{\\n\\t\\t\\t\\tcolor = vec3<f32>(setSaturationMinMidMax(color.rbg, s)).rbg;\\n\\t\\t\\t}\\n\\t\\t}\\n\\t\\telse if (color.g <= color.r && color.g <= color.b)\\n\\t\\t{\\n\\t\\t\\tif (color.r <= color.b)\\n\\t\\t\\t{\\n\\t\\t\\t\\tcolor = vec3<f32>(setSaturationMinMidMax(color.grb, s)).grb;\\n\\t\\t\\t}\\n\\t\\t\\telse\\n\\t\\t\\t{\\n\\t\\t\\t\\tcolor = vec3<f32>(setSaturationMinMidMax(color.gbr, s)).gbr;\\n\\t\\t\\t}\\n\\t\\t}\\n\\t\\telse\\n\\t\\t{\\n\\t\\t\\t// Using bgr for both fixes part of hue\\n\\t\\t\\tif (color.r <= color.g)\\n\\t\\t\\t{\\n\\t\\t\\t\\tcolor = vec3<f32>(setSaturationMinMidMax(color.brg, s)).brg;\\n\\t\\t\\t}\\n\\t\\t\\telse\\n\\t\\t\\t{\\n\\t\\t\\t\\tcolor  = vec3<f32>(setSaturationMinMidMax(color.bgr, s)).bgr;\\n\\t\\t\\t}\\n\\t\\t}\\n\\n\\t\\treturn color;\\n\\t}\\n\\t";
-`,po=`import { Filter } from '../../Filter';
+`,co=`import { Filter } from '../../Filter';
 import type { FilterOptions } from '../../Filter';
 /**
  * Options for AlphaFilter
@@ -39444,7 +39471,7 @@ export declare class AlphaFilter extends Filter {
     get alpha(): number;
     set alpha(value: number);
 }
-`,co=`import { Filter } from '../../Filter';
+`,uo=`import { Filter } from '../../Filter';
 import { BlurFilterPass } from './BlurFilterPass';
 import type { RenderSurface } from '../../../rendering/renderers/shared/renderTarget/RenderTargetSystem';
 import type { Texture } from '../../../rendering/renderers/shared/texture/Texture';
@@ -39565,7 +39592,7 @@ export declare class BlurFilter extends Filter {
     get repeatEdgePixels(): boolean;
     set repeatEdgePixels(value: boolean);
 }
-`,uo=`import { Filter } from '../../Filter';
+`,mo=`import { Filter } from '../../Filter';
 import type { RenderSurface } from '../../../rendering/renderers/shared/renderTarget/RenderTargetSystem';
 import type { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 import type { FilterSystem } from '../../FilterSystem';
@@ -39623,17 +39650,17 @@ export declare class BlurFilterPass extends Filter {
     get quality(): number;
     set quality(value: number);
 }
-`,mo=`export interface IGAUSSIAN_VALUES {
+`,ho=`export interface IGAUSSIAN_VALUES {
     [x: number]: number[];
 }
 export declare const GAUSSIAN_VALUES: IGAUSSIAN_VALUES;
-`,ho=`export declare function generateBlurFragSource(kernelSize: number): string;
-`,fo=`import { GlProgram } from '../../../../rendering/renderers/gl/shader/GlProgram';
+`,fo=`export declare function generateBlurFragSource(kernelSize: number): string;
+`,bo=`import { GlProgram } from '../../../../rendering/renderers/gl/shader/GlProgram';
 export declare function generateBlurGlProgram(horizontal: boolean, kernelSize: number): GlProgram;
-`,bo=`export declare function generateBlurVertSource(kernelSize: number, x: boolean): string;
-`,go=`import { GpuProgram } from '../../../../rendering/renderers/gpu/shader/GpuProgram';
+`,go=`export declare function generateBlurVertSource(kernelSize: number, x: boolean): string;
+`,yo=`import { GpuProgram } from '../../../../rendering/renderers/gpu/shader/GpuProgram';
 export declare function generateBlurProgram(horizontal: boolean, kernelSize: number): GpuProgram;
-`,yo=`import { Filter } from '../../Filter';
+`,xo=`import { Filter } from '../../Filter';
 import type { ColorSource } from '../../../color/Color';
 import type { ArrayFixed } from '../../../utils/types';
 import type { FilterOptions } from '../../Filter';
@@ -39842,7 +39869,7 @@ export declare class ColorMatrixFilter extends Filter {
     get alpha(): number;
     set alpha(value: number);
 }
-`,xo=`import { Point } from '../../../maths/point/Point';
+`,vo=`import { Point } from '../../../maths/point/Point';
 import { Sprite } from '../../../scene/sprite/Sprite';
 import { Filter } from '../../Filter';
 import type { PointData } from '../../../maths/point/PointData';
@@ -39891,7 +39918,7 @@ export declare class DisplacementFilter extends Filter {
     /** scaleX, scaleY for displacements */
     get scale(): Point;
 }
-`,vo=`import { Filter } from '../../Filter';
+`,To=`import { Filter } from '../../Filter';
 import type { FilterOptions } from '../../Filter';
 /**
  * Options for NoiseFilter
@@ -39926,7 +39953,7 @@ export declare class NoiseFilter extends Filter {
     get seed(): number;
     set seed(value: number);
 }
-`,To=`export * from './blend-modes/BlendModeFilter';
+`,So=`export * from './blend-modes/BlendModeFilter';
 export * from './blend-modes/hls/GLhls';
 export * from './blend-modes/hls/GPUhls';
 export * from './defaults/alpha/AlphaFilter';
@@ -39963,8 +39990,8 @@ export { default as noiseWgsl } from './defaults/noise/noise.wgsl';
 export { default as maskFrag } from './mask/mask.frag';
 export { default as maskVert } from './mask/mask.vert';
 export { default as maskWgsl } from './mask/mask.wgsl';
-`,So=`export {};
-`,wo=`import { Filter } from '../Filter';
+`,wo=`export {};
+`,_o=`import { Filter } from '../Filter';
 import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import type { Sprite } from '../../scene/sprite/Sprite';
 import type { FilterOptions } from '../Filter';
@@ -39985,7 +40012,7 @@ export declare class MaskFilter extends Filter {
     get inverse(): boolean;
     apply(filterManager: FilterSystem, input: Texture, output: Texture, clearMode: boolean): void;
 }
-`,_o=`import { type GifBufferOptions, GifSource } from './GifSource';
+`,Eo=`import { type GifBufferOptions, GifSource } from './GifSource';
 import type { AssetExtension } from '../assets/AssetExtension';
 /**
  * Handle the loading of GIF images. Registering this loader plugin will
@@ -39995,7 +40022,7 @@ import type { AssetExtension } from '../assets/AssetExtension';
  */
 declare const GifAsset: AssetExtension<GifSource, GifBufferOptions>;
 export { GifAsset };
-`,Eo=`import { CanvasSource } from '../rendering/renderers/shared/texture/sources/CanvasSource';
+`,Po=`import { CanvasSource } from '../rendering/renderers/shared/texture/sources/CanvasSource';
 import { Texture } from '../rendering/renderers/shared/texture/Texture';
 /**
  * Represents a single frame of a GIF. Includes image and timing data.
@@ -40057,7 +40084,7 @@ declare class GifSource {
     static from(buffer: ArrayBuffer, options?: GifBufferOptions): GifSource;
 }
 export { GifBufferOptions, GifFrame, GifSource };
-`,Po=`import { Sprite, type SpriteOptions } from '../scene/sprite/Sprite';
+`,Ao=`import { Sprite, type SpriteOptions } from '../scene/sprite/Sprite';
 import { Ticker } from '../ticker/Ticker';
 import { GifSource } from './GifSource';
 import type { SCALE_MODE } from '../rendering/renderers/shared/texture/const';
@@ -40237,11 +40264,11 @@ declare class GifSprite extends Sprite {
 }
 export { GifSprite };
 export type { GifSpriteOptions };
-`,Ao=`export * from './GifAsset';
+`,Co=`export * from './GifAsset';
 export * from './GifSource';
 export * from './GifSprite';
-`,Co=`export * from './index';
-`,Ro=`/// <reference path="./Shaders.d.ts" />
+`,Ro=`export * from './index';
+`,Go=`/// <reference path="./Shaders.d.ts" />
 /// <reference path="./accessibility/AccessibilityMixins.d.ts" />
 /// <reference path="./app/ApplicationMixins.d.ts" />
 /// <reference path="./assets/AssetsMixins.d.ts" />
@@ -40285,7 +40312,7 @@ export * from './scene';
 export * from './spritesheet';
 export * from './ticker';
 export * from './utils';
-`,Go=`/* eslint-disable max-len */
+`,Mo=`/* eslint-disable max-len */
 declare global
 {
     namespace PixiMixins
@@ -40352,14 +40379,14 @@ declare global
 }
 
 export {};
-`,Mo=`export * from './pointExtras';
+`,ko=`export * from './pointExtras';
 export * from './rectangleExtras';
 export * from './util';
-`,ko=`export {};
-`,Fo=`export declare const pointExtraMixins: any;
-`,Oo=`import { Rectangle } from '../maths/shapes/Rectangle';
+`,Fo=`export {};
+`,Oo=`export declare const pointExtraMixins: any;
+`,Io=`import { Rectangle } from '../maths/shapes/Rectangle';
 export declare const rectangleExtraMixins: Partial<Rectangle>;
-`,Io=`import { Point } from '../maths/point/Point';
+`,Lo=`import { Point } from '../maths/point/Point';
 import './pointExtras';
 import './rectangleExtras';
 import type { PointData } from '../maths/point/PointData';
@@ -40447,7 +40474,7 @@ export declare function segmentIntersection(aStart: PointData, aEnd: PointData, 
  * @memberof maths
  */
 export declare function segmentIntersection<T extends PointData>(aStart: PointData, aEnd: PointData, bStart: PointData, bEnd: PointData, outPoint: T): T;
-`,Lo=`export * from './matrix/groupD8';
+`,Bo=`export * from './matrix/groupD8';
 export * from './matrix/Matrix';
 export * from './misc/const';
 export * from './misc/pow2';
@@ -40465,7 +40492,7 @@ export * from './shapes/Rectangle';
 export * from './shapes/RoundedRectangle';
 export * from './shapes/ShapePrimitive';
 export * from './shapes/Triangle';
-`,Bo=`import { Point } from '../point/Point';
+`,Do=`import { Point } from '../point/Point';
 import type { PointData } from '../point/PointData';
 interface TransformableObject {
     position: PointData;
@@ -40664,7 +40691,7 @@ export declare class Matrix {
     static get shared(): Matrix;
 }
 export {};
-`,Do=`import { Matrix } from './Matrix';
+`,Uo=`import { Matrix } from './Matrix';
 type GD8Symmetry = number;
 /**
  * @typedef {number} GD8Symmetry
@@ -40888,7 +40915,7 @@ export declare const groupD8: {
     matrixAppendRotationInv: (matrix: Matrix, rotation: GD8Symmetry, tx?: number, ty?: number) => void;
 };
 export {};
-`,Uo=`/**
+`,jo=`/**
  * Defines a size with a width and a height.
  * @memberof maths
  */
@@ -40898,7 +40925,7 @@ export interface Size {
     /** The height. */
     height: number;
 }
-`,jo=`/**
+`,Wo=`/**
  * Two Pi.
  * @static
  * @member {number}
@@ -40939,7 +40966,7 @@ export type SHAPE_PRIMITIVE = 'polygon' | 'rectangle' | 'circle' | 'ellipse' | '
  * \`\`\`
  * @namespace maths
  */
-`,Wo=`/**
+`,Ho=`/**
  * Rounds to next power of two.
  * @function nextPow2
  * @param {number} v - input value
@@ -40963,8 +40990,8 @@ export declare function isPow2(v: number): boolean;
  * @memberof maths
  */
 export declare function log2(v: number): number;
-`,Ho=`export declare function squaredDistanceToLineSegment(x: number, y: number, x1: number, y1: number, x2: number, y2: number): number;
-`,Vo=`import type { PointData } from './PointData';
+`,Vo=`export declare function squaredDistanceToLineSegment(x: number, y: number, x1: number, y1: number, x2: number, y2: number): number;
+`,No=`import type { PointData } from './PointData';
 import type { PointLike } from './PointLike';
 export interface ObservablePoint extends PixiMixins.ObservablePoint {
 }
@@ -41037,7 +41064,7 @@ export declare class ObservablePoint implements PointLike {
     get y(): number;
     set y(value: number);
 }
-`,No=`import type { PointData } from './PointData';
+`,zo=`import type { PointData } from './PointData';
 import type { PointLike } from './PointLike';
 export interface Point extends PixiMixins.Point {
 }
@@ -41100,7 +41127,7 @@ export declare class Point implements PointLike {
      */
     static get shared(): Point;
 }
-`,zo=`/**
+`,Xo=`/**
  * Common interface for points. Both Point and ObservablePoint implement it
  * @memberof maths
  */
@@ -41110,7 +41137,7 @@ export interface PointData {
     /** Y coord */
     y: number;
 }
-`,Xo=`import type { PointData } from './PointData';
+`,Ko=`import type { PointData } from './PointData';
 /**
  * Common interface for points. Both Point and ObservablePoint implement it
  * @memberof maths
@@ -41142,7 +41169,7 @@ export interface PointLike extends PointData {
      */
     set: (x?: number, y?: number) => void;
 }
-`,Ko=`/**
+`,qo=`/**
  * Check if a point is inside a triangle.
  * @param px - x coordinate of the point
  * @param py - y coordinate of the point
@@ -41155,7 +41182,7 @@ export interface PointLike extends PointData {
  * @returns \`true\` if the point is inside the triangle, \`false\` otherwise
  */
 export declare function pointInTriangle(px: number, py: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): boolean;
-`,qo=`import { Rectangle } from './Rectangle';
+`,Yo=`import { Rectangle } from './Rectangle';
 import type { SHAPE_PRIMITIVE } from '../misc/const';
 import type { ShapePrimitive } from './ShapePrimitive';
 /**
@@ -41230,7 +41257,7 @@ export declare class Circle implements ShapePrimitive {
     copyTo(circle: Circle): Circle;
     toString(): string;
 }
-`,Yo=`import { Rectangle } from './Rectangle';
+`,Jo=`import { Rectangle } from './Rectangle';
 import type { ShapePrimitive } from './ShapePrimitive';
 /**
  * The Ellipse object is used to help draw graphics and can also be used to specify a hit area for containers.
@@ -41316,7 +41343,7 @@ export declare class Ellipse implements ShapePrimitive {
     copyTo(ellipse: Ellipse): Ellipse;
     toString(): string;
 }
-`,Jo=`import { Rectangle } from './Rectangle';
+`,$o=`import { Rectangle } from './Rectangle';
 import type { SHAPE_PRIMITIVE } from '../misc/const';
 import type { PointData } from '../point/PointData';
 import type { ShapePrimitive } from './ShapePrimitive';
@@ -41443,7 +41470,7 @@ export declare class Polygon implements ShapePrimitive {
      */
     get y(): number;
 }
-`,$o=`import type { Bounds } from '../../scene/container/bounds/Bounds';
+`,Qo=`import type { Bounds } from '../../scene/container/bounds/Bounds';
 import type { Matrix } from '../matrix/Matrix';
 import type { SHAPE_PRIMITIVE } from '../misc/const';
 import type { ShapePrimitive } from './ShapePrimitive';
@@ -41607,7 +41634,7 @@ export declare class Rectangle implements ShapePrimitive {
     containsRect(other: Rectangle): boolean;
     toString(): string;
 }
-`,Qo=`import { Rectangle } from './Rectangle';
+`,Zo=`import { Rectangle } from './Rectangle';
 import type { ShapePrimitive } from './ShapePrimitive';
 /**
  * The \`RoundedRectangle\` object is an area defined by its position, as indicated by its top-left corner
@@ -41695,7 +41722,7 @@ export declare class RoundedRectangle implements ShapePrimitive {
     strokeContains(pX: number, pY: number, strokeWidth: number, alignment?: number): boolean;
     toString(): string;
 }
-`,Zo=`import type { SHAPE_PRIMITIVE } from '../misc/const';
+`,ea=`import type { SHAPE_PRIMITIVE } from '../misc/const';
 import type { Rectangle } from './Rectangle';
 /**
  * A basic object to define a Pixi shape.
@@ -41721,7 +41748,7 @@ export interface ShapePrimitive {
     /** The Y coordinate of the shape */
     readonly y: number;
 }
-`,ea=`import { Rectangle } from './Rectangle';
+`,na=`import { Rectangle } from './Rectangle';
 import type { SHAPE_PRIMITIVE } from '../misc/const';
 import type { ShapePrimitive } from './ShapePrimitive';
 /**
@@ -41821,7 +41848,7 @@ export declare class Triangle implements ShapePrimitive {
      */
     getBounds(out?: Rectangle): Rectangle;
 }
-`,na=`import { Container } from '../scene/container/Container';
+`,ta=`import { Container } from '../scene/container/Container';
 import type { TextureSource } from '../rendering/renderers/shared/texture/sources/TextureSource';
 import type { Texture } from '../rendering/renderers/shared/texture/Texture';
 import type { Renderer } from '../rendering/renderers/types';
@@ -41883,7 +41910,7 @@ export declare abstract class PrepareBase {
     /** Call all the resolve callbacks */
     private _resolve;
 }
-`,ta=`declare global
+`,ra=`declare global
 {
     namespace PixiMixins
     {
@@ -41895,7 +41922,7 @@ export declare abstract class PrepareBase {
 }
 
 export {};
-`,ra=`import { Container } from '../scene/container/Container';
+`,oa=`import { Container } from '../scene/container/Container';
 import { GraphicsContext } from '../scene/graphics/shared/GraphicsContext';
 import { PrepareBase } from './PrepareBase';
 import type { PrepareQueueItem, PrepareSourceItem } from './PrepareBase';
@@ -41923,7 +41950,7 @@ export declare abstract class PrepareQueue extends PrepareBase {
      */
     protected resolveGraphicsContextQueueItem(graphicsContext: GraphicsContext): PrepareQueueItem | null;
 }
-`,oa=`import { ExtensionType } from '../extensions/Extensions';
+`,aa=`import { ExtensionType } from '../extensions/Extensions';
 import { PrepareUpload } from './PrepareUpload';
 import type { System } from '../rendering/renderers/shared/system/System';
 /**
@@ -41966,7 +41993,7 @@ export declare class PrepareSystem extends PrepareUpload implements System {
     /** Destroys the plugin, don't use after this. */
     destroy(): void;
 }
-`,aa=`import { TextureSource } from '../rendering/renderers/shared/texture/sources/TextureSource';
+`,ia=`import { TextureSource } from '../rendering/renderers/shared/texture/sources/TextureSource';
 import { GraphicsContext } from '../scene/graphics/shared/GraphicsContext';
 import { Text } from '../scene/text/Text';
 import { BitmapText } from '../scene/text-bitmap/BitmapText';
@@ -41994,12 +42021,12 @@ export declare abstract class PrepareUpload extends PrepareQueue {
      */
     protected uploadGraphicsContext(graphicsContext: GraphicsContext): void;
 }
-`,ia=`export * from './PrepareBase';
+`,sa=`export * from './PrepareBase';
 export * from './PrepareQueue';
 export * from './PrepareSystem';
 export * from './PrepareUpload';
-`,sa=`export {};
-`,la=`declare global
+`,la=`export {};
+`,da=`declare global
 {
     namespace PixiMixins
     {
@@ -42080,7 +42107,7 @@ export * from './PrepareUpload';
 }
 
 export {};
-`,da=`import { ExtensionType } from '../../../extensions/Extensions';
+`,pa=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { Geometry } from '../../renderers/shared/geometry/Geometry';
 import type { Shader } from '../../renderers/shared/shader/Shader';
 import type { Batch } from '../shared/Batcher';
@@ -42109,9 +42136,9 @@ export declare class GlBatchAdaptor implements BatcherAdaptor {
     start(batchPipe: BatcherPipe, geometry: Geometry, shader: Shader): void;
     execute(batchPipe: BatcherPipe, batch: Batch): void;
 }
-`,pa=`import type { GlRenderingContext } from '../../../renderers/gl/context/GlRenderingContext';
+`,ca=`import type { GlRenderingContext } from '../../../renderers/gl/context/GlRenderingContext';
 export declare function checkMaxIfStatementsInShader(maxIfs: number, gl: GlRenderingContext): number;
-`,ca=`/**
+`,ua=`/**
  * Returns the maximum number of textures that can be batched. This uses WebGL1's \`MAX_TEXTURE_IMAGE_UNITS\`.
  * The response for this is that to get this info via WebGPU, we would need to make a context, which
  * would make this function async, and we want to avoid that.
@@ -42119,7 +42146,7 @@ export declare function checkMaxIfStatementsInShader(maxIfs: number, gl: GlRende
  * @returns {number} The maximum number of textures that can be batched
  */
 export declare function getMaxTexturesPerBatch(): number;
-`,ua=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ma=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { Geometry } from '../../renderers/shared/geometry/Geometry';
 import type { Shader } from '../../renderers/shared/shader/Shader';
 import type { Batch } from '../shared/Batcher';
@@ -42140,17 +42167,17 @@ export declare class GpuBatchAdaptor implements BatcherAdaptor {
     start(batchPipe: BatcherPipe, geometry: Geometry, shader: Shader): void;
     execute(batchPipe: BatcherPipe, batch: Batch): void;
 }
-`,ma=`/// <reference types="@webgpu/types" />
+`,ha=`/// <reference types="@webgpu/types" />
 export declare function generateGPULayout(maxTextures: number): GPUBindGroupLayoutEntry[];
-`,ha=`export declare function generateLayout(maxTextures: number): Record<string, number>;
-`,fa=`import { BindGroup } from '../../renderers/gpu/shader/BindGroup';
+`,fa=`export declare function generateLayout(maxTextures: number): Record<string, number>;
+`,ba=`import { BindGroup } from '../../renderers/gpu/shader/BindGroup';
 import type { TextureSource } from '../../renderers/shared/texture/sources/TextureSource';
 export declare function getTextureBatchBindGroup(textures: TextureSource[], size: number): BindGroup;
-`,ba=`import { Geometry } from '../../renderers/shared/geometry/Geometry';
+`,ga=`import { Geometry } from '../../renderers/shared/geometry/Geometry';
 export declare class BatchGeometry extends Geometry {
     constructor();
 }
-`,ga=`import type { TextureSource } from '../../renderers/shared/texture/sources/TextureSource';
+`,ya=`import type { TextureSource } from '../../renderers/shared/texture/sources/TextureSource';
 /**
  * Used by the batcher to build texture batches. Holds list of textures and their respective locations.
  * @memberof rendering
@@ -42166,7 +42193,7 @@ export declare class BatchTextureArray {
     /** Clear the textures and their locations. */
     clear(): void;
 }
-`,ya=`/// <reference types="@webgpu/types" />
+`,xa=`/// <reference types="@webgpu/types" />
 import { ViewableBuffer } from '../../../utils/data/ViewableBuffer';
 import { type BLEND_MODES } from '../../renderers/shared/state/const';
 import { BatchTextureArray } from './BatchTextureArray';
@@ -42445,7 +42472,7 @@ export declare abstract class Batcher {
     packIndex(element: BatchableMeshElement, indexBuffer: IndexBufferArray, index: number, indicesOffset: number): void;
     destroy(): void;
 }
-`,xa=`import { ExtensionType } from '../../../extensions/Extensions';
+`,va=`import { ExtensionType } from '../../../extensions/Extensions';
 import { State } from '../../renderers/shared/state/State';
 import type { Geometry } from '../../renderers/shared/geometry/Geometry';
 import type { InstructionSet } from '../../renderers/shared/instructions/InstructionSet';
@@ -42491,7 +42518,7 @@ export declare class BatcherPipe implements InstructionPipe<Batch>, BatchPipe {
     execute(batch: Batch): void;
     destroy(): void;
 }
-`,va=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Ta=`import { ExtensionType } from '../../../extensions/Extensions';
 import { Batcher } from './Batcher';
 import { BatchGeometry } from './BatchGeometry';
 import type { Matrix } from '../../../maths/matrix/Matrix';
@@ -42572,7 +42599,7 @@ export declare class DefaultBatcher extends Batcher {
      */
     packQuadAttributes(element: DefaultBatchableQuadElement, float32View: Float32Array, uint32View: Uint32Array, index: number, textureId: number): void;
 }
-`,Ta=`import { Shader } from '../../renderers/shared/shader/Shader';
+`,Sa=`import { Shader } from '../../renderers/shared/shader/Shader';
 /**
  * DefaultShader is a specialized shader class designed for batch rendering.
  * It extends the base Shader class and provides functionality for handling
@@ -42585,7 +42612,7 @@ export declare class DefaultBatcher extends Batcher {
 export declare class DefaultShader extends Shader {
     constructor(maxTextures: number);
 }
-`,Sa=`import { GlProgram } from '../renderers/gl/shader/GlProgram';
+`,wa=`import { GlProgram } from '../renderers/gl/shader/GlProgram';
 import { GpuProgram } from '../renderers/gpu/shader/GpuProgram';
 import type { HighShaderBit } from './compiler/types';
 export declare function compileHighShaderGpuProgram({ bits, name }: {
@@ -42596,7 +42623,7 @@ export declare function compileHighShaderGlProgram({ bits, name }: {
     bits: HighShaderBit[];
     name: string;
 }): GlProgram;
-`,wa=`import type { HighShaderBit, HighShaderSource } from './types';
+`,_a=`import type { HighShaderBit, HighShaderSource } from './types';
 /** A high template consists of vertex and fragment source */
 export interface HighShaderTemplate {
     name?: string;
@@ -42615,7 +42642,7 @@ export interface CompileHighShaderOptions {
  */
 export declare function compileHighShader({ template, bits }: CompileHighShaderOptions): HighShaderSource;
 export declare function compileHighShaderGl({ template, bits }: CompileHighShaderOptions): HighShaderSource;
-`,_a=`/** the vertex source code, an obj */
+`,Ea=`/** the vertex source code, an obj */
 export type Vertex = {
     /** stick uniforms and functions in here all headers will be compiled at the top of the shader */
     header?: string;
@@ -42656,38 +42683,38 @@ export interface HighShaderSource {
     fragment: string;
     vertex: string;
 }
-`,Ea=`/**
+`,Pa=`/**
  * takes the HighFragment source parts and adds them to the hook hash
  * @param srcParts - the hash of hook arrays
  * @param parts - the code to inject into the hooks
  * @param name - optional the name of the part to add
  */
 export declare function addBits(srcParts: Record<string, string>, parts: Record<string, string[]>, name?: string): void;
-`,Pa=`export declare const findHooksRx: RegExp;
+`,Aa=`export declare const findHooksRx: RegExp;
 /**
  * takes a program string and returns an hash mapping the hooks to empty arrays
  * @param programSrc - the program containing hooks
  */
 export declare function compileHooks(programSrc: string): Record<string, string[]>;
-`,Aa=`export declare function compileInputs(fragments: any[], template: string, sort?: boolean): string;
-`,Ca=`export declare function compileOutputs(fragments: any[], template: string): string;
-`,Ra=`/**
+`,Ca=`export declare function compileInputs(fragments: any[], template: string, sort?: boolean): string;
+`,Ra=`export declare function compileOutputs(fragments: any[], template: string): string;
+`,Ga=`/**
  * formats a shader so its more pleasant to read!
  * @param shader - a glsl shader program source
  */
 export declare function formatShader(shader: string): string;
-`,Ga=`/**
+`,Ma=`/**
  * takes a shader src and replaces any hooks with the HighFragment code.
  * @param templateSrc - the program src template
  * @param fragmentParts - the fragments to inject
  */
 export declare function injectBits(templateSrc: string, fragmentParts: Record<string, string[]>): string;
-`,Ma=`declare const vertexGPUTemplate = "\\n    @in aPosition: vec2<f32>;\\n    @in aUV: vec2<f32>;\\n\\n    @out @builtin(position) vPosition: vec4<f32>;\\n    @out vUV : vec2<f32>;\\n    @out vColor : vec4<f32>;\\n\\n    {{header}}\\n\\n    struct VSOutput {\\n        {{struct}}\\n    };\\n\\n    @vertex\\n    fn main( {{in}} ) -> VSOutput {\\n\\n        var worldTransformMatrix = globalUniforms.uWorldTransformMatrix;\\n        var modelMatrix = mat3x3<f32>(\\n            1.0, 0.0, 0.0,\\n            0.0, 1.0, 0.0,\\n            0.0, 0.0, 1.0\\n          );\\n        var position = aPosition;\\n        var uv = aUV;\\n\\n        {{start}}\\n        \\n        vColor = vec4<f32>(1., 1., 1., 1.);\\n\\n        {{main}}\\n\\n        vUV = uv;\\n\\n        var modelViewProjectionMatrix = globalUniforms.uProjectionMatrix * worldTransformMatrix * modelMatrix;\\n\\n        vPosition =  vec4<f32>((modelViewProjectionMatrix *  vec3<f32>(position, 1.0)).xy, 0.0, 1.0);\\n       \\n        vColor *= globalUniforms.uWorldColorAlpha;\\n\\n        {{end}}\\n\\n        {{return}}\\n    };\\n";
+`,ka=`declare const vertexGPUTemplate = "\\n    @in aPosition: vec2<f32>;\\n    @in aUV: vec2<f32>;\\n\\n    @out @builtin(position) vPosition: vec4<f32>;\\n    @out vUV : vec2<f32>;\\n    @out vColor : vec4<f32>;\\n\\n    {{header}}\\n\\n    struct VSOutput {\\n        {{struct}}\\n    };\\n\\n    @vertex\\n    fn main( {{in}} ) -> VSOutput {\\n\\n        var worldTransformMatrix = globalUniforms.uWorldTransformMatrix;\\n        var modelMatrix = mat3x3<f32>(\\n            1.0, 0.0, 0.0,\\n            0.0, 1.0, 0.0,\\n            0.0, 0.0, 1.0\\n          );\\n        var position = aPosition;\\n        var uv = aUV;\\n\\n        {{start}}\\n        \\n        vColor = vec4<f32>(1., 1., 1., 1.);\\n\\n        {{main}}\\n\\n        vUV = uv;\\n\\n        var modelViewProjectionMatrix = globalUniforms.uProjectionMatrix * worldTransformMatrix * modelMatrix;\\n\\n        vPosition =  vec4<f32>((modelViewProjectionMatrix *  vec3<f32>(position, 1.0)).xy, 0.0, 1.0);\\n       \\n        vColor *= globalUniforms.uWorldColorAlpha;\\n\\n        {{end}}\\n\\n        {{return}}\\n    };\\n";
 declare const fragmentGPUTemplate = "\\n    @in vUV : vec2<f32>;\\n    @in vColor : vec4<f32>;\\n   \\n    {{header}}\\n\\n    @fragment\\n    fn main(\\n        {{in}}\\n      ) -> @location(0) vec4<f32> {\\n        \\n        {{start}}\\n\\n        var outColor:vec4<f32>;\\n      \\n        {{main}}\\n        \\n        var finalColor:vec4<f32> = outColor * vColor;\\n\\n        {{end}}\\n\\n        return finalColor;\\n      };\\n";
 declare const vertexGlTemplate = "\\n    in vec2 aPosition;\\n    in vec2 aUV;\\n\\n    out vec4 vColor;\\n    out vec2 vUV;\\n\\n    {{header}}\\n\\n    void main(void){\\n\\n        mat3 worldTransformMatrix = uWorldTransformMatrix;\\n        mat3 modelMatrix = mat3(\\n            1.0, 0.0, 0.0,\\n            0.0, 1.0, 0.0,\\n            0.0, 0.0, 1.0\\n          );\\n        vec2 position = aPosition;\\n        vec2 uv = aUV;\\n        \\n        {{start}}\\n        \\n        vColor = vec4(1.);\\n        \\n        {{main}}\\n        \\n        vUV = uv;\\n        \\n        mat3 modelViewProjectionMatrix = uProjectionMatrix * worldTransformMatrix * modelMatrix;\\n\\n        gl_Position = vec4((modelViewProjectionMatrix * vec3(position, 1.0)).xy, 0.0, 1.0);\\n\\n        vColor *= uWorldColorAlpha;\\n\\n        {{end}}\\n    }\\n";
 declare const fragmentGlTemplate = "\\n   \\n    in vec4 vColor;\\n    in vec2 vUV;\\n\\n    out vec4 finalColor;\\n\\n    {{header}}\\n\\n    void main(void) {\\n        \\n        {{start}}\\n\\n        vec4 outColor;\\n      \\n        {{main}}\\n        \\n        finalColor = outColor * vColor;\\n        \\n        {{end}}\\n    }\\n";
 export { fragmentGlTemplate, fragmentGPUTemplate, vertexGlTemplate, vertexGPUTemplate };
-`,ka=`export declare const colorBit: {
+`,Fa=`export declare const colorBit: {
     name: string;
     vertex: {
         header: string;
@@ -42701,10 +42728,10 @@ export declare const colorBitGl: {
         main: string;
     };
 };
-`,Fa=`import type { HighShaderBit } from '../compiler/types';
+`,Oa=`import type { HighShaderBit } from '../compiler/types';
 export declare function generateTextureBatchBit(maxTextures: number): HighShaderBit;
 export declare function generateTextureBatchBitGl(maxTextures: number): HighShaderBit;
-`,Oa=`export declare const globalUniformsBit: {
+`,Ia=`export declare const globalUniformsBit: {
     name: string;
     vertex: {
         header: string;
@@ -42722,7 +42749,7 @@ export declare const globalUniformsBitGl: {
         header: string;
     };
 };
-`,Ia=`export declare const localUniformBit: {
+`,La=`export declare const localUniformBit: {
     name: string;
     vertex: {
         header: string;
@@ -42746,7 +42773,7 @@ export declare const localUniformBitGl: {
         end: string;
     };
 };
-`,La=`export declare const roundPixelsBit: {
+`,Ba=`export declare const roundPixelsBit: {
     name: string;
     vertex: {
         header: string;
@@ -42758,7 +42785,7 @@ export declare const roundPixelsBitGl: {
         header: string;
     };
 };
-`,Ba=`export declare const textureBit: {
+`,Da=`export declare const textureBit: {
     name: string;
     vertex: {
         header: string;
@@ -42780,7 +42807,7 @@ export declare const textureBitGl: {
         main: string;
     };
 };
-`,Da=`export * from './batcher/gl/GlBatchAdaptor';
+`,Ua=`export * from './batcher/gl/GlBatchAdaptor';
 export * from './batcher/gl/utils/checkMaxIfStatementsInShader';
 export * from './batcher/gl/utils/maxRecommendedTextures';
 export * from './batcher/gpu/generateGPULayout';
@@ -42995,9 +43022,9 @@ export * from './renderers/shared/utils/parseFunctionBody';
 export * from './renderers/shared/view/View';
 export * from './renderers/shared/view/ViewSystem';
 export * from './renderers/types';
-`,Ua=`import './renderers/shared/texture/utils/textureFrom';
+`,ja=`import './renderers/shared/texture/utils/textureFrom';
 import './mask/MaskEffectManager';
-`,ja=`import type { Effect, EffectConstructor } from '../../scene/container/Effect';
+`,Wa=`import type { Effect, EffectConstructor } from '../../scene/container/Effect';
 import type { PoolItem } from '../../utils/pool/Pool';
 interface MaskConversionTest {
     test: (item: any) => boolean;
@@ -43025,7 +43052,7 @@ export declare class MaskEffectManagerClass {
 }
 export declare const MaskEffectManager: MaskEffectManagerClass;
 export {};
-`,Wa=`import type { ExtensionMetadata } from '../../../extensions/Extensions';
+`,Ha=`import type { ExtensionMetadata } from '../../../extensions/Extensions';
 import type { Point } from '../../../maths/point/Point';
 import type { Bounds } from '../../../scene/container/bounds/Bounds';
 import type { Container } from '../../../scene/container/Container';
@@ -43049,7 +43076,7 @@ export declare class AlphaMask implements Effect, PoolItem {
     destroy(): void;
     static test(mask: any): boolean;
 }
-`,Ha=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Va=`import { ExtensionType } from '../../../extensions/Extensions';
 import { FilterEffect } from '../../../filters/FilterEffect';
 import { Sprite } from '../../../scene/sprite/Sprite';
 import { Texture } from '../../renderers/shared/texture/Texture';
@@ -43100,7 +43127,7 @@ export declare class AlphaMaskPipe implements InstructionPipe<AlphaMaskInstructi
     destroy(): void;
 }
 export {};
-`,Va=`import type { ExtensionMetadata } from '../../../extensions/Extensions';
+`,Na=`import type { ExtensionMetadata } from '../../../extensions/Extensions';
 import type { Effect } from '../../../scene/container/Effect';
 import type { PoolItem } from '../../../utils/pool/Pool';
 export declare class ColorMask implements Effect, PoolItem {
@@ -43115,7 +43142,7 @@ export declare class ColorMask implements Effect, PoolItem {
     destroy(): void;
     static test(mask: any): boolean;
 }
-`,Na=`import { ExtensionType } from '../../../extensions/Extensions';
+`,za=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { Container } from '../../../scene/container/Container';
 import type { Effect } from '../../../scene/container/Effect';
 import type { Instruction } from '../../renderers/shared/instructions/Instruction';
@@ -43143,7 +43170,7 @@ export declare class ColorMaskPipe implements InstructionPipe<ColorMaskInstructi
     execute(instruction: ColorMaskInstruction): void;
     destroy(): void;
 }
-`,za=`import type { Point } from '../../../maths/point/Point';
+`,Xa=`import type { Point } from '../../../maths/point/Point';
 import type { Bounds } from '../../../scene/container/bounds/Bounds';
 import type { Container } from '../../../scene/container/Container';
 import type { Effect } from '../../../scene/container/Effect';
@@ -43158,7 +43185,7 @@ export declare class ScissorMask implements Effect {
     reset(): void;
     destroy(): void;
 }
-`,Xa=`import { Container } from '../../../scene/container/Container';
+`,Ka=`import { Container } from '../../../scene/container/Container';
 import type { ExtensionMetadata } from '../../../extensions/Extensions';
 import type { Point } from '../../../maths/point/Point';
 import type { Bounds } from '../../../scene/container/bounds/Bounds';
@@ -43180,7 +43207,7 @@ export declare class StencilMask implements Effect, PoolItem {
     destroy(): void;
     static test(mask: any): boolean;
 }
-`,Ka=`import { ExtensionType } from '../../../extensions/Extensions';
+`,qa=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { Container } from '../../../scene/container/Container';
 import type { Effect } from '../../../scene/container/Effect';
 import type { Instruction } from '../../renderers/shared/instructions/Instruction';
@@ -43210,15 +43237,15 @@ export declare class StencilMaskPipe implements InstructionPipe<StencilMaskInstr
     destroy(): void;
 }
 export {};
-`,qa=`import { Bounds } from '../../../scene/container/bounds/Bounds';
+`,Ya=`import { Bounds } from '../../../scene/container/bounds/Bounds';
 import type { Container } from '../../../scene/container/Container';
 export declare function addMaskBounds(mask: Container, bounds: Bounds, skipUpdateTransform: boolean): void;
-`,Ya=`import type { Matrix } from '../../../maths/matrix/Matrix';
+`,Ja=`import type { Matrix } from '../../../maths/matrix/Matrix';
 import type { Bounds } from '../../../scene/container/bounds/Bounds';
 import type { Container } from '../../../scene/container/Container';
 export declare function addMaskLocalBounds(mask: Container, bounds: Bounds, localRoot: Container): void;
 export declare function getMatrixRelativeToParent(target: Container, root: Container, matrix: Matrix): Matrix;
-`,Ja=`import type { WebGLOptions } from './gl/WebGLRenderer';
+`,$a=`import type { WebGLOptions } from './gl/WebGLRenderer';
 import type { WebGPUOptions } from './gpu/WebGPURenderer';
 import type { Renderer, RendererOptions } from './types';
 /**
@@ -43272,7 +43299,7 @@ export interface AutoDetectOptions extends RendererOptions {
  * @memberof rendering
  */
 export declare function autoDetectRenderer(options: Partial<AutoDetectOptions>): Promise<Renderer>;
-`,$a=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Qa=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { RenderOptions } from '../shared/system/AbstractRenderer';
 import type { System } from '../shared/system/System';
 import type { WebGLRenderer } from './WebGLRenderer';
@@ -43339,7 +43366,7 @@ export declare class GlBackBufferSystem implements System<GlBackBufferOptions> {
     /** destroys the back buffer */
     destroy(): void;
 }
-`,Qa=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Za=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { System } from '../shared/system/System';
 import type { WebGLRenderer } from './WebGLRenderer';
 /**
@@ -43358,7 +43385,7 @@ export declare class GlColorMaskSystem implements System {
     setMask(colorMask: number): void;
     destroy?: () => void;
 }
-`,Za=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ei=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { Topology } from '../shared/geometry/const';
 import type { Geometry } from '../shared/geometry/Geometry';
 import type { Shader } from '../shared/shader/Shader';
@@ -43392,7 +43419,7 @@ export declare class GlEncoderSystem implements System {
     }): void;
     destroy(): void;
 }
-`,ei=`/**
+`,ni=`/**
  * Represents a render target.
  * @memberof rendering
  * @ignore
@@ -43406,7 +43433,7 @@ export declare class GlRenderTarget {
     msaaRenderBuffer: WebGLRenderbuffer[];
     depthStencilRenderBuffer: WebGLRenderbuffer;
 }
-`,ni=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ti=`import { ExtensionType } from '../../../extensions/Extensions';
 import { STENCIL_MODES } from '../shared/state/const';
 import type { RenderTarget } from '../shared/renderTarget/RenderTarget';
 import type { System } from '../shared/system/System';
@@ -43434,7 +43461,7 @@ export declare class GlStencilSystem implements System {
     setStencilMode(stencilMode: STENCIL_MODES, stencilReference: number): void;
     destroy?: () => void;
 }
-`,ti=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ri=`import { ExtensionType } from '../../../extensions/Extensions';
 import { UboSystem } from '../shared/shader/UboSystem';
 /**
  * System plugin to the renderer to manage uniform buffers. But with an WGSL adaptor.
@@ -43448,7 +43475,7 @@ export declare class GlUboSystem extends UboSystem {
     };
     constructor();
 }
-`,ri=`import { AbstractRenderer } from '../shared/system/AbstractRenderer';
+`,oi=`import { AbstractRenderer } from '../shared/system/AbstractRenderer';
 import { GlBufferSystem } from './buffer/GlBufferSystem';
 import { GlContextSystem } from './context/GlContextSystem';
 import { GlGeometrySystem } from './geometry/GlGeometrySystem';
@@ -43554,7 +43581,7 @@ export declare class WebGLRenderer<T extends ICanvas = HTMLCanvasElement> extend
     constructor();
 }
 export {};
-`,oi=`import type { BUFFER_TYPE } from './const';
+`,ai=`import type { BUFFER_TYPE } from './const';
 export declare class GlBuffer {
     buffer: WebGLBuffer;
     updateID: number;
@@ -43564,7 +43591,7 @@ export declare class GlBuffer {
     _lastBindCallId: number;
     constructor(buffer: WebGLBuffer, type: BUFFER_TYPE);
 }
-`,ai=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,ii=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { GlBuffer } from './GlBuffer';
 import type { Buffer } from '../../shared/buffer/Buffer';
 import type { System } from '../../shared/system/System';
@@ -43658,7 +43685,7 @@ export declare class GlBufferSystem implements System {
     protected createGLBuffer(buffer: Buffer): GlBuffer;
     resetState(): void;
 }
-`,ii=`/**
+`,si=`/**
  * Constants for various buffer types in Pixi
  * @see BUFFER_TYPE
  * @name BUFFER_TYPE
@@ -43673,7 +43700,7 @@ export declare enum BUFFER_TYPE {
     ARRAY_BUFFER = 34962,
     UNIFORM_BUFFER = 35345
 }
-`,si=`export declare enum CLEAR {
+`,li=`export declare enum CLEAR {
     NONE = 0,
     COLOR = 16384,
     STENCIL = 1024,
@@ -43685,7 +43712,7 @@ export declare enum BUFFER_TYPE {
 }
 /** Used for clearing render textures. true is the same as \`ALL\` false is the same as \`NONE\` */
 export type CLEAR_OR_BOOL = CLEAR | boolean;
-`,li=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,di=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { type GpuPowerPreference } from '../../types';
 import type { ICanvas } from '../../../../environment/canvas/ICanvas';
 import type { System } from '../../shared/system/System';
@@ -43866,8 +43893,8 @@ export declare class GlContextSystem implements System<ContextSystemOptions> {
      */
     protected validateContext(gl: WebGL2RenderingContext): void;
 }
-`,di=`export type GlRenderingContext = WebGL2RenderingContext;
-`,pi=`export interface WEBGL_compressed_texture_pvrtc {
+`,pi=`export type GlRenderingContext = WebGL2RenderingContext;
+`,ci=`export interface WEBGL_compressed_texture_pvrtc {
     COMPRESSED_RGB_PVRTC_4BPPV1_IMG: number;
     COMPRESSED_RGBA_PVRTC_4BPPV1_IMG: number;
     COMPRESSED_RGB_PVRTC_2BPPV1_IMG: number;
@@ -43929,7 +43956,7 @@ export interface WebGLExtensions {
     rgtc?: EXT_texture_compression_rgtc;
     srgb?: EXT_sRGB;
 }
-`,ci=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,ui=`import { ExtensionType } from '../../../../extensions/Extensions';
 import type { Topology } from '../../shared/geometry/const';
 import type { Geometry } from '../../shared/geometry/Geometry';
 import type { System } from '../../shared/system/System';
@@ -44031,9 +44058,9 @@ export declare class GlGeometrySystem implements System {
     protected unbind(): void;
     destroy(): void;
 }
-`,ui=`import type { VertexFormat } from '../../../shared/geometry/const';
+`,mi=`import type { VertexFormat } from '../../../shared/geometry/const';
 export declare function getGlTypeFromFormat(format: VertexFormat): number;
-`,mi=`import { Rectangle } from '../../../../maths/shapes/Rectangle';
+`,hi=`import { Rectangle } from '../../../../maths/shapes/Rectangle';
 import { GlRenderTarget } from '../GlRenderTarget';
 import type { RgbaArray } from '../../../../color/Color';
 import type { RenderTarget } from '../../shared/renderTarget/RenderTarget';
@@ -44076,7 +44103,7 @@ export declare class GlRenderTargetAdaptor implements RenderTargetAdaptor<GlRend
     prerender(renderTarget: RenderTarget): void;
     postrender(renderTarget: RenderTarget): void;
 }
-`,hi=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,fi=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { RenderTargetSystem } from '../../shared/renderTarget/RenderTargetSystem';
 import { GlRenderTargetAdaptor } from './GlRenderTargetAdaptor';
 import type { GlRenderTarget } from '../GlRenderTarget';
@@ -44094,7 +44121,7 @@ export declare class GlRenderTargetSystem extends RenderTargetSystem<GlRenderTar
     adaptor: GlRenderTargetAdaptor;
     constructor(renderer: WebGLRenderer);
 }
-`,fi=`import type { Shader } from '../../shared/shader/Shader';
+`,bi=`import type { Shader } from '../../shared/shader/Shader';
 import type { GlShaderSystem, ShaderSyncFunction } from './GlShaderSystem';
 /**
  * Generates the a function that will efficiently sync shader resources with the GPU.
@@ -44102,7 +44129,7 @@ import type { GlShaderSystem, ShaderSyncFunction } from './GlShaderSystem';
  * @param shaderSystem - An instance of the shader system
  */
 export declare function generateShaderSyncCode(shader: Shader, shaderSystem: GlShaderSystem): ShaderSyncFunction;
-`,bi=`import type { TypedArray } from '../../shared/buffer/Buffer';
+`,gi=`import type { TypedArray } from '../../shared/buffer/Buffer';
 import type { ExtractedAttributeData } from './program/extractAttributesFromGlProgram';
 export interface GlAttributeData {
     type: string;
@@ -44226,7 +44253,7 @@ export declare class GlProgram {
      */
     static from(options: GlProgramOptions): GlProgram;
 }
-`,gi=`/**
+`,yi=`/**
  * @private
  */
 export declare class IGLUniformData {
@@ -44271,7 +44298,7 @@ export declare class GlProgramData {
     /** Destroys this program. */
     destroy(): void;
 }
-`,yi=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,xi=`import { ExtensionType } from '../../../../extensions/Extensions';
 import type { BufferResource } from '../../shared/buffer/BufferResource';
 import type { Shader } from '../../shared/shader/Shader';
 import type { ShaderSystem } from '../../shared/shader/ShaderSystem';
@@ -44346,7 +44373,7 @@ export declare class GlShaderSystem implements ShaderSystem {
     _generateShaderSync(shader: Shader, shaderSystem: GlShaderSystem): ShaderSyncFunction;
     resetState(): void;
 }
-`,xi=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,vi=`import { ExtensionType } from '../../../../extensions/Extensions';
 import type { UniformGroup } from '../../shared/shader/UniformGroup';
 import type { System } from '../../shared/system/System';
 import type { GlRenderingContext } from '../context/GlRenderingContext';
@@ -44404,7 +44431,7 @@ export declare class GlUniformGroupSystem implements System {
     /** Destroys this System and removes all its textures. */
     destroy(): void;
 }
-`,vi="export type PRECISION = `highp` | `mediump` | `lowp`;\n",Ti=`import { UniformGroup } from '../../shared/shader/UniformGroup';
+`,Ti="export type PRECISION = `highp` | `mediump` | `lowp`;\n",Si=`import { UniformGroup } from '../../shared/shader/UniformGroup';
 /**
  * Automatically generates a uniform group that holds the texture samplers for a shader.
  * This is used mainly by the shaders that batch textures!
@@ -44412,8 +44439,8 @@ export declare class GlUniformGroupSystem implements System {
  * @returns a uniform group that holds the texture samplers.
  */
 export declare function getBatchSamplersUniformGroup(maxTextures: number): UniformGroup<any>;
-`,Si=`export declare function migrateFragmentFromV7toV8(fragmentShader: string): string;
-`,wi=`/**
+`,wi=`export declare function migrateFragmentFromV7toV8(fragmentShader: string): string;
+`,_i=`/**
  * @private
  * @param {WebGLRenderingContext} gl - The current WebGL context {WebGLProgram}
  * @param {number} type - the type, can be either VERTEX_SHADER or FRAGMENT_SHADER
@@ -44421,14 +44448,14 @@ export declare function getBatchSamplersUniformGroup(maxTextures: number): Unifo
  * @returns {WebGLShader} the shader
  */
 export declare function compileShader(gl: WebGLRenderingContextBase, type: number, src: string): WebGLShader;
-`,_i=`/**
+`,Ei=`/**
  * @method defaultValue
  * @param {string} type - Type of value
  * @param {number} size
  * @private
  */
 export declare function defaultValue(type: string, size: number): number | Float32Array | Int32Array | Uint32Array | boolean | boolean[];
-`,Ei=`import type { Geometry } from '../../../shared/geometry/Geometry';
+`,Pi=`import type { Geometry } from '../../../shared/geometry/Geometry';
 import type { ExtractedAttributeData } from './extractAttributesFromGlProgram';
 /**
  * This function looks at the attribute information provided to the geometry and attempts
@@ -44442,7 +44469,7 @@ import type { ExtractedAttributeData } from './extractAttributesFromGlProgram';
  * @param extractedData - the extracted data from the shader
  */
 export declare function ensureAttributes(geometry: Geometry, extractedData: Record<string, ExtractedAttributeData>): void;
-`,Pi=`import type { Attribute } from '../../../shared/geometry/Geometry';
+`,Ai=`import type { Attribute } from '../../../shared/geometry/Geometry';
 export interface ExtractedAttributeData extends Omit<Attribute, 'buffer'> {
     /** set where the shader location is for this attribute */
     location?: number;
@@ -44455,7 +44482,7 @@ export interface ExtractedAttributeData extends Omit<Attribute, 'buffer'> {
  * @returns {object} the attribute data for this program
  */
 export declare function extractAttributesFromGlProgram(program: WebGLProgram, gl: WebGLRenderingContextBase, sortAttributes?: boolean): Record<string, ExtractedAttributeData>;
-`,Ai=`import { GlProgramData } from '../GlProgramData';
+`,Ci=`import { GlProgramData } from '../GlProgramData';
 import type { GlRenderingContext } from '../../context/GlRenderingContext';
 import type { GlProgram } from '../GlProgram';
 /**
@@ -44465,9 +44492,9 @@ import type { GlProgram } from '../GlProgram';
  * @private
  */
 export declare function generateProgram(gl: GlRenderingContext, program: GlProgram): GlProgramData;
-`,Ci=`import type { PRECISION } from '../const';
+`,Ri=`import type { PRECISION } from '../const';
 export declare function getMaxFragmentPrecision(): PRECISION;
-`,Ri=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
+`,Gi=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
 /**
  * returns a little WebGL context to use for program inspection.
  * @static
@@ -44475,7 +44502,7 @@ export declare function getMaxFragmentPrecision(): PRECISION;
  * @returns {WebGLRenderingContext} a gl context to test with
  */
 export declare function getTestContext(): GlRenderingContext;
-`,Gi=`import type { GlUniformBlockData } from '../GlProgram';
+`,Mi=`import type { GlUniformBlockData } from '../GlProgram';
 /**
  * returns the uniform block data from the program
  * @private
@@ -44484,7 +44511,7 @@ export declare function getTestContext(): GlRenderingContext;
  * @returns {object} the uniform data for this program
  */
 export declare function getUboData(program: WebGLProgram, gl: WebGL2RenderingContext): Record<string, GlUniformBlockData>;
-`,Mi=`import type { GlUniformData } from '../GlProgram';
+`,ki=`import type { GlUniformData } from '../GlProgram';
 /**
  * returns the uniform data from the program
  * @private
@@ -44495,7 +44522,7 @@ export declare function getUboData(program: WebGLProgram, gl: WebGL2RenderingCon
 export declare function getUniformData(program: WebGLProgram, gl: WebGLRenderingContextBase): {
     [key: string]: GlUniformData;
 };
-`,ki=`/**
+`,Fi=`/**
  *
  * logs out any program errors
  * @param gl - The current WebGL context
@@ -44505,17 +44532,17 @@ export declare function getUniformData(program: WebGLProgram, gl: WebGLRendering
  * @private
  */
 export declare function logProgramError(gl: WebGLRenderingContext, program: WebGLProgram, vertexShader: WebGLShader, fragmentShader: WebGLShader): void;
-`,Fi=`/**
+`,Oi=`/**
  * @private
  * @method mapSize
  * @param {string} type
  */
 export declare function mapSize(type: string): number;
-`,Oi=`import type { VertexFormat } from '../../../shared/geometry/const';
+`,Ii=`import type { VertexFormat } from '../../../shared/geometry/const';
 export declare function mapType(gl: any, type: number): string;
 export declare function mapGlToVertexFormat(gl: any, type: number): VertexFormat;
-`,Ii=`export declare function addProgramDefines(src: string, isES300: boolean, isFragment?: boolean): string;
-`,Li=`import type { PRECISION } from '../../const';
+`,Li=`export declare function addProgramDefines(src: string, isES300: boolean, isFragment?: boolean): string;
+`,Bi=`import type { PRECISION } from '../../const';
 interface EnsurePrecisionOptions {
     requestedVertexPrecision: PRECISION;
     requestedFragmentPrecision: PRECISION;
@@ -44536,17 +44563,17 @@ interface EnsurePrecisionOptions {
  */
 export declare function ensurePrecision(src: string, options: EnsurePrecisionOptions, isFragment: boolean): string;
 export {};
-`,Bi=`export declare function insertVersion(src: string, isES300: boolean): string;
-`,Di=`export declare function setProgramName(src: string, { name }: {
+`,Di=`export declare function insertVersion(src: string, isES300: boolean): string;
+`,Ui=`export declare function setProgramName(src: string, { name }: {
     name: string;
 }, isFragment?: boolean): string;
-`,Ui=`export declare function stripVersion(src: string, isES300: boolean): string;
-`,ji=`import type { UboLayout, UniformData } from '../../../shared/shader/types';
+`,ji=`export declare function stripVersion(src: string, isES300: boolean): string;
+`,Wi=`import type { UboLayout, UniformData } from '../../../shared/shader/types';
 export declare const WGSL_TO_STD40_SIZE: Record<string, number>;
 export declare function createUboElementsSTD40(uniformData: UniformData[]): UboLayout;
-`,Wi=`import type { UboElement, UniformsSyncCallback } from '../../../shared/shader/types';
+`,Hi=`import type { UboElement, UniformsSyncCallback } from '../../../shared/shader/types';
 export declare function createUboSyncFunctionSTD40(uboElements: UboElement[]): UniformsSyncCallback;
-`,Hi=`import type { UboElement } from '../../../shared/shader/types';
+`,Vi=`import type { UboElement } from '../../../shared/shader/types';
 /**
  * This generates a function that will sync an array to the uniform buffer
  * following the std140 layout
@@ -44555,14 +44582,14 @@ export declare function createUboSyncFunctionSTD40(uboElements: UboElement[]): U
  * @returns - the generated code
  */
 export declare function generateArraySyncSTD40(uboElement: UboElement, offsetToAdd: number): string;
-`,Vi=`import { UniformGroup } from '../../../shared/shader/UniformGroup';
+`,Ni=`import { UniformGroup } from '../../../shared/shader/UniformGroup';
 import type { UniformsSyncCallback } from '../../../shared/shader/types';
 export declare function generateUniformsSync(group: UniformGroup, uniformData: Record<string, any>): UniformsSyncCallback;
-`,Ni=`import type { UNIFORM_TYPES } from '../../../shared/shader/types';
+`,zi=`import type { UNIFORM_TYPES } from '../../../shared/shader/types';
 export type ArraySetterFunction = (v: any, location: WebGLUniformLocation, gl: any) => void;
 export declare const UNIFORM_TO_SINGLE_SETTERS: Record<UNIFORM_TYPES | string, string>;
 export declare const UNIFORM_TO_ARRAY_SETTERS: Record<UNIFORM_TYPES | string, string>;
-`,zi=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,Xi=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { type RenderTarget } from '../../shared/renderTarget/RenderTarget';
 import { State } from '../../shared/state/State';
 import { type WebGLRenderer } from '../WebGLRenderer';
@@ -44712,7 +44739,7 @@ export declare class GlStateSystem implements System {
      */
     destroy(): void;
 }
-`,Xi=`import type { BLEND_MODES } from '../../shared/state/const';
+`,Ki=`import type { BLEND_MODES } from '../../shared/state/const';
 import type { GlRenderingContext } from '../context/GlRenderingContext';
 /**
  * Maps gl blend combinations to WebGL.
@@ -44720,7 +44747,7 @@ import type { GlRenderingContext } from '../context/GlRenderingContext';
  * @returns {object} Map of gl blend combinations to WebGL.
  */
 export declare function mapWebGLBlendModesToPixi(gl: GlRenderingContext): Record<BLEND_MODES, number[]>;
-`,Ki=`import { GL_FORMATS, GL_TARGETS } from './const';
+`,qi=`import { GL_FORMATS, GL_TARGETS } from './const';
 /**
  * Internal texture for WebGL context
  * @memberof rendering
@@ -44745,7 +44772,7 @@ export declare class GlTexture {
     format: GL_FORMATS;
     constructor(texture: WebGLTexture);
 }
-`,qi=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,Yi=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { Texture } from '../../shared/texture/Texture';
 import { GlTexture } from './GlTexture';
 import type { ICanvas } from '../../../../environment/canvas/ICanvas';
@@ -44802,7 +44829,7 @@ export declare class GlTextureSystem implements System, CanvasGenerator {
     destroy(): void;
     resetState(): void;
 }
-`,Yi=`/**
+`,Ji=`/**
  * Various GL texture/resources formats.
  * @static
  * @name FORMATS
@@ -44953,28 +44980,28 @@ export declare enum GL_TYPES {
      */
     HALF_FLOAT = 36193
 }
-`,Ji=`import type { TextureSource } from '../../../shared/texture/sources/TextureSource';
+`,$i=`import type { TextureSource } from '../../../shared/texture/sources/TextureSource';
 import type { GlRenderingContext } from '../../context/GlRenderingContext';
 import type { GlTexture } from '../GlTexture';
 export interface GLTextureUploader {
     id: string;
     upload(source: TextureSource, glTexture: GlTexture, gl: GlRenderingContext, webGLVersion: number): void;
 }
-`,$i=`import type { GLTextureUploader } from './GLTextureUploader';
-export declare const glUploadBufferImageResource: GLTextureUploader;
 `,Qi=`import type { GLTextureUploader } from './GLTextureUploader';
-export declare const glUploadCompressedTextureResource: GLTextureUploader;
+export declare const glUploadBufferImageResource: GLTextureUploader;
 `,Zi=`import type { GLTextureUploader } from './GLTextureUploader';
-export declare const glUploadImageResource: GLTextureUploader;
+export declare const glUploadCompressedTextureResource: GLTextureUploader;
 `,es=`import type { GLTextureUploader } from './GLTextureUploader';
+export declare const glUploadImageResource: GLTextureUploader;
+`,ns=`import type { GLTextureUploader } from './GLTextureUploader';
 export declare const glUploadVideoResource: GLTextureUploader;
-`,ns=`import type { TextureStyle } from '../../../shared/texture/TextureStyle';
+`,ts=`import type { TextureStyle } from '../../../shared/texture/TextureStyle';
 export declare function applyStyleParams(style: TextureStyle, gl: WebGL2RenderingContext, mipmaps: boolean, anisotropicExt: EXT_texture_filter_anisotropic, glFunctionName: 'samplerParameteri' | 'texParameteri', firstParam: 3553 | WebGLSampler, forceClamp: boolean, 
 /** if true we can skip setting certain values if the values is the same as the default gl values */
 firstCreation: boolean): void;
-`,ts=`import type { TEXTURE_FORMATS } from '../../../shared/texture/const';
+`,rs=`import type { TEXTURE_FORMATS } from '../../../shared/texture/const';
 export declare function getSupportedGlCompressedTextureFormats(): TEXTURE_FORMATS[];
-`,rs=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
+`,os=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
 /**
  * Returns a lookup table that maps each type-format pair to a compatible internal format.
  * @function mapTypeAndFormatToInternalFormat
@@ -44983,7 +45010,7 @@ export declare function getSupportedGlCompressedTextureFormats(): TEXTURE_FORMAT
  * @returns Lookup table.
  */
 export declare function mapFormatToGlFormat(gl: GlRenderingContext): Record<string, number>;
-`,os=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
+`,as=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
 import type { WebGLExtensions } from '../../context/WebGLExtensions';
 /**
  * Returns a lookup table that maps each type-format pair to a compatible internal format.
@@ -44994,7 +45021,7 @@ import type { WebGLExtensions } from '../../context/WebGLExtensions';
  * @returns Lookup table.
  */
 export declare function mapFormatToGlInternalFormat(gl: GlRenderingContext, extensions: WebGLExtensions): Record<string, number>;
-`,as=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
+`,is=`import type { GlRenderingContext } from '../../context/GlRenderingContext';
 /**
  * Returns a lookup table that maps each type-format pair to a compatible internal format.
  * @function mapTypeAndFormatToInternalFormat
@@ -45003,7 +45030,7 @@ export declare function mapFormatToGlInternalFormat(gl: GlRenderingContext, exte
  * @returns Lookup table.
  */
 export declare function mapFormatToGlType(gl: GlRenderingContext): Record<string, number>;
-`,is=`export declare const scaleModeToGlFilter: {
+`,ss=`export declare const scaleModeToGlFilter: {
     linear: number;
     nearest: number;
 };
@@ -45032,8 +45059,8 @@ export declare const compareModeToGlCompare: {
     'greater-equal': number;
     always: number;
 };
-`,ss=`export declare function unpremultiplyAlpha(pixels: Uint8Array | Uint8ClampedArray): void;
-`,ls=`/// <reference types="@webgpu/types" />
+`,ls=`export declare function unpremultiplyAlpha(pixels: Uint8Array | Uint8ClampedArray): void;
+`,ds=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../extensions/Extensions';
 import type { System } from '../shared/system/System';
 import type { GPU } from './GpuDeviceSystem';
@@ -45059,7 +45086,7 @@ export declare class BindGroupSystem implements System {
     private _createBindGroup;
     destroy(): void;
 }
-`,ds=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ps=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { System } from '../shared/system/System';
 import type { WebGPURenderer } from './WebGPURenderer';
 /**
@@ -45078,7 +45105,7 @@ export declare class GpuColorMaskSystem implements System {
     setMask(colorMask: number): void;
     destroy(): void;
 }
-`,ps=`/// <reference types="@webgpu/types" />
+`,cs=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../extensions/Extensions';
 import type { System } from '../shared/system/System';
 import type { GpuPowerPreference } from '../types';
@@ -45153,7 +45180,7 @@ export declare class GpuDeviceSystem implements System<GpuContextOptions> {
     private _createDeviceAndAdaptor;
     destroy(): void;
 }
-`,cs=`/// <reference types="@webgpu/types" />
+`,us=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../extensions/Extensions';
 import type { Rectangle } from '../../../maths/shapes/Rectangle';
 import type { Topology } from '../shared/geometry/const';
@@ -45218,7 +45245,7 @@ export declare class GpuEncoderSystem implements System {
     destroy(): void;
     protected contextChange(gpu: GPU): void;
 }
-`,us=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ms=`import { ExtensionType } from '../../../extensions/Extensions';
 import { STENCIL_MODES } from '../shared/state/const';
 import type { RenderTarget } from '../shared/renderTarget/RenderTarget';
 import type { System } from '../shared/system/System';
@@ -45241,7 +45268,7 @@ export declare class GpuStencilSystem implements System {
     setStencilMode(stencilMode: STENCIL_MODES, stencilReference: number): void;
     destroy(): void;
 }
-`,ms=`import { ExtensionType } from '../../../extensions/Extensions';
+`,hs=`import { ExtensionType } from '../../../extensions/Extensions';
 import { UboSystem } from '../shared/shader/UboSystem';
 /**
  * System plugin to the renderer to manage uniform buffers. With a WGSL twist!
@@ -45255,7 +45282,7 @@ export declare class GpuUboSystem extends UboSystem {
     };
     constructor();
 }
-`,hs=`import { ExtensionType } from '../../../extensions/Extensions';
+`,fs=`import { ExtensionType } from '../../../extensions/Extensions';
 import { BufferResource } from '../shared/buffer/BufferResource';
 import { BindGroup } from './shader/BindGroup';
 import type { UniformGroup } from '../shared/shader/UniformGroup';
@@ -45284,7 +45311,7 @@ export declare class GpuUniformBatchPipe {
     private _uploadBindGroups;
     destroy(): void;
 }
-`,fs=`import { AbstractRenderer } from '../shared/system/AbstractRenderer';
+`,bs=`import { AbstractRenderer } from '../shared/system/AbstractRenderer';
 import { BindGroupSystem } from './BindGroupSystem';
 import { GpuBufferSystem } from './buffer/GpuBufferSystem';
 import { GpuColorMaskSystem } from './GpuColorMaskSystem';
@@ -45377,7 +45404,7 @@ export declare class WebGPURenderer<T extends ICanvas = HTMLCanvasElement> exten
     constructor();
 }
 export {};
-`,bs=`/// <reference types="@webgpu/types" />
+`,gs=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../../extensions/Extensions';
 import type { Buffer } from '../../shared/buffer/Buffer';
 import type { System } from '../../shared/system/System';
@@ -45413,10 +45440,10 @@ export declare class GpuBufferSystem implements System {
     destroy(): void;
     private _destroyBuffer;
 }
-`,gs=`import { Buffer } from '../../shared/buffer/Buffer';
+`,ys=`import { Buffer } from '../../shared/buffer/Buffer';
 import type { WebGPURenderer } from '../WebGPURenderer';
 export declare function GpuReadBuffer(buffer: Buffer, renderer: WebGPURenderer): void;
-`,ys=`export declare class UboBatch {
+`,xs=`export declare class UboBatch {
     data: Float32Array;
     private readonly _minUniformOffsetAlignment;
     byteIndex: number;
@@ -45428,7 +45455,7 @@ export declare function GpuReadBuffer(buffer: Buffer, renderer: WebGPURenderer):
     addGroup(array: Float32Array): number;
     destroy(): void;
 }
-`,xs=`/// <reference types="@webgpu/types" />
+`,vs=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../../extensions/Extensions';
 import { STENCIL_MODES } from '../../shared/state/const';
 import type { Topology } from '../../shared/geometry/const';
@@ -45500,7 +45527,7 @@ export declare class PipelineSystem implements System {
     private _updatePipeHash;
     destroy(): void;
 }
-`,vs=`/// <reference types="@webgpu/types" />
+`,Ts=`/// <reference types="@webgpu/types" />
 import type { TextureSource } from '../../shared/texture/sources/TextureSource';
 /**
  * A class which holds the canvas contexts and textures for a render target.
@@ -45516,7 +45543,7 @@ export declare class GpuRenderTarget {
     height: number;
     descriptor: GPURenderPassDescriptor;
 }
-`,Ts=`/// <reference types="@webgpu/types" />
+`,Ss=`/// <reference types="@webgpu/types" />
 import { TextureSource } from '../../shared/texture/sources/TextureSource';
 import { GpuRenderTarget } from './GpuRenderTarget';
 import type { RgbaArray } from '../../../../color/Color';
@@ -45562,7 +45589,7 @@ export declare class GpuRenderTargetAdaptor implements RenderTargetAdaptor<GpuRe
     ensureDepthStencilTexture(renderTarget: RenderTarget): void;
     resizeGpuRenderTarget(renderTarget: RenderTarget): void;
 }
-`,Ss=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,ws=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { RenderTargetSystem } from '../../shared/renderTarget/RenderTargetSystem';
 import { GpuRenderTargetAdaptor } from './GpuRenderTargetAdaptor';
 import type { WebGPURenderer } from '../WebGPURenderer';
@@ -45580,9 +45607,9 @@ export declare class GpuRenderTargetSystem extends RenderTargetSystem<GpuRenderT
     adaptor: GpuRenderTargetAdaptor;
     constructor(renderer: WebGPURenderer);
 }
-`,ws=`import type { Matrix } from '../../../../maths/matrix/Matrix';
+`,_s=`import type { Matrix } from '../../../../maths/matrix/Matrix';
 export declare function calculateProjection(pm: Matrix, x: number, y: number, width: number, height: number, flipY: boolean): Matrix;
-`,_s=`import type { BindResource } from './BindResource';
+`,Es=`import type { BindResource } from './BindResource';
 /**
  * A bind group is a collection of resources that are bound together for use by a shader.
  * They are essentially a wrapper for the WebGPU BindGroup class. But with the added bonus
@@ -45657,7 +45684,7 @@ export declare class BindGroup {
     destroy(): void;
     protected onResourceChange(resource: BindResource): void;
 }
-`,Es=`import type { BindGroup } from './BindGroup';
+`,Ps=`import type { BindGroup } from './BindGroup';
 /**
  * an interface that allows a resource to be bound to the gpu in a bind group
  * @memberof rendering
@@ -45690,7 +45717,7 @@ export interface BindResource {
     /** @todo */
     off?(event: 'change', listenerFunction: (resource: BindResource) => void, listener: BindGroup): void;
 }
-`,Ps=`/// <reference types="@webgpu/types" />
+`,As=`/// <reference types="@webgpu/types" />
 import type { ExtractedAttributeData } from '../../gl/shader/program/extractAttributesFromGlProgram';
 import type { StructsAndGroups } from './utils/extractStructAndGroups';
 /**
@@ -45838,7 +45865,7 @@ export declare class GpuProgram {
      */
     static from(options: GpuProgramOptions): GpuProgram;
 }
-`,As=`/// <reference types="@webgpu/types" />
+`,Cs=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../../extensions/Extensions';
 import type { ShaderSystem } from '../../shared/shader/ShaderSystem';
 import type { GPU } from '../GpuDeviceSystem';
@@ -45865,18 +45892,18 @@ export declare class GpuShaderSystem implements ShaderSystem {
     private _createGPUProgramData;
     destroy(): void;
 }
-`,Cs=`import type { UboLayout, UNIFORM_TYPES, UniformData } from '../../../shared/shader/types';
+`,Rs=`import type { UboLayout, UNIFORM_TYPES, UniformData } from '../../../shared/shader/types';
 export declare const WGSL_ALIGN_SIZE_DATA: Record<UNIFORM_TYPES | string, {
     align: number;
     size: number;
 }>;
 export declare function createUboElementsWGSL(uniformData: UniformData[]): UboLayout;
-`,Rs=`import type { UboElement, UniformsSyncCallback } from '../../../shared/shader/types';
+`,Gs=`import type { UboElement, UniformsSyncCallback } from '../../../shared/shader/types';
 export declare function createUboSyncFunctionWGSL(uboElements: UboElement[]): UniformsSyncCallback;
-`,Gs=`import type { ExtractedAttributeData } from '../../../gl/shader/program/extractAttributesFromGlProgram';
+`,Ms=`import type { ExtractedAttributeData } from '../../../gl/shader/program/extractAttributesFromGlProgram';
 import type { ProgramSource } from '../GpuProgram';
 export declare function extractAttributesFromGpuProgram({ source, entryPoint }: ProgramSource): Record<string, ExtractedAttributeData>;
-`,Ms=`export interface StructsAndGroups {
+`,ks=`export interface StructsAndGroups {
     groups: {
         group: number;
         binding: number;
@@ -45890,7 +45917,7 @@ export declare function extractAttributesFromGpuProgram({ source, entryPoint }: 
     }[];
 }
 export declare function extractStructAndGroups(wgsl: string): StructsAndGroups;
-`,ks=`import type { UboElement } from '../../../shared/shader/types';
+`,Fs=`import type { UboElement } from '../../../shared/shader/types';
 /**
  * This generates a function that will sync an array to the uniform buffer
  * following the wgsl layout
@@ -45899,13 +45926,13 @@ export declare function extractStructAndGroups(wgsl: string): StructsAndGroups;
  * @returns - the generated code
  */
 export declare function generateArraySyncWGSL(uboElement: UboElement, offsetToAdd: number): string;
-`,Fs=`import type { ProgramPipelineLayoutDescription } from '../GpuProgram';
+`,Os=`import type { ProgramPipelineLayoutDescription } from '../GpuProgram';
 import type { StructsAndGroups } from './extractStructAndGroups';
 export declare function generateGpuLayoutGroups({ groups }: StructsAndGroups): ProgramPipelineLayoutDescription;
-`,Os=`import type { ProgramLayout } from '../GpuProgram';
+`,Is=`import type { ProgramLayout } from '../GpuProgram';
 import type { StructsAndGroups } from './extractStructAndGroups';
 export declare function generateLayoutHash({ groups }: StructsAndGroups): ProgramLayout;
-`,Is=`import type { StructsAndGroups } from './extractStructAndGroups';
+`,Ls=`import type { StructsAndGroups } from './extractStructAndGroups';
 export declare function removeStructAndGroupDuplicates(vertexStructsAndGroups: StructsAndGroups, fragmentStructsAndGroups: StructsAndGroups): {
     structs: {
         name: string;
@@ -45919,10 +45946,10 @@ export declare function removeStructAndGroupDuplicates(vertexStructsAndGroups: S
         type: string;
     }[];
 };
-`,Ls=`/// <reference types="@webgpu/types" />
+`,Bs=`/// <reference types="@webgpu/types" />
 import type { BLEND_MODES } from '../../shared/state/const';
 export declare const GpuBlendModesToPixi: Partial<Record<BLEND_MODES, GPUBlendState>>;
-`,Bs=`/// <reference types="@webgpu/types" />
+`,Ds=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../../extensions/Extensions';
 import { State } from '../../shared/state/State';
 import type { BLEND_MODES } from '../../shared/state/const';
@@ -45976,7 +46003,7 @@ export declare class GpuStateSystem implements System {
     getColorTargets(state: State): GPUColorTargetState[];
     destroy(): void;
 }
-`,Ds=`export interface StencilState {
+`,Us=`export interface StencilState {
     stencilWriteMask?: number;
     stencilReadMask?: number;
     stencilFront?: {
@@ -45989,7 +46016,7 @@ export declare class GpuStateSystem implements System {
     };
 }
 export declare const GpuStencilModesToPixi: StencilState[];
-`,Us=`/// <reference types="@webgpu/types" />
+`,js=`/// <reference types="@webgpu/types" />
 import { ExtensionType } from '../../../../extensions/Extensions';
 import { BindGroup } from '../shader/BindGroup';
 import type { ICanvas } from '../../../../environment/canvas/ICanvas';
@@ -46048,17 +46075,17 @@ export declare class GpuTextureSystem implements System, CanvasGenerator {
     getPixels(texture: Texture): GetPixelsOutput;
     destroy(): void;
 }
-`,js=`/// <reference types="@webgpu/types" />
+`,Ws=`/// <reference types="@webgpu/types" />
 import type { TextureSource } from '../../../shared/texture/sources/TextureSource';
 import type { GPU } from '../../GpuDeviceSystem';
 export interface GpuTextureUploader<T extends TextureSource = TextureSource> {
     type: string;
     upload(source: T, gpuTexture: GPUTexture, gpu: GPU): void;
 }
-`,Ws=`import type { BufferImageSource } from '../../../shared/texture/sources/BufferImageSource';
+`,Hs=`import type { BufferImageSource } from '../../../shared/texture/sources/BufferImageSource';
 import type { GpuTextureUploader } from './GpuTextureUploader';
 export declare const gpuUploadBufferImageResource: GpuTextureUploader<BufferImageSource>;
-`,Hs=`import type { CompressedSource } from '../../../shared/texture/sources/CompressedSource';
+`,Vs=`import type { CompressedSource } from '../../../shared/texture/sources/CompressedSource';
 import type { GpuTextureUploader } from './GpuTextureUploader';
 export declare const blockDataMap: Record<string, {
     blockBytes: number;
@@ -46066,13 +46093,13 @@ export declare const blockDataMap: Record<string, {
     blockHeight: number;
 }>;
 export declare const gpuUploadCompressedTextureResource: GpuTextureUploader<CompressedSource>;
-`,Vs=`import type { TextureSource } from '../../../shared/texture/sources/TextureSource';
+`,Ns=`import type { TextureSource } from '../../../shared/texture/sources/TextureSource';
 import type { GpuTextureUploader } from './GpuTextureUploader';
 export declare const gpuUploadImageResource: GpuTextureUploader<TextureSource<any>>;
-`,Ns=`import type { VideoSource } from '../../../shared/texture/sources/VideoSource';
+`,zs=`import type { VideoSource } from '../../../shared/texture/sources/VideoSource';
 import type { GpuTextureUploader } from './GpuTextureUploader';
 export declare const gpuUploadVideoResource: GpuTextureUploader<VideoSource>;
-`,zs=`/// <reference types="@webgpu/types" />
+`,Xs=`/// <reference types="@webgpu/types" />
 /**
  * A class which generates mipmaps for a GPUTexture.
  * Thanks to @toji for the original implementation
@@ -46094,13 +46121,13 @@ export declare class GpuMipmapGenerator {
      */
     generateMipmap(texture: GPUTexture): GPUTexture;
 }
-`,Xs=`import type { TEXTURE_FORMATS } from '../../../shared/texture/const';
+`,Ks=`import type { TEXTURE_FORMATS } from '../../../shared/texture/const';
 export declare function getSupportedGPUCompressedTextureFormats(): Promise<TEXTURE_FORMATS[]>;
-`,Ks=`import type { Container } from '../../../scene/container/Container';
+`,qs=`import type { Container } from '../../../scene/container/Container';
 import type { View } from './view/View';
 export interface Renderable extends Container, View {
 }
-`,qs=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Ys=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { System } from './system/System';
 /**
  * The SchedulerSystem manages scheduled tasks with specific intervals.
@@ -46143,7 +46170,7 @@ export declare class SchedulerSystem implements System<null> {
      */
     destroy(): void;
 }
-`,Ys=`import { Color } from '../../../../color/Color';
+`,Js=`import { Color } from '../../../../color/Color';
 import { ExtensionType } from '../../../../extensions/Extensions';
 import type { ColorSource, RgbaArray } from '../../../../color/Color';
 import type { System } from '../system/System';
@@ -46225,7 +46252,7 @@ export declare class BackgroundSystem implements System<BackgroundSystemOptions>
      */
     destroy(): void;
 }
-`,Js=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,$s=`import { ExtensionType } from '../../../../extensions/Extensions';
 import type { Renderer } from '../../types';
 import type { Instruction } from '../instructions/Instruction';
 import type { InstructionSet } from '../instructions/InstructionSet';
@@ -46292,7 +46319,7 @@ export declare class BlendModePipe implements InstructionPipe<AdvancedBlendInstr
     destroy(): void;
 }
 export {};
-`,$s=`/// <reference types="@webgpu/types" />
+`,Qs=`/// <reference types="@webgpu/types" />
 import EventEmitter from 'eventemitter3';
 import { BufferUsage } from './const';
 import type { BindResource } from '../../gpu/shader/BindResource';
@@ -46459,7 +46486,7 @@ export declare class Buffer extends EventEmitter<{
     /** Destroys the buffer */
     destroy(): void;
 }
-`,Qs=`import EventEmitter from 'eventemitter3';
+`,Zs=`import EventEmitter from 'eventemitter3';
 import type { BindResource } from '../../gpu/shader/BindResource';
 import type { Buffer } from './Buffer';
 /**
@@ -46549,7 +46576,7 @@ export declare class BufferResource extends EventEmitter<{
      */
     destroy(destroyBuffer?: boolean): void;
 }
-`,Zs=`/**
+`,el=`/**
  * Buffer usage flags. they can be combined using the bitwise OR operator
  * eg : BufferUsage.VERTEX | BufferUsage.INDEX
  * @memberof rendering
@@ -46603,7 +46630,7 @@ export declare enum BufferUsage {
     /** the buffer will not be updated frequently */
     STATIC = 1024
 }
-`,el=`/**
+`,nl=`/**
  * Copies from one buffer to another.
  * This is an optimised function that will use \`Float64Array\` window.
  * This means it can copy twice as fast!
@@ -46612,7 +46639,7 @@ export declare enum BufferUsage {
  * @private
  */
 export declare function fastCopy(sourceBuffer: ArrayBuffer, destinationBuffer: ArrayBuffer): void;
-`,nl=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,tl=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { Container } from '../../../../scene/container/Container';
 import { Texture } from '../texture/Texture';
 import type { ColorSource } from '../../../../color/Color';
@@ -46751,7 +46778,7 @@ export declare class ExtractSystem implements System {
     destroy(): void;
 }
 export {};
-`,tl=`import { type ColorSource } from '../../../../color/Color';
+`,rl=`import { type ColorSource } from '../../../../color/Color';
 import { ExtensionType } from '../../../../extensions/Extensions';
 import { Rectangle } from '../../../../maths/shapes/Rectangle';
 import { Container } from '../../../../scene/container/Container';
@@ -46810,7 +46837,7 @@ export declare class GenerateTextureSystem implements System {
     generateTexture(options: GenerateTextureOptions | Container): RenderTexture;
     destroy(): void;
 }
-`,rl=`import EventEmitter from 'eventemitter3';
+`,ol=`import EventEmitter from 'eventemitter3';
 import { Bounds } from '../../../../scene/container/bounds/Bounds';
 import { Buffer } from '../buffer/Buffer';
 import type { TypedArray } from '../buffer/Buffer';
@@ -46974,7 +47001,7 @@ export declare class Geometry extends EventEmitter<{
     destroy(destroyBuffers?: boolean): void;
 }
 export {};
-`,ol=`/**
+`,al=`/**
  * The different topology types supported by the renderer used to describe how the geometry should be renderer
  * @memberof rendering
  */
@@ -46992,7 +47019,7 @@ export declare const DRAW_MODES: {
  * @memberof rendering
  */
 export type VertexFormat = 'uint8x2' | 'uint8x4' | 'sint8x2' | 'sint8x4' | 'unorm8x2' | 'unorm8x4' | 'snorm8x2' | 'snorm8x4' | 'uint16x2' | 'uint16x4' | 'sint16x2' | 'sint16x4' | 'unorm16x2' | 'unorm16x4' | 'snorm16x2' | 'snorm16x4' | 'float16x2' | 'float16x4' | 'float32' | 'float32x2' | 'float32x3' | 'float32x4' | 'uint32' | 'uint32x2' | 'uint32x3' | 'uint32x4' | 'sint32' | 'sint32x2' | 'sint32x3' | 'sint32x4';
-`,al=`import type { Matrix } from '../../../../../maths/matrix/Matrix';
+`,il=`import type { Matrix } from '../../../../../maths/matrix/Matrix';
 /**
  * Takes a vertices array and a matrix and transforms the vertices based on the matrix.
  * this out put is written to the uvs array
@@ -47008,7 +47035,7 @@ export type VertexFormat = 'uint8x2' | 'uint8x4' | 'sint8x2' | 'sint8x4' | 'unor
  */
 export declare function buildUvs(vertices: number[], verticesStride: number, verticesOffset: number, uvs: number[], uvsOffset: number, uvsStride: number, size: number, matrix?: Matrix): void;
 export declare function buildSimpleUvs(uvs: number[], uvsOffset: number, uvsStride: number, size: number): void;
-`,il=`import { Buffer } from '../../buffer/Buffer';
+`,sl=`import { Buffer } from '../../buffer/Buffer';
 import type { TypedArray } from '../../buffer/Buffer';
 /**
  * Converts something into a buffer. If it is already a buffer it will pass it through
@@ -47020,13 +47047,13 @@ import type { TypedArray } from '../../buffer/Buffer';
  * @memberof rendering
  */
 export declare function ensureIsBuffer(buffer: Buffer | TypedArray | number[], index: boolean): Buffer;
-`,sl=`import type { VertexFormat } from '../const';
+`,ll=`import type { VertexFormat } from '../const';
 export declare function getAttributeInfoFromFormat(format: VertexFormat): {
     size: number;
     stride: number;
     normalised: boolean;
 };
-`,ll=`import type { Bounds } from '../../../../../scene/container/bounds/Bounds';
+`,dl=`import type { Bounds } from '../../../../../scene/container/bounds/Bounds';
 import type { Geometry } from '../Geometry';
 /**
  * Gets the 2D bounds of a geometry, based on a specific attribute.
@@ -47036,7 +47063,7 @@ import type { Geometry } from '../Geometry';
  * @returns the bounds
  */
 export declare function getGeometryBounds(geometry: Geometry, attributeId: string, bounds: Bounds): Bounds;
-`,dl=`import type { Matrix } from '../../../../../maths/matrix/Matrix';
+`,pl=`import type { Matrix } from '../../../../../maths/matrix/Matrix';
 /**
  * Transforms the vertices in an array with the given matrix.
  * @param vertices - the vertices to transform
@@ -47047,7 +47074,7 @@ export declare function getGeometryBounds(geometry: Geometry, attributeId: strin
  * @memberof rendering
  */
 export declare function transformVertices(vertices: number[], m: Matrix, offset?: number, stride?: number, size?: number): void;
-`,pl=`/**
+`,cl=`/**
  * An instruction that can be executed by the renderer
  * @memberof rendering
  */
@@ -47059,7 +47086,7 @@ export interface Instruction {
     /** true if this instruction can be compiled into a WebGPU bundle */
     canBundle: boolean;
 }
-`,cl=`import type { Renderable } from '../Renderable';
+`,ul=`import type { Renderable } from '../Renderable';
 import type { Instruction } from './Instruction';
 /**
  * A set of instructions that can be executed by the renderer.
@@ -47097,7 +47124,7 @@ export declare class InstructionSet {
      */
     log(): void;
 }
-`,ul=`import type { Container } from '../../../../scene/container/Container';
+`,ml=`import type { Container } from '../../../../scene/container/Container';
 import type { Effect } from '../../../../scene/container/Effect';
 import type { BatchableElement } from '../../../batcher/shared/Batcher';
 import type { Renderer } from '../../types';
@@ -47210,7 +47237,7 @@ export interface BatchPipe {
 export interface PipeConstructor {
     new (renderer: Renderer, adaptor?: any): RenderPipe | BatchPipe | InstructionPipe<any>;
 }
-`,ml=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,hl=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { Matrix } from '../../../../maths/matrix/Matrix';
 import { BindGroup } from '../../gpu/shader/BindGroup';
 import { type Renderer, RendererType } from '../../types';
@@ -47289,7 +47316,7 @@ export declare class GlobalUniformSystem implements System {
     private _createUniforms;
     destroy(): void;
 }
-`,hl=`import { TextureSource } from '../texture/sources/TextureSource';
+`,fl=`import { TextureSource } from '../texture/sources/TextureSource';
 import type { BindableTexture } from '../texture/Texture';
 /**
  * Options for creating a render target.
@@ -47367,7 +47394,7 @@ export declare class RenderTarget {
     resize(width: number, height: number, resolution?: number, skipColorTexture?: boolean): void;
     destroy(): void;
 }
-`,fl=`import { Matrix } from '../../../../maths/matrix/Matrix';
+`,bl=`import { Matrix } from '../../../../maths/matrix/Matrix';
 import { Rectangle } from '../../../../maths/shapes/Rectangle';
 import { CLEAR } from '../../gl/const';
 import { SystemRunner } from '../system/SystemRunner';
@@ -47637,7 +47664,7 @@ export declare class RenderTargetSystem<RENDER_TARGET extends GlRenderTarget | G
     getGpuRenderTarget(renderTarget: RenderTarget): RENDER_TARGET;
     resetState(): void;
 }
-`,bl=`import type { RenderTarget } from './RenderTarget';
+`,gl=`import type { RenderTarget } from './RenderTarget';
 /**
  * Checks if the render target is viewable on the screen
  * Basically, is it a canvas element and is that canvas element in the DOM
@@ -47645,7 +47672,7 @@ export declare class RenderTargetSystem<RENDER_TARGET extends GlRenderTarget | G
  * @returns true if the render target is viewable on the screen
  */
 export declare function isRenderingToScreen(renderTarget: RenderTarget): boolean;
-`,gl=`import { Rectangle } from '../../../../maths/shapes/Rectangle';
+`,yl=`import { Rectangle } from '../../../../maths/shapes/Rectangle';
 import type { TextureSource } from '../texture/sources/TextureSource';
 /**
  * Takes a Texture source and a normalised frame
@@ -47656,7 +47683,7 @@ import type { TextureSource } from '../texture/sources/TextureSource';
  * @returns the passed in viewport.
  */
 export declare function viewportFromFrame(viewport: Rectangle, source: TextureSource, frame?: Rectangle): Rectangle;
-`,yl=`import EventEmitter from 'eventemitter3';
+`,xl=`import EventEmitter from 'eventemitter3';
 import { GlProgram } from '../../gl/shader/GlProgram';
 import { BindGroup } from '../../gpu/shader/BindGroup';
 import { GpuProgram } from '../../gpu/shader/GpuProgram';
@@ -47843,7 +47870,7 @@ export declare class Shader extends EventEmitter<{
     static from(options: ShaderFromResources): Shader;
 }
 export {};
-`,xl=`import type { System } from '../system/System';
+`,vl=`import type { System } from '../system/System';
 /**
  * System plugin to the renderer to manage the shaders.
  * @memberof rendering
@@ -47852,7 +47879,7 @@ export interface ShaderSystem extends System {
     /** the maximum number of textures that can be bound to a shader */
     readonly maxTextures: number;
 }
-`,vl=`import type { System } from '../system/System';
+`,Tl=`import type { System } from '../system/System';
 import type { UboElement, UboLayout, UniformData, UniformsSyncCallback } from './types';
 import type { UniformGroup } from './UniformGroup';
 export interface UboAdaptor {
@@ -47885,7 +47912,7 @@ export declare class UboSystem implements System {
     updateUniformGroup(uniformGroup: UniformGroup): boolean;
     destroy(): void;
 }
-`,Tl=`import { type UniformData } from './types';
+`,Sl=`import { type UniformData } from './types';
 import type { BindResource } from '../../gpu/shader/BindResource';
 import type { Buffer } from '../buffer/Buffer';
 type FLOPS<T = UniformData> = T extends {
@@ -48013,12 +48040,12 @@ export declare class UniformGroup<UNIFORMS extends {
     update(): void;
 }
 export {};
-`,Sl=`export declare enum ShaderStage {
+`,wl=`export declare enum ShaderStage {
     VERTEX = 1,
     FRAGMENT = 2,
     COMPUTE = 4
 }
-`,wl=`export declare const UNIFORM_TYPES_VALUES: readonly ["f32", "i32", "vec2<f32>", "vec3<f32>", "vec4<f32>", "mat2x2<f32>", "mat3x3<f32>", "mat4x4<f32>", "mat3x2<f32>", "mat4x2<f32>", "mat2x3<f32>", "mat4x3<f32>", "mat2x4<f32>", "mat3x4<f32>", "vec2<i32>", "vec3<i32>", "vec4<i32>"];
+`,_l=`export declare const UNIFORM_TYPES_VALUES: readonly ["f32", "i32", "vec2<f32>", "vec3<f32>", "vec4<f32>", "mat2x2<f32>", "mat3x3<f32>", "mat4x4<f32>", "mat3x2<f32>", "mat4x2<f32>", "mat2x3<f32>", "mat4x3<f32>", "mat2x4<f32>", "mat3x4<f32>", "vec2<i32>", "vec3<i32>", "vec4<i32>"];
 /** useful for checking if a type is supported - a map of supported types with a true value. */
 export declare const UNIFORM_TYPES_MAP: Record<UNIFORM_TYPES, boolean>;
 export type UNIFORM_TYPES_SINGLE = typeof UNIFORM_TYPES_VALUES[number];
@@ -48045,19 +48072,19 @@ export interface UboLayout {
 }
 export type UniformsSyncCallback = (...args: any[]) => void;
 export {};
-`,_l=`import type { UboElement, UNIFORM_TYPES_SINGLE, UniformsSyncCallback } from '../types';
+`,El=`import type { UboElement, UNIFORM_TYPES_SINGLE, UniformsSyncCallback } from '../types';
 export declare function createUboSyncFunction(uboElements: UboElement[], parserCode: 'uboWgsl' | 'uboStd40', arrayGenerationFunction: (uboElement: UboElement, offsetToAdd: number) => string, singleSettersMap: Record<UNIFORM_TYPES_SINGLE, string>): UniformsSyncCallback;
-`,El=`/**
+`,Pl=`/**
  * @method defaultValue
  * @param {string} type - Type of value
  * @param {number} size
  * @private
  */
 export declare function getDefaultUniformValue(type: string, size: number): number | Float32Array | Int32Array | Uint32Array | boolean | boolean[];
-`,Pl=`import type { UNIFORM_TYPES_SINGLE } from '../types';
+`,Al=`import type { UNIFORM_TYPES_SINGLE } from '../types';
 export declare const uboSyncFunctionsSTD40: Record<UNIFORM_TYPES_SINGLE, string>;
 export declare const uboSyncFunctionsWGSL: Record<UNIFORM_TYPES_SINGLE, string>;
-`,Al=`import type { UNIFORM_TYPES, UniformData } from '../types';
+`,Cl=`import type { UNIFORM_TYPES, UniformData } from '../types';
 export interface UniformParserDefinition {
     type: UNIFORM_TYPES;
     test(data: UniformData): boolean;
@@ -48067,7 +48094,7 @@ export interface UniformParserDefinition {
     uniform?: string;
 }
 export declare const uniformParsers: UniformParserDefinition[];
-`,Cl=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,Rl=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { type Renderer } from '../../types';
 import type { System } from '../system/System';
 /**
@@ -48104,7 +48131,7 @@ export declare class HelloSystem implements System<HelloSystemOptions> {
      */
     init(options: HelloSystemOptions): void;
 }
-`,Rl=`import type { BLEND_MODES, CULL_MODES } from './const';
+`,Gl=`import type { BLEND_MODES, CULL_MODES } from './const';
 /**
  * This is a WebGL state, and is is passed to {@link StateSystem}.
  *
@@ -48183,7 +48210,7 @@ export declare class State {
     static for2d(): State;
     static default2d: State;
 }
-`,Gl=`/**
+`,Ml=`/**
  * Various blend modes supported by Pixi
  * @memberof filters
  */
@@ -48214,7 +48241,7 @@ export declare enum STENCIL_MODES {
  * @memberof rendering
  */
 export type CULL_MODES = 'none' | 'back' | 'front';
-`,Ml=`import { type BLEND_MODES } from './const';
+`,kl=`import { type BLEND_MODES } from './const';
 import type { TextureSource } from '../texture/sources/TextureSource';
 /**
  * Adjusts a blend mode for the current alpha mode. Returns the blend mode that works with that format.
@@ -48225,7 +48252,7 @@ import type { TextureSource } from '../texture/sources/TextureSource';
  * @returns - the blend mode that should be used to render this texture correctly based on its alphaMode
  */
 export declare function getAdjustedBlendModeBlend(blendMode: BLEND_MODES, textureSource: TextureSource): BLEND_MODES;
-`,kl=`import { Container } from '../../../../scene/container/Container';
+`,Fl=`import { Container } from '../../../../scene/container/Container';
 import { EventEmitter } from '../../../../utils/utils';
 import { SystemRunner } from './SystemRunner';
 import type { ColorSource } from '../../../../color/Color';
@@ -48521,7 +48548,7 @@ export declare class AbstractRenderer<PIPES, OPTIONS extends SharedRendererOptio
     resetState(): void;
 }
 export {};
-`,Fl=`import { CustomRenderPipe } from '../../../../scene/container/CustomRenderPipe';
+`,Ol=`import { CustomRenderPipe } from '../../../../scene/container/CustomRenderPipe';
 import { RenderGroupPipe } from '../../../../scene/container/RenderGroupPipe';
 import { RenderGroupSystem } from '../../../../scene/container/RenderGroupSystem';
 import { SpritePipe } from '../../../../scene/sprite/SpritePipe';
@@ -48583,7 +48610,7 @@ export interface SharedRendererOptions extends ExtractRendererOptions<typeof Sha
      */
     manageImports?: boolean;
 }
-`,Ol=`import type { Renderer } from '../../types';
+`,Il=`import type { Renderer } from '../../types';
 import type { RendererDestroyOptions } from './AbstractRenderer';
 export interface System<INIT_OPTIONS = null, DESTROY_OPTIONS = RendererDestroyOptions> {
     init?: (options: INIT_OPTIONS) => void;
@@ -48593,7 +48620,7 @@ export interface System<INIT_OPTIONS = null, DESTROY_OPTIONS = RendererDestroyOp
 export interface SystemConstructor {
     new (renderer: Renderer): System;
 }
-`,Il=`/**
+`,Ll=`/**
  * SystemRunner is used internally by the renderers as an efficient way for systems to
  * be notified about what the renderer is up to during the rendering phase.
  *
@@ -48691,7 +48718,7 @@ export declare class SystemRunner {
      */
     get name(): string;
 }
-`,Ll=`/**
+`,Bl=`/**
  * TS for extracting the system as a record based on a list of systems
  * @example
  *
@@ -48757,7 +48784,7 @@ type SeparateOptions<T extends SystemsWithExtensionList> = KnownProperties<Defau
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
 export type ExtractRendererOptions<T extends SystemsWithExtensionList> = UnionToIntersection<OptionsUnion<T>>;
 export {};
-`,Bl=`import type { ICanvas, ICanvasRenderingContext2DSettings } from '../../../../environment/canvas/ICanvas';
+`,Dl=`import type { ICanvas, ICanvasRenderingContext2DSettings } from '../../../../environment/canvas/ICanvas';
 import type { ICanvasRenderingContext2D } from '../../../../environment/canvas/ICanvasRenderingContext2D';
 export interface CanvasAndContext {
     canvas: ICanvas;
@@ -48806,7 +48833,7 @@ export declare class CanvasPoolClass {
     clear(): void;
 }
 export declare const CanvasPool: CanvasPoolClass;
-`,Dl=`import type { ICanvas } from '../../../../environment/canvas/ICanvas';
+`,Ul=`import type { ICanvas } from '../../../../environment/canvas/ICanvas';
 import type { Texture } from './Texture';
 export type GetPixelsOutput = {
     pixels: Uint8ClampedArray;
@@ -48817,7 +48844,7 @@ export interface CanvasGenerator {
     generateCanvas(texture: Texture): ICanvas;
     getPixels(texture: Texture): GetPixelsOutput;
 }
-`,Ul=`import { Texture } from './Texture';
+`,jl=`import { Texture } from './Texture';
 import type { TextureSourceOptions } from './sources/TextureSource';
 /**
  * A render texture, extends \`Texture\`.
@@ -48835,7 +48862,7 @@ export declare class RenderTexture extends Texture {
      */
     resize(width: number, height: number, resolution?: number): this;
 }
-`,jl=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,Wl=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { type RenderOptions } from '../system/AbstractRenderer';
 import type { Renderer } from '../../types';
 import type { Renderable } from '../Renderable';
@@ -49001,7 +49028,7 @@ export declare class RenderableGCSystem implements System<RenderableGCSystemOpti
      */
     private _updateInstructionGCTick;
 }
-`,Wl=`import EventEmitter from 'eventemitter3';
+`,Hl=`import EventEmitter from 'eventemitter3';
 import { Rectangle } from '../../../../maths/shapes/Rectangle';
 import { BufferImageSource } from './sources/BufferImageSource';
 import { TextureSource } from './sources/TextureSource';
@@ -49229,7 +49256,7 @@ export declare class Texture<TextureSourceType extends TextureSource = TextureSo
     /** a White texture used internally by the engine */
     static WHITE: Texture<BufferImageSource>;
 }
-`,Hl=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,Vl=`import { ExtensionType } from '../../../../extensions/Extensions';
 import type { Renderer } from '../../types';
 import type { System } from '../system/System';
 /**
@@ -49320,7 +49347,7 @@ export declare class TextureGCSystem implements System<TextureGCSystemOptions> {
     run(): void;
     destroy(): void;
 }
-`,Vl=`import { Matrix } from '../../../../maths/matrix/Matrix';
+`,Nl=`import { Matrix } from '../../../../maths/matrix/Matrix';
 import type { Texture } from './Texture';
 /**
  * Class controls uv mapping from Texture normal space to BaseTexture normal space.
@@ -49402,7 +49429,7 @@ export declare class TextureMatrix {
      */
     update(): boolean;
 }
-`,Nl=`import { TextureSource } from './sources/TextureSource';
+`,zl=`import { TextureSource } from './sources/TextureSource';
 import { Texture } from './Texture';
 import type { TextureSourceOptions } from './sources/TextureSource';
 /**
@@ -49467,7 +49494,7 @@ export declare class TexturePoolClass {
     clear(destroyTextures?: boolean): void;
 }
 export declare const TexturePool: TexturePoolClass;
-`,zl=`import EventEmitter from 'eventemitter3';
+`,Xl=`import EventEmitter from 'eventemitter3';
 import type { BindResource } from '../../gpu/shader/BindResource';
 import type { COMPARE_FUNCTION, SCALE_MODE, WRAP_MODE } from './const';
 export interface TextureStyleOptions extends Partial<TextureStyle> {
@@ -49579,7 +49606,7 @@ export declare class TextureStyle extends EventEmitter<{
     /** Destroys the style */
     destroy(): void;
 }
-`,Xl=`import type { Size } from '../../../../maths/misc/Size';
+`,Kl=`import type { Size } from '../../../../maths/misc/Size';
 import type { Rectangle } from '../../../../maths/shapes/Rectangle';
 /**
  * Stores a texture's frame in UV coordinates, in
@@ -49624,7 +49651,7 @@ export declare class TextureUvs {
     set(frame: Rectangle, baseFrame: Size, rotate: number): void;
     toString(): string;
 }
-`,Kl=`/**
+`,ql=`/**
  * Specifies the alpha composition mode for textures.
  *
  * - \`no-premultiply-alpha\`: Does not premultiply alpha.
@@ -49697,7 +49724,7 @@ export declare enum DEPRECATED_SCALE_MODES {
  */
 export declare const SCALE_MODES: typeof DEPRECATED_SCALE_MODES;
 export type COMPARE_FUNCTION = 'never' | 'less' | 'equal' | 'less-equal' | 'greater' | 'not-equal' | 'greater-equal' | 'always';
-`,ql=`import { TextureSource } from './TextureSource';
+`,Yl=`import { TextureSource } from './TextureSource';
 import type { ExtensionMetadata } from '../../../../../extensions/Extensions';
 import type { TypedArray } from '../../buffer/Buffer';
 import type { TextureSourceOptions } from './TextureSource';
@@ -49711,7 +49738,7 @@ export declare class BufferImageSource extends TextureSource<TypedArray | ArrayB
     constructor(options: BufferSourceOptions);
     static test(resource: any): resource is TypedArray | ArrayBuffer;
 }
-`,Yl=`import { TextureSource } from './TextureSource';
+`,Jl=`import { TextureSource } from './TextureSource';
 import type { ICanvas } from '../../../../../environment/canvas/ICanvas';
 import type { ExtensionMetadata } from '../../../../../extensions/Extensions';
 import type { TextureSourceOptions } from './TextureSource';
@@ -49742,13 +49769,13 @@ export declare class CanvasSource extends TextureSource<ICanvas> {
      */
     get context2D(): CanvasRenderingContext2D;
 }
-`,Jl=`import { TextureSource } from './TextureSource';
+`,$l=`import { TextureSource } from './TextureSource';
 import type { TextureSourceOptions } from './TextureSource';
 export declare class CompressedSource extends TextureSource<Uint8Array[]> {
     readonly uploadMethodId = "compressed";
     constructor(options: TextureSourceOptions);
 }
-`,$l=`import { TextureSource } from './TextureSource';
+`,Ql=`import { TextureSource } from './TextureSource';
 import type { ICanvas } from '../../../../../environment/canvas/ICanvas';
 import type { ExtensionMetadata } from '../../../../../extensions/Extensions';
 import type { TextureSourceOptions } from './TextureSource';
@@ -49759,7 +49786,7 @@ export declare class ImageSource extends TextureSource<ImageResource> {
     constructor(options: TextureSourceOptions<ImageResource>);
     static test(resource: any): resource is ImageResource;
 }
-`,Ql=`import EventEmitter from 'eventemitter3';
+`,Zl=`import EventEmitter from 'eventemitter3';
 import { TextureStyle } from '../TextureStyle';
 import type { BindResource } from '../../../gpu/shader/BindResource';
 import type { ALPHA_MODES, SCALE_MODE, TEXTURE_DIMENSIONS, TEXTURE_FORMATS, WRAP_MODE } from '../const';
@@ -50029,7 +50056,7 @@ export declare class TextureSource<T extends Record<string, any> = any> extends 
      */
     static from: (resource: TextureResourceOrOptions) => TextureSource;
 }
-`,Zl=`import { TextureSource } from './TextureSource';
+`,ed=`import { TextureSource } from './TextureSource';
 import type { ExtensionMetadata } from '../../../../../extensions/Extensions';
 import type { Dict } from '../../../../../utils/types';
 import type { ALPHA_MODES } from '../const';
@@ -50178,19 +50205,19 @@ export declare class VideoSource extends TextureSource<VideoResource> {
     static test(resource: any): resource is VideoResource;
 }
 export {};
-`,ed=`export declare function generateUID(): number;
-`,nd=`import { CanvasSource } from '../sources/CanvasSource';
+`,nd=`export declare function generateUID(): number;
+`,td=`import { CanvasSource } from '../sources/CanvasSource';
 import { Texture } from '../Texture';
 import type { ICanvas } from '../../../../../environment/canvas/ICanvas';
 import type { CanvasSourceOptions } from '../sources/CanvasSource';
 export declare function getCanvasTexture(canvas: ICanvas, options?: CanvasSourceOptions): Texture<CanvasSource>;
 export declare function hasCachedCanvasTexture(canvas: ICanvas): boolean;
-`,td=`import type { TEXTURE_FORMATS } from '../const';
-export declare function getSupportedCompressedTextureFormats(): Promise<TEXTURE_FORMATS[]>;
 `,rd=`import type { TEXTURE_FORMATS } from '../const';
+export declare function getSupportedCompressedTextureFormats(): Promise<TEXTURE_FORMATS[]>;
+`,od=`import type { TEXTURE_FORMATS } from '../const';
 export declare const nonCompressedFormats: TEXTURE_FORMATS[];
 export declare function getSupportedTextureFormats(): Promise<TEXTURE_FORMATS[]>;
-`,od=`import { TextureSource } from '../sources/TextureSource';
+`,ad=`import { TextureSource } from '../sources/TextureSource';
 import { Texture } from '../Texture';
 import type { BufferSourceOptions } from '../sources/BufferImageSource';
 import type { CanvasSourceOptions } from '../sources/CanvasSource';
@@ -50213,9 +50240,9 @@ export declare function resourceToTexture(options?: TextureResourceOrOptions, sk
  * @returns The texture based on the Id provided
  */
 export declare function textureFrom(id: TextureSourceLike, skipCache?: boolean): Texture;
-`,ad=`export declare function createIdFromString(value: string, groupId: string): number;
-`,id=`export declare function parseFunctionBody(fn: (...args: any[]) => any): string;
-`,sd=`import type { Point } from '../../../../maths/point/Point';
+`,id=`export declare function createIdFromString(value: string, groupId: string): number;
+`,sd=`export declare function parseFunctionBody(fn: (...args: any[]) => any): string;
+`,ld=`import type { Point } from '../../../../maths/point/Point';
 import type { BoundsData } from '../../../../scene/container/bounds/Bounds';
 export interface ViewObserver {
     onViewUpdate: () => void;
@@ -50250,7 +50277,7 @@ export interface View {
     /** Checks if the point is within the view */
     containsPoint: (point: Point) => boolean;
 }
-`,ld=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,dd=`import { ExtensionType } from '../../../../extensions/Extensions';
 import { Rectangle } from '../../../../maths/shapes/Rectangle';
 import { RenderTarget } from '../renderTarget/RenderTarget';
 import type { ICanvas } from '../../../../environment/canvas/ICanvas';
@@ -50383,7 +50410,7 @@ export declare class ViewSystem implements System<ViewSystemOptions, TypeOrBool<
      */
     destroy(options?: TypeOrBool<ViewSystemDestroyOptions>): void;
 }
-`,dd=`import type { ICanvas } from '../../environment/canvas/ICanvas';
+`,pd=`import type { ICanvas } from '../../environment/canvas/ICanvas';
 import type { WebGLOptions, WebGLPipes, WebGLRenderer } from './gl/WebGLRenderer';
 import type { WebGPUOptions, WebGPUPipes, WebGPURenderer } from './gpu/WebGPURenderer';
 /** A generic renderer. */
@@ -50415,7 +50442,7 @@ export declare enum RendererType {
     BOTH = 3
 }
 export type GpuPowerPreference = 'low-power' | 'high-performance';
-`,pd=`/* eslint-disable @typescript-eslint/no-empty-object-type */
+`,cd=`/* eslint-disable @typescript-eslint/no-empty-object-type */
 import { type CollectRenderablesMixin } from './container/container-mixins/collectRenderablesMixin';
 import { type GetFastGlobalBoundsMixin } from './container/container-mixins/getFastGlobalBoundsMixin';
 
@@ -50492,7 +50519,7 @@ declare global
 
 export { };
 
-`,cd=`import EventEmitter from 'eventemitter3';
+`,ud=`import EventEmitter from 'eventemitter3';
 import { type ColorSource } from '../../color/Color';
 import { Matrix } from '../../maths/matrix/Matrix';
 import { ObservablePoint } from '../../maths/point/ObservablePoint';
@@ -51151,7 +51178,7 @@ export declare class Container<C extends ContainerChild = ContainerChild> extend
     destroy(options?: DestroyOptions): void;
 }
 export {};
-`,ud=`import { ExtensionType } from '../../extensions/Extensions';
+`,md=`import { ExtensionType } from '../../extensions/Extensions';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import type { InstructionPipe, RenderPipe } from '../../rendering/renderers/shared/instructions/RenderPipe';
 import type { Renderer } from '../../rendering/renderers/types';
@@ -51183,7 +51210,7 @@ export declare class CustomRenderPipe implements InstructionPipe<RenderContainer
     execute(container: RenderContainer): void;
     destroy(): void;
 }
-`,md=`import type { Point } from '../../maths/point/Point';
+`,hd=`import type { Point } from '../../maths/point/Point';
 import type { PointData } from '../../maths/point/PointData';
 import type { Bounds } from './bounds/Bounds';
 import type { Container } from './Container';
@@ -51203,7 +51230,7 @@ export interface EffectConstructor {
     new (options?: any): Effect;
     test?(options: any): boolean;
 }
-`,hd=`import { ViewContainer } from '../view/ViewContainer';
+`,fd=`import { ViewContainer } from '../view/ViewContainer';
 import type { Point } from '../../maths/point/Point';
 import type { Instruction } from '../../rendering/renderers/shared/instructions/Instruction';
 import type { Renderer } from '../../rendering/renderers/types';
@@ -51276,7 +51303,7 @@ export declare class RenderContainer extends ViewContainer implements Instructio
     render(_renderer: Renderer): void;
 }
 export {};
-`,fd=`import { Matrix } from '../../maths/matrix/Matrix';
+`,bd=`import { Matrix } from '../../maths/matrix/Matrix';
 import { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import { type Renderer } from '../../rendering/renderers/types';
 import type { Instruction } from '../../rendering/renderers/shared/instructions/Instruction';
@@ -51425,7 +51452,7 @@ export declare class RenderGroup implements Instruction {
      */
     get cacheToLocalTransform(): Matrix;
 }
-`,bd=`import { ExtensionType } from '../../extensions/Extensions';
+`,gd=`import { ExtensionType } from '../../extensions/Extensions';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import type { InstructionPipe } from '../../rendering/renderers/shared/instructions/RenderPipe';
 import type { Renderer } from '../../rendering/renderers/types';
@@ -51445,7 +51472,7 @@ export declare class RenderGroupPipe implements InstructionPipe<RenderGroup> {
     private _executeCacheAsTexture;
     private _executeDirect;
 }
-`,gd=`import { ExtensionType } from '../../extensions/Extensions';
+`,yd=`import { ExtensionType } from '../../extensions/Extensions';
 import { Matrix } from '../../maths/matrix/Matrix';
 import type { System } from '../../rendering/renderers/shared/system/System';
 import type { Renderer } from '../../rendering/renderers/types';
@@ -51478,7 +51505,7 @@ export declare class RenderGroupSystem implements System {
      */
     private _buildInstructions;
 }
-`,yd=`import { Matrix } from '../../../maths/matrix/Matrix';
+`,xd=`import { Matrix } from '../../../maths/matrix/Matrix';
 import { Rectangle } from '../../../maths/shapes/Rectangle';
 /**
  * Simple bounds implementation instead of more ambiguous [number, number, number, number]
@@ -51629,7 +51656,7 @@ export declare class Bounds {
      */
     copyFrom(bounds: Bounds): this;
 }
-`,xd=`import type { Container } from '../Container';
+`,vd=`import type { Container } from '../Container';
 import type { Bounds } from './Bounds';
 /**
  * Does exactly the same as getGlobalBounds, but does instead makes use of transforming AABBs
@@ -51645,21 +51672,21 @@ import type { Bounds } from './Bounds';
  * @see container.getFastGlobalBounds
  */
 export declare function getFastGlobalBounds(target: Container, bounds: Bounds): Bounds;
-`,vd=`import { Matrix } from '../../../maths/matrix/Matrix';
+`,Td=`import { Matrix } from '../../../maths/matrix/Matrix';
 import type { Container } from '../Container';
 import type { Bounds } from './Bounds';
 export declare function getGlobalBounds(target: Container, skipUpdateTransform: boolean, bounds: Bounds): Bounds;
 export declare function _getGlobalBounds(target: Container, bounds: Bounds, parentTransform: Matrix, skipUpdateTransform: boolean): void;
 export declare function updateTransformBackwards(target: Container, parentTransform: Matrix): Matrix;
-`,Td=`import { Matrix } from '../../../maths/matrix/Matrix';
+`,Sd=`import { Matrix } from '../../../maths/matrix/Matrix';
 import type { Container } from '../Container';
 import type { Bounds } from './Bounds';
 export declare function getLocalBounds(target: Container, bounds: Bounds, relativeMatrix?: Matrix): Bounds;
 export declare function getParent(target: Container, root: Container, matrix: Matrix): void;
-`,Sd=`import type { Renderable } from '../../../rendering/renderers/shared/Renderable';
+`,wd=`import type { Renderable } from '../../../rendering/renderers/shared/Renderable';
 import type { Bounds } from './Bounds';
 export declare function getGlobalRenderableBounds(renderables: Renderable[], bounds: Bounds): Bounds;
-`,wd=`import { Matrix } from '../../../../maths/matrix/Matrix';
+`,_d=`import { Matrix } from '../../../../maths/matrix/Matrix';
 import { Pool } from '../../../../utils/pool/Pool';
 import { Bounds } from '../Bounds';
 import type { PoolItem } from '../../../../utils/pool/Pool';
@@ -51668,7 +51695,7 @@ type BoundsPoolItem = Bounds & PoolItem;
 export declare const matrixPool: Pool<MatrixPoolItem>;
 export declare const boundsPool: Pool<BoundsPoolItem>;
 export {};
-`,_d=`import type { Container } from '../Container';
+`,Ed=`import type { Container } from '../Container';
 import type { CacheAsTextureOptions } from '../RenderGroup';
 export interface CacheAsTextureMixinConstructor {
     cacheAsTexture?: (val: boolean | CacheAsTextureOptions) => void;
@@ -51703,7 +51730,7 @@ export interface CacheAsTextureMixin extends Required<CacheAsTextureMixinConstru
     readonly isCachedAsTexture: boolean;
 }
 export declare const cacheAsTextureMixin: Partial<Container>;
-`,Ed=`import type { IRenderLayer } from '../../layers/RenderLayer';
+`,Pd=`import type { IRenderLayer } from '../../layers/RenderLayer';
 import type { ContainerChild } from '../Container';
 export interface ChildrenHelperMixin<C = ContainerChild> {
     allowChildren: boolean;
@@ -51721,7 +51748,7 @@ export interface ChildrenHelperMixin<C = ContainerChild> {
     reparentChildAt<U extends C>(child: U, index: number): U;
 }
 export declare const childrenHelperMixin: ChildrenHelperMixin<ContainerChild>;
-`,Pd=`import { type InstructionSet } from '../../../rendering/renderers/shared/instructions/InstructionSet';
+`,Ad=`import { type InstructionSet } from '../../../rendering/renderers/shared/instructions/InstructionSet';
 import { type Renderer } from '../../../rendering/renderers/types';
 import { type IRenderLayer } from '../../layers/RenderLayer';
 import type { Container } from '../Container';
@@ -51764,7 +51791,7 @@ export interface CollectRenderablesMixin {
  * It includes logic to determine the appropriate method for collecting renderables based on the container's properties.
  */
 export declare const collectRenderablesMixin: Partial<Container>;
-`,Ad=`import { FilterEffect } from '../../../filters/FilterEffect';
+`,Cd=`import { FilterEffect } from '../../../filters/FilterEffect';
 import type { Filter } from '../../../filters/Filter';
 import type { Rectangle } from '../../../maths/shapes/Rectangle';
 import type { MaskEffect } from '../../../rendering/mask/MaskEffectManager';
@@ -51793,7 +51820,7 @@ export interface EffectsMixin extends Required<EffectsMixinConstructor> {
     removeEffect(effect: Effect): void;
 }
 export declare const effectsMixin: Partial<Container>;
-`,Cd=`import type { Container } from '../Container';
+`,Rd=`import type { Container } from '../Container';
 export interface FindMixinConstructor {
     label?: string;
 }
@@ -51808,7 +51835,7 @@ export interface FindMixin extends Required<FindMixinConstructor> {
     getChildrenByLabel(label: RegExp | string, deep?: boolean, out?: Container[]): Container[];
 }
 export declare const findMixin: Partial<Container>;
-`,Rd=`import { type IRenderLayer } from '../../layers/RenderLayer';
+`,Gd=`import { type IRenderLayer } from '../../layers/RenderLayer';
 import { Bounds } from '../bounds/Bounds';
 import type { Container } from '../Container';
 /**
@@ -51844,7 +51871,7 @@ export interface GetFastGlobalBoundsMixin {
  * It includes methods to compute and recursively calculate global bounds for containers.
  */
 export declare const getFastGlobalBoundsMixin: Partial<Container>;
-`,Gd=`import type { Matrix } from '../../../maths/matrix/Matrix';
+`,Md=`import type { Matrix } from '../../../maths/matrix/Matrix';
 import type { Container } from '../Container';
 export declare function bgr2rgb(color: number): number;
 export interface GetGlobalMixin {
@@ -51853,7 +51880,7 @@ export interface GetGlobalMixin {
     getGlobalTint(skipUpdate?: boolean): number;
 }
 export declare const getGlobalMixin: Partial<Container>;
-`,Md=`import { Bounds } from '../bounds/Bounds';
+`,kd=`import { Bounds } from '../bounds/Bounds';
 import type { Size } from '../../../maths/misc/Size';
 import type { Container } from '../Container';
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -51880,7 +51907,7 @@ interface LocalBoundsCacheData {
 }
 export declare const measureMixin: Partial<Container>;
 export {};
-`,kd=`import type { Renderer } from '../../../rendering/renderers/types';
+`,Fd=`import type { Renderer } from '../../../rendering/renderers/types';
 import type { Container } from '../Container';
 export interface OnRenderMixinConstructor {
     onRender?: ((renderer: Renderer) => void | null);
@@ -51889,7 +51916,7 @@ export interface OnRenderMixin extends Required<OnRenderMixinConstructor> {
     _onRender: ((renderer: Renderer) => void) | null;
 }
 export declare const onRenderMixin: Partial<Container>;
-`,Fd=`import type { Container } from '../Container';
+`,Od=`import type { Container } from '../Container';
 export interface SortMixinConstructor {
     zIndex?: number;
     sortDirty?: boolean;
@@ -51901,7 +51928,7 @@ export interface SortMixin extends Required<SortMixinConstructor> {
     depthOfChildModified: () => void;
 }
 export declare const sortMixin: Partial<Container>;
-`,Od=`import { Point } from '../../../maths/point/Point';
+`,Id=`import { Point } from '../../../maths/point/Point';
 import type { PointData } from '../../../maths/point/PointData';
 import type { Container } from '../Container';
 export interface ToLocalGlobalMixin {
@@ -51910,7 +51937,7 @@ export interface ToLocalGlobalMixin {
     toLocal<P extends PointData = Point>(position: PointData, from?: Container, point?: P, skipUpdate?: boolean): P;
 }
 export declare const toLocalGlobalMixin: Partial<Container>;
-`,Id=`/**
+`,Ld=`/**
  * Base destroy options.
  * @example
  * // Destroy the sprite and all its children.
@@ -51970,14 +51997,14 @@ export type TypeOrBool<T> = T | boolean;
  * @memberof scene
  */
 export type DestroyOptions = TypeOrBool<BaseDestroyOptions & ContextDestroyOptions & TextureDestroyOptions & TextDestroyOptions>;
-`,Ld=`/**
+`,Bd=`/**
  * Assigns properties from one object to another, using an optional array of property names to ignore.
  * @param target - The target object to assign properties to.
  * @param options - The object to assign properties from.
  * @param ignore - An object of property names to ignore ({ propToIgnore: true }).
  */
 export declare function assignWithIgnore<T extends Record<string, any>>(target: T, options: T, ignore?: Record<string, boolean>): void;
-`,Bd=`import type { Container } from '../Container';
+`,Dd=`import type { Container } from '../Container';
 /**
  * This function will crawl through the container essentially check if the children have changed.
  *
@@ -51998,7 +52025,7 @@ export declare function checkChildrenDidChange(container: Container, previousDat
     index: number;
     didChange: boolean;
 }): boolean;
-`,Dd=`/**
+`,Ud=`/**
  * nulls all slots in an array from a certain index.
  * assume that when a null item is hit, the rest are also null.
  * Which will be the case for where this is used!
@@ -52006,7 +52033,7 @@ export declare function checkChildrenDidChange(container: Container, previousDat
  * @param index - the index to start from
  */
 export declare function clearList(list: Array<unknown>, index?: number): void;
-`,Ud=`import { type InstructionSet } from '../../../rendering/renderers/shared/instructions/InstructionSet';
+`,jd=`import { type InstructionSet } from '../../../rendering/renderers/shared/instructions/InstructionSet';
 import { type Renderer, type RenderPipes } from '../../../rendering/renderers/types';
 import { type Container } from '../Container';
 /**
@@ -52018,7 +52045,7 @@ import { type Container } from '../Container';
  * @see container.collectRenderables
  */
 export declare function collectAllRenderables(container: Container, instructionSet: InstructionSet, rendererOrPipes: Renderer | RenderPipes): void;
-`,jd=`/**
+`,Wd=`/**
  * Returns a new object with all properties from the input object that have defined values.
  * @template T - The type of the input object.
  * @param {T} obj - The input object.
@@ -52027,26 +52054,26 @@ export declare function collectAllRenderables(container: Container, instructionS
  * @ignore
  */
 export declare function definedProps<T extends Record<string, any>>(obj: T): T;
-`,Wd=`import type { RenderPipes } from '../../../rendering/renderers/types';
+`,Hd=`import type { RenderPipes } from '../../../rendering/renderers/types';
 import type { RenderGroup } from '../RenderGroup';
 export declare function executeInstructions(renderGroup: RenderGroup, renderer: RenderPipes): void;
-`,Hd=`export declare function mixHexColors(color1: number, color2: number, ratio: number): number;
-`,Vd=`export declare function multiplyColors(localBGRColor: number, parentBGRColor: number): number;
-`,Nd=`export declare function multiplyHexColors(color1: number, color2: number): number;
-`,zd=`import type { Matrix } from '../../../maths/matrix/Matrix';
+`,Vd=`export declare function mixHexColors(color1: number, color2: number, ratio: number): number;
+`,Nd=`export declare function multiplyColors(localBGRColor: number, parentBGRColor: number): number;
+`,zd=`export declare function multiplyHexColors(color1: number, color2: number): number;
+`,Xd=`import type { Matrix } from '../../../maths/matrix/Matrix';
 import type { Container } from '../Container';
 export declare function updateLocalTransform(lt: Matrix, container: Container): void;
-`,Xd=`import { Container } from '../Container';
+`,Kd=`import { Container } from '../Container';
 import type { RenderGroup } from '../RenderGroup';
 export declare function updateRenderGroupTransforms(renderGroup: RenderGroup, updateChildRenderGroups?: boolean): void;
 export declare function updateRenderGroupTransform(renderGroup: RenderGroup): void;
 export declare function updateTransformAndChildren(container: Container, updateTick: number, updateFlags: number): void;
-`,Kd=`import type { Matrix } from '../../../maths/matrix/Matrix';
+`,qd=`import type { Matrix } from '../../../maths/matrix/Matrix';
 export declare function updateWorldTransform(local: Matrix, parent: Matrix, world: Matrix): void;
-`,qd=`import type { RenderPipes } from '../../../rendering/renderers/types';
+`,Yd=`import type { RenderPipes } from '../../../rendering/renderers/types';
 import type { RenderGroup } from '../RenderGroup';
 export declare function validateRenderables(renderGroup: RenderGroup, renderPipes: RenderPipes): boolean;
-`,Yd=`declare global
+`,Jd=`declare global
 {
     namespace PixiMixins
     {
@@ -52071,7 +52098,7 @@ export declare function validateRenderables(renderGroup: RenderGroup, renderPipe
     }
 }
 export {};
-`,Jd=`import { ExtensionType } from '../../../extensions/Extensions';
+`,$d=`import { ExtensionType } from '../../../extensions/Extensions';
 import { Shader } from '../../../rendering/renderers/shared/shader/Shader';
 import type { Graphics } from '../shared/Graphics';
 import type { GraphicsAdaptor, GraphicsPipe } from '../shared/GraphicsPipe';
@@ -52091,7 +52118,7 @@ export declare class GlGraphicsAdaptor implements GraphicsAdaptor {
     execute(graphicsPipe: GraphicsPipe, renderable: Graphics): void;
     destroy(): void;
 }
-`,$d=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Qd=`import { ExtensionType } from '../../../extensions/Extensions';
 import { Shader } from '../../../rendering/renderers/shared/shader/Shader';
 import type { Graphics } from '../shared/Graphics';
 import type { GraphicsAdaptor, GraphicsPipe } from '../shared/GraphicsPipe';
@@ -52111,10 +52138,10 @@ export declare class GpuGraphicsAdaptor implements GraphicsAdaptor {
     execute(graphicsPipe: GraphicsPipe, renderable: Graphics): void;
     destroy(): void;
 }
-`,Qd=`export declare function colorToUniform(rgb: number, alpha: number, out: Float32Array, offset: number): void;
+`,Zd=`export declare function colorToUniform(rgb: number, alpha: number, out: Float32Array, offset: number): void;
 export declare function color32BitToUniform(abgr: number, out: Float32Array, offset: number): void;
-`,Zd=`export {};
-`,ep=`import { Matrix } from '../../../maths/matrix/Matrix';
+`,ep=`export {};
+`,np=`import { Matrix } from '../../../maths/matrix/Matrix';
 import type { Batch, Batcher } from '../../../rendering/batcher/shared/Batcher';
 import type { DefaultBatchableMeshElement } from '../../../rendering/batcher/shared/DefaultBatcher';
 import type { Topology } from '../../../rendering/renderers/shared/geometry/const';
@@ -52157,7 +52184,7 @@ export declare class BatchableGraphics implements DefaultBatchableMeshElement {
     copyTo(gpuBuffer: BatchableGraphics): void;
     reset(): void;
 }
-`,np=`import type { ColorSource } from '../../../color/Color';
+`,tp=`import type { ColorSource } from '../../../color/Color';
 import type { Matrix } from '../../../maths/matrix/Matrix';
 import type { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 import type { LineCap, LineJoin } from './const';
@@ -52287,7 +52314,7 @@ export type ConvertedStrokeStyle = ConvertedFillStyle & Required<StrokeAttribute
  * @see scene.FillInput
  */
 export type FillStyleInputs = ColorSource | FillGradient | FillPattern | FillStyle | ConvertedFillStyle | StrokeStyle | ConvertedStrokeStyle;
-`,tp=`import { ViewContainer, type ViewContainerOptions } from '../../view/ViewContainer';
+`,rp=`import { ViewContainer, type ViewContainerOptions } from '../../view/ViewContainer';
 import { GraphicsContext } from './GraphicsContext';
 import type { ColorSource } from '../../../color/Color';
 import type { Matrix } from '../../../maths/matrix/Matrix';
@@ -52792,7 +52819,7 @@ export declare class Graphics extends ViewContainer implements Instruction {
      */
     drawStar(...args: Parameters<GraphicsContext['star']>): this;
 }
-`,rp=`import EventEmitter from 'eventemitter3';
+`,op=`import EventEmitter from 'eventemitter3';
 import { type ColorSource } from '../../../color/Color';
 import { Matrix } from '../../../maths/matrix/Matrix';
 import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
@@ -53243,7 +53270,7 @@ export declare class GraphicsContext extends EventEmitter<{
      */
     destroy(options?: TypeOrBool<TextureDestroyOptions>): void;
 }
-`,op=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ap=`import { ExtensionType } from '../../../extensions/Extensions';
 import { InstructionSet } from '../../../rendering/renderers/shared/instructions/InstructionSet';
 import type { Batcher } from '../../../rendering/batcher/shared/Batcher';
 import type { System } from '../../../rendering/renderers/shared/system/System';
@@ -53321,7 +53348,7 @@ export declare class GraphicsContextSystem implements System<GraphicsContextSyst
     destroy(): void;
 }
 export {};
-`,ap=`import { ExtensionType } from '../../../extensions/Extensions';
+`,ip=`import { ExtensionType } from '../../../extensions/Extensions';
 import { State } from '../../../rendering/renderers/shared/state/State';
 import type { InstructionSet } from '../../../rendering/renderers/shared/instructions/InstructionSet';
 import type { BatchPipe, RenderPipe } from '../../../rendering/renderers/shared/instructions/RenderPipe';
@@ -53367,17 +53394,17 @@ export declare class GraphicsPipe implements RenderPipe<Graphics> {
     private _removeBatchForRenderable;
     destroy(): void;
 }
-`,ip=`import type { ExtensionMetadataDetails } from '../../../../extensions/Extensions';
+`,sp=`import type { ExtensionMetadataDetails } from '../../../../extensions/Extensions';
 import type { ShapePrimitive } from '../../../../maths/shapes/ShapePrimitive';
 export interface ShapeBuildCommand<T extends ShapePrimitive = ShapePrimitive> {
     extension: ExtensionMetadataDetails;
     build(shape: T, points: number[]): void;
     triangulate(points: number[], vertices: number[], verticesStride: number, verticesOffset: number, indices: number[], indicesOffset: number): void;
 }
-`,sp=`export declare function buildAdaptiveBezier(points: number[], sX: number, sY: number, cp1x: number, cp1y: number, cp2x: number, cp2y: number, eX: number, eY: number, smoothness?: number): number[];
-`,lp=`export declare function buildAdaptiveQuadratic(points: number[], sX: number, sY: number, cp1x: number, cp1y: number, eX: number, eY: number, smoothness?: number): number[];
-`,dp=`export declare function buildArc(points: number[], x: number, y: number, radius: number, start: number, end: number, clockwise: boolean, steps?: number): void;
-`,pp=`/**
+`,lp=`export declare function buildAdaptiveBezier(points: number[], sX: number, sY: number, cp1x: number, cp1y: number, cp2x: number, cp2y: number, eX: number, eY: number, smoothness?: number): number[];
+`,dp=`export declare function buildAdaptiveQuadratic(points: number[], sX: number, sY: number, cp1x: number, cp1y: number, eX: number, eY: number, smoothness?: number): number[];
+`,pp=`export declare function buildArc(points: number[], x: number, y: number, radius: number, start: number, end: number, clockwise: boolean, steps?: number): void;
+`,cp=`/**
  * The arcTo() method creates an arc/curve between two tangents on the canvas.
  *
  * "borrowed" from https://code.google.com/p/fxcanvas/ - thanks google!
@@ -53389,8 +53416,8 @@ export interface ShapeBuildCommand<T extends ShapePrimitive = ShapePrimitive> {
  * @param radius
  */
 export declare function buildArcTo(points: number[], x1: number, y1: number, x2: number, y2: number, radius: number): void;
-`,cp=`export declare function buildArcToSvg(points: number[], px: number, py: number, cx: number, cy: number, rx: number, ry: number, xAxisRotation?: number, largeArcFlag?: number, sweepFlag?: number): void;
-`,up=`import { ExtensionType } from '../../../../extensions/Extensions';
+`,up=`export declare function buildArcToSvg(points: number[], px: number, py: number, cx: number, cy: number, rx: number, ry: number, xAxisRotation?: number, largeArcFlag?: number, sweepFlag?: number): void;
+`,mp=`import { ExtensionType } from '../../../../extensions/Extensions';
 import type { Circle } from '../../../../maths/shapes/Circle';
 import type { Ellipse } from '../../../../maths/shapes/Ellipse';
 import type { RoundedRectangle } from '../../../../maths/shapes/RoundedRectangle';
@@ -53423,7 +53450,7 @@ export declare const buildRoundedRectangle: {
     triangulate(points: number[], vertices: number[], verticesStride: number, verticesOffset: number, indices: number[], indicesOffset: number): void;
 };
 export {};
-`,mp=`import type { StrokeAttributes } from '../FillTypes';
+`,hp=`import type { StrokeAttributes } from '../FillTypes';
 /**
  * Builds a line to draw using the polygon method.
  * @param points
@@ -53434,7 +53461,7 @@ export {};
  * @param indices
  */
 export declare function buildLine(points: number[], lineStyle: StrokeAttributes, flipAlignment: boolean, closed: boolean, vertices: number[], indices: number[]): void;
-`,hp=`/**
+`,fp=`/**
  * Builds a line to draw using the polygon method.
  * @param points
  * @param closed
@@ -53442,7 +53469,7 @@ export declare function buildLine(points: number[], lineStyle: StrokeAttributes,
  * @param indices
  */
 export declare function buildPixelLine(points: number[], closed: boolean, vertices: number[], indices: number[]): void;
-`,fp=`import type { Polygon } from '../../../../maths/shapes/Polygon';
+`,bp=`import type { Polygon } from '../../../../maths/shapes/Polygon';
 import type { ShapeBuildCommand } from './ShapeBuildCommand';
 /**
  * Builds a rectangle to draw
@@ -53452,7 +53479,7 @@ import type { ShapeBuildCommand } from './ShapeBuildCommand';
  * @private
  */
 export declare const buildPolygon: ShapeBuildCommand<Polygon>;
-`,bp=`import type { Rectangle } from '../../../../maths/shapes/Rectangle';
+`,gp=`import type { Rectangle } from '../../../../maths/shapes/Rectangle';
 import type { ShapeBuildCommand } from './ShapeBuildCommand';
 /**
  * Builds a rectangle to draw
@@ -53462,7 +53489,7 @@ import type { ShapeBuildCommand } from './ShapeBuildCommand';
  * @private
  */
 export declare const buildRectangle: ShapeBuildCommand<Rectangle>;
-`,gp=`import type { Triangle } from '../../../../maths/shapes/Triangle';
+`,yp=`import type { Triangle } from '../../../../maths/shapes/Triangle';
 import type { ShapeBuildCommand } from './ShapeBuildCommand';
 /**
  * Builds a triangle to draw
@@ -53472,11 +53499,11 @@ import type { ShapeBuildCommand } from './ShapeBuildCommand';
  * @private
  */
 export declare const buildTriangle: ShapeBuildCommand<Triangle>;
-`,yp=`export type LineCap = 'butt' | 'round' | 'square';
+`,xp=`export type LineCap = 'butt' | 'round' | 'square';
 export type LineJoin = 'round' | 'bevel' | 'miter';
 export declare const closePointEps = 0.0001;
 export declare const curveEps = 0.0001;
-`,xp=`import { Matrix } from '../../../../maths/matrix/Matrix';
+`,vp=`import { Matrix } from '../../../../maths/matrix/Matrix';
 import { Texture } from '../../../../rendering/renderers/shared/texture/Texture';
 import type { ColorSource } from '../../../../color/Color';
 import type { PointData } from '../../../../maths/point/PointData';
@@ -53741,7 +53768,7 @@ export declare class FillGradient implements CanvasGradient {
     get styleKey(): number;
     destroy(): void;
 }
-`,vp=`import { Matrix } from '../../../../maths/matrix/Matrix';
+`,Tp=`import { Matrix } from '../../../../maths/matrix/Matrix';
 import type { Texture } from '../../../../rendering/renderers/shared/texture/Texture';
 export type PatternRepetition = 'repeat' | 'repeat-x' | 'repeat-y' | 'no-repeat';
 export declare class FillPattern implements CanvasPattern {
@@ -53754,7 +53781,7 @@ export declare class FillPattern implements CanvasPattern {
     setTransform(transform?: Matrix): void;
     get styleKey(): string;
 }
-`,Tp=`import { Point } from '../../../../maths/point/Point';
+`,Sp=`import { Point } from '../../../../maths/point/Point';
 import { ShapePath } from './ShapePath';
 import type { Matrix } from '../../../../maths/matrix/Matrix';
 import type { PointData } from '../../../../maths/point/PointData';
@@ -54081,7 +54108,7 @@ export declare class GraphicsPath {
      */
     getLastPoint(out: Point): Point;
 }
-`,Sp=`import { Bounds } from '../../../container/bounds/Bounds';
+`,wp=`import { Bounds } from '../../../container/bounds/Bounds';
 import type { Matrix } from '../../../../maths/matrix/Matrix';
 import type { PointData } from '../../../../maths/point/PointData';
 import type { ShapePrimitive } from '../../../../maths/shapes/ShapePrimitive';
@@ -54346,7 +54373,7 @@ export declare class ShapePath {
     /** Gets the bounds of the path. */
     get bounds(): Bounds;
 }
-`,wp=`import type { PointData } from '../../../../maths/point/PointData';
+`,_p=`import type { PointData } from '../../../../maths/point/PointData';
 import type { ShapePath } from './ShapePath';
 /**
  * Typed and cleaned up version of:
@@ -54369,7 +54396,7 @@ export type RoundedPoint = PointData & {
  * @ignore
  */
 export declare function roundedShapeQuadraticCurve(g: ShapePath, points: RoundedPoint[], radius: number, smoothness?: number): void;
-`,_p=`import { GraphicsPath } from '../path/GraphicsPath';
+`,Ep=`import { GraphicsPath } from '../path/GraphicsPath';
 import type { FillGradient } from '../fill/FillGradient';
 import type { GraphicsContext } from '../GraphicsContext';
 /** Represents a session for SVG parsing. Contains the current state and resources needed during parsing. */
@@ -54389,7 +54416,7 @@ export interface Session {
  * @returns The graphics context with the SVG rendered into it
  */
 export declare function SVGParser(svg: string | SVGElement | SVGSVGElement, graphicsContext?: GraphicsContext): GraphicsContext;
-`,Ep=`import type { Session } from './SVGParser';
+`,Pp=`import type { Session } from './SVGParser';
 /**
  * Parses SVG gradient definitions and stores them in the session for later use.
  * Currently supports linear gradients and has placeholder support for radial gradients.
@@ -54397,7 +54424,7 @@ export declare function SVGParser(svg: string | SVGElement | SVGSVGElement, grap
  * @param session - The parsing session to store definitions in
  */
 export declare function parseSVGDefinitions(svg: SVGElement, session: Session): void;
-`,Pp=`/**
+`,Ap=`/**
  * Parses a float value from an SVG element's attribute.
  * This is commonly used for parsing numeric attributes like coordinates, dimensions,
  * and other measurements from SVG elements.
@@ -54411,7 +54438,7 @@ export declare function parseSVGDefinitions(svg: SVGElement, session: Session): 
  * parseSVGFloatAttribute(rectElement, 'y', 0) // Returns 0 since y is not specified
  */
 export declare function parseSVGFloatAttribute(svg: SVGElement, id: string, defaultValue: number): number;
-`,Ap=`import type { GraphicsPath } from '../path/GraphicsPath';
+`,Cp=`import type { GraphicsPath } from '../path/GraphicsPath';
 /**
  * Parses an SVG path data string and builds a GraphicsPath object from the commands.
  * This function handles all standard SVG path commands including moves, lines, curves and arcs.
@@ -54434,7 +54461,7 @@ export declare function parseSVGFloatAttribute(svg: SVGElement, id: string, defa
  * @returns The input path object with the SVG commands applied
  */
 export declare function parseSVGPath(svgPath: string, path: GraphicsPath): GraphicsPath;
-`,Cp=`import type { FillStyle, StrokeStyle } from '../FillTypes';
+`,Rp=`import type { FillStyle, StrokeStyle } from '../FillTypes';
 import type { Session } from './SVGParser';
 /**
  * A map of SVG style attributes and their default values.
@@ -54517,7 +54544,7 @@ export declare function parseSVGStyle(svg: SVGElement, session: Session): StyleR
  * @param value - The attribute value to parse
  */
 export declare function parseAttribute(session: Session, result: StyleResult, id: string, value: string): void;
-`,Rp=`/**
+`,Gp=`/**
  * Extracts the ID from an SVG url() reference.
  *
  * This function handles all valid SVG url() formats including:
@@ -54539,7 +54566,7 @@ export declare function parseAttribute(session: Session, result: StyleResult, id
  * @returns The extracted ID string, or empty string if no valid ID found
  */
 export declare function extractSvgUrlId(url: string): string;
-`,Gp=`/** Type definitions for parse-svg-path module This module parses SVG path data strings into an array of commands */
+`,Mp=`/** Type definitions for parse-svg-path module This module parses SVG path data strings into an array of commands */
 
 declare module 'parse-svg-path'
 {
@@ -54562,12 +54589,12 @@ declare module 'parse-svg-path'
      */
     export default function parse(path: string): Command[];
 }
-`,Mp=`import type { ShapeBuildCommand } from '../buildCommands/ShapeBuildCommand';
+`,kp=`import type { ShapeBuildCommand } from '../buildCommands/ShapeBuildCommand';
 import type { GraphicsContext } from '../GraphicsContext';
 import type { GpuGraphicsContext } from '../GraphicsContextSystem';
 export declare const shapeBuilders: Record<string, ShapeBuildCommand>;
 export declare function buildContextBatches(context: GraphicsContext, gpuContext: GpuGraphicsContext): void;
-`,kp=`import { MeshGeometry } from '../../../mesh/shared/MeshGeometry';
+`,Fp=`import { MeshGeometry } from '../../../mesh/shared/MeshGeometry';
 import { GraphicsPath } from '../path/GraphicsPath';
 import type { Matrix } from '../../../../maths/matrix/Matrix';
 export interface GeometryPathOptions {
@@ -54597,7 +54624,7 @@ export interface GeometryPathOptions {
  * @returns a new \`MeshGeometry\` instance build from the path
  */
 export declare function buildGeometryFromPath(options: GraphicsPath | GeometryPathOptions): MeshGeometry;
-`,Fp=`import type { ConvertedFillStyle, ConvertedStrokeStyle, FillInput, StrokeInput } from '../FillTypes';
+`,Op=`import type { ConvertedFillStyle, ConvertedStrokeStyle, FillInput, StrokeInput } from '../FillTypes';
 /**
  * Converts a value to a fill style, we do this as PixiJS has a number of ways to define a fill style
  * They can be a direct color, a texture, a gradient, or an object with these values in them
@@ -54615,7 +54642,7 @@ export declare function toFillStyle<T extends FillInput>(value: T, defaultStyle:
  * @private
  */
 export declare function toStrokeStyle(value: StrokeInput, defaultStyle: ConvertedStrokeStyle): ConvertedStrokeStyle;
-`,Op=`import { Matrix } from '../../../../maths/matrix/Matrix';
+`,Ip=`import { Matrix } from '../../../../maths/matrix/Matrix';
 import type { ShapePrimitive } from '../../../../maths/shapes/ShapePrimitive';
 import type { FillStyle } from '../FillTypes';
 /**
@@ -54637,9 +54664,9 @@ import type { FillStyle } from '../FillTypes';
  * \`\`\`
  */
 export declare function generateTextureMatrix(out: Matrix, style: FillStyle, shape: ShapePrimitive, matrix?: Matrix): Matrix;
-`,Ip=`export declare function getOrientationOfPoints(points: number[]): number;
-`,Lp=`export declare function triangulateWithHoles(points: number[], holes: number[], vertices: number[], verticesStride: number, verticesOffset: number, indices: number[], indicesOffset: number): void;
-`,Bp=`export * from './container/bounds/Bounds';
+`,Lp=`export declare function getOrientationOfPoints(points: number[]): number;
+`,Bp=`export declare function triangulateWithHoles(points: number[], holes: number[], vertices: number[], verticesStride: number, verticesOffset: number, indices: number[], indicesOffset: number): void;
+`,Dp=`export * from './container/bounds/Bounds';
 export * from './container/bounds/getFastGlobalBounds';
 export * from './container/bounds/getGlobalBounds';
 export * from './container/bounds/getLocalBounds';
@@ -54805,7 +54832,7 @@ export * from './view/ViewContainer';
 export { default as particlesFrag } from './particle-container/shared/shader/particles.frag';
 export { default as particlesVert } from './particle-container/shared/shader/particles.vert';
 export { default as particlesWgsl } from './particle-container/shared/shader/particles.wgsl';
-`,Dp=`import { type InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
+`,Up=`import { type InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import { type Renderer } from '../../rendering/renderers/types';
 import { type Bounds } from '../container/bounds/Bounds';
 import { Container } from '../container/Container';
@@ -54955,7 +54982,7 @@ export declare class RenderLayerClass extends Container {
 }
 export declare const RenderLayer: new (options?: RenderLayerOptions) => IRenderLayer;
 export {};
-`,Up=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
+`,jp=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { Mesh } from '../mesh/shared/Mesh';
 import { PerspectivePlaneGeometry } from './PerspectivePlaneGeometry';
 import type { MeshPlaneOptions } from '../mesh-plane/MeshPlane';
@@ -55050,7 +55077,7 @@ export declare class PerspectiveMesh extends Mesh<PerspectivePlaneGeometry> {
      */
     setCorners(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void;
 }
-`,jp=`import { PlaneGeometry } from '../mesh-plane/PlaneGeometry';
+`,Wp=`import { PlaneGeometry } from '../mesh-plane/PlaneGeometry';
 import type { PlaneGeometryOptions } from '../mesh-plane/PlaneGeometry';
 /**
  * Constructor options used for \`PerspectivePlaneGeometry\` instances.
@@ -55107,7 +55134,7 @@ export declare class PerspectivePlaneGeometry extends PlaneGeometry {
     /** Update the projection matrix based on the corners */
     updateProjection(): void;
 }
-`,Wp=`import type { ArrayFixed } from '../../../utils/types';
+`,Hp=`import type { ArrayFixed } from '../../../utils/types';
 import type { PlaneGeometry } from '../../mesh-plane/PlaneGeometry';
 /**
  * Apply a projective transformation to a plane geometry
@@ -55117,7 +55144,7 @@ import type { PlaneGeometry } from '../../mesh-plane/PlaneGeometry';
  * @param transformationMatrix - The transformation matrix to apply
  */
 export declare function applyProjectiveTransformationToPlane(width: number, height: number, geometry: PlaneGeometry, transformationMatrix: ArrayFixed<number, 9>): void;
-`,Hp=`import type { ArrayFixed } from '../../../utils/types';
+`,Vp=`import type { ArrayFixed } from '../../../utils/types';
 type Matrix3x3 = ArrayFixed<number, 9>;
 /**
  * Compute a 2D projection matrix
@@ -55143,7 +55170,7 @@ type Matrix3x3 = ArrayFixed<number, 9>;
  */
 export declare function compute2DProjection(out: Matrix3x3, x1s: number, y1s: number, x1d: number, y1d: number, x2s: number, y2s: number, x2d: number, y2d: number, x3s: number, y3s: number, x3d: number, y3d: number, x4s: number, y4s: number, x4d: number, y4d: number): Matrix3x3;
 export {};
-`,Vp=`import { Mesh } from '../mesh/shared/Mesh';
+`,Np=`import { Mesh } from '../mesh/shared/Mesh';
 import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import type { DestroyOptions } from '../container/destroyTypes';
 import type { MeshOptions } from '../mesh/shared/Mesh';
@@ -55203,7 +55230,7 @@ export declare class MeshPlane extends Mesh {
      */
     destroy(options?: DestroyOptions): void;
 }
-`,Np=`import { MeshGeometry } from '../mesh/shared/MeshGeometry';
+`,zp=`import { MeshGeometry } from '../mesh/shared/MeshGeometry';
 import type { MeshGeometryOptions } from '../mesh/shared/MeshGeometry';
 /**
  * Constructor options used for \`PlaneGeometry\` instances.
@@ -55254,7 +55281,7 @@ export declare class PlaneGeometry extends MeshGeometry {
      */
     build(options: PlaneGeometryOptions): void;
 }
-`,zp=`import { Mesh } from '../mesh/shared/Mesh';
+`,Xp=`import { Mesh } from '../mesh/shared/Mesh';
 import type { PointData } from '../../maths/point/PointData';
 import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import type { MeshOptions } from '../mesh/shared/Mesh';
@@ -55310,7 +55337,7 @@ export declare class MeshRope extends Mesh {
     constructor(options: MeshRopeOptions);
     private _render;
 }
-`,Xp=`import { Mesh } from '../mesh/shared/Mesh';
+`,Kp=`import { Mesh } from '../mesh/shared/Mesh';
 import type { TypedArray } from '../../rendering/renderers/shared/buffer/Buffer';
 import type { Topology } from '../../rendering/renderers/shared/geometry/const';
 import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
@@ -55351,7 +55378,7 @@ export declare class MeshSimple extends Mesh {
     set vertices(value: TypedArray);
     private _render;
 }
-`,Kp=`import { MeshGeometry } from '../mesh/shared/MeshGeometry';
+`,qp=`import { MeshGeometry } from '../mesh/shared/MeshGeometry';
 import type { PointData } from '../../maths/point/PointData';
 import type { MeshGeometryOptions } from '../mesh/shared/MeshGeometry';
 /**
@@ -55422,7 +55449,7 @@ export declare class RopeGeometry extends MeshGeometry {
     /** Refreshes Rope indices and uvs */
     update(): void;
 }
-`,qp=`declare global
+`,Yp=`declare global
 {
     namespace PixiMixins
     {
@@ -55433,7 +55460,7 @@ export declare class RopeGeometry extends MeshGeometry {
     }
 }
 export {};
-`,Yp=`import { ExtensionType } from '../../../extensions/Extensions';
+`,Jp=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { Mesh } from '../shared/Mesh';
 import type { MeshAdaptor, MeshPipe } from '../shared/MeshPipe';
 /**
@@ -55451,7 +55478,7 @@ export declare class GlMeshAdaptor implements MeshAdaptor {
     execute(meshPipe: MeshPipe, mesh: Mesh): void;
     destroy(): void;
 }
-`,Jp=`import { ExtensionType } from '../../../extensions/Extensions';
+`,$p=`import { ExtensionType } from '../../../extensions/Extensions';
 import type { Mesh } from '../shared/Mesh';
 import type { MeshAdaptor, MeshPipe } from '../shared/MeshPipe';
 /**
@@ -55470,8 +55497,8 @@ export declare class GpuMeshAdapter implements MeshAdaptor {
     execute(meshPipe: MeshPipe, mesh: Mesh): void;
     destroy(): void;
 }
-`,$p=`export {};
-`,Qp=`import type { Matrix } from '../../../maths/matrix/Matrix';
+`,Qp=`export {};
+`,Zp=`import type { Matrix } from '../../../maths/matrix/Matrix';
 import type { Batch, Batcher } from '../../../rendering/batcher/shared/Batcher';
 import type { DefaultBatchableMeshElement } from '../../../rendering/batcher/shared/DefaultBatcher';
 import type { Topology } from '../../../rendering/renderers/shared/geometry/const';
@@ -55521,7 +55548,7 @@ export declare class BatchableMesh implements DefaultBatchableMeshElement {
     get attributeSize(): number;
     get indexSize(): number;
 }
-`,Zp=`import { Geometry } from '../../../rendering/renderers/shared/geometry/Geometry';
+`,ec=`import { Geometry } from '../../../rendering/renderers/shared/geometry/Geometry';
 import { State } from '../../../rendering/renderers/shared/state/State';
 import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 import { ViewContainer } from '../../view/ViewContainer';
@@ -55646,7 +55673,7 @@ export declare class Mesh<GEOMETRY extends Geometry = MeshGeometry, SHADER exten
      */
     destroy(options?: DestroyOptions): void;
 }
-`,ec=`import { Geometry } from '../../../rendering/renderers/shared/geometry/Geometry';
+`,nc=`import { Geometry } from '../../../rendering/renderers/shared/geometry/Geometry';
 import type { Topology } from '../../../rendering/renderers/shared/geometry/const';
 import type { BatchMode } from '../../graphics/shared/GraphicsContext';
 /**
@@ -55700,7 +55727,7 @@ export declare class MeshGeometry extends Geometry {
     get indices(): Uint32Array;
     set indices(value: Uint32Array);
 }
-`,nc=`import { ExtensionType } from '../../../extensions/Extensions';
+`,tc=`import { ExtensionType } from '../../../extensions/Extensions';
 import { Matrix } from '../../../maths/matrix/Matrix';
 import { BindGroup } from '../../../rendering/renderers/gpu/shader/BindGroup';
 import { UniformGroup } from '../../../rendering/renderers/shared/shader/UniformGroup';
@@ -55751,10 +55778,10 @@ export declare class MeshPipe implements RenderPipe<Mesh>, InstructionPipe<Mesh>
     private _initBatchableMesh;
     destroy(): void;
 }
-`,tc=`import type { Matrix } from '../../../maths/matrix/Matrix';
+`,rc=`import type { Matrix } from '../../../maths/matrix/Matrix';
 import type { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 export declare function getTextureDefaultMatrix(texture: Texture, out: Matrix): Matrix;
-`,rc=`declare global
+`,oc=`declare global
 {
     namespace PixiMixins
     {
@@ -55765,18 +55792,18 @@ export declare function getTextureDefaultMatrix(texture: Texture, out: Matrix): 
     }
 }
 export {};
-`,oc=`import type { ParticleContainer } from '../shared/ParticleContainer';
+`,ac=`import type { ParticleContainer } from '../shared/ParticleContainer';
 import type { ParticleContainerAdaptor, ParticleContainerPipe } from '../shared/ParticleContainerPipe';
 export declare class GlParticleContainerAdaptor implements ParticleContainerAdaptor {
     execute(particleContainerPipe: ParticleContainerPipe, container: ParticleContainer): void;
 }
-`,ac=`import type { ParticleContainer } from '../shared/ParticleContainer';
+`,ic=`import type { ParticleContainer } from '../shared/ParticleContainer';
 import type { ParticleContainerAdaptor, ParticleContainerPipe } from '../shared/ParticleContainerPipe';
 export declare class GpuParticleContainerAdaptor implements ParticleContainerAdaptor {
     execute(particleContainerPipe: ParticleContainerPipe, container: ParticleContainer): void;
 }
-`,ic=`export {};
-`,sc=`import { ExtensionType } from '../../../extensions/Extensions';
+`,sc=`export {};
+`,lc=`import { ExtensionType } from '../../../extensions/Extensions';
 import { ParticleContainerPipe } from './ParticleContainerPipe';
 import type { WebGLRenderer } from '../../../rendering/renderers/gl/WebGLRenderer';
 export declare class GlParticleContainerPipe extends ParticleContainerPipe {
@@ -55787,7 +55814,7 @@ export declare class GlParticleContainerPipe extends ParticleContainerPipe {
     };
     constructor(renderer: WebGLRenderer);
 }
-`,lc=`import { ExtensionType } from '../../../extensions/Extensions';
+`,dc=`import { ExtensionType } from '../../../extensions/Extensions';
 import { ParticleContainerPipe } from './ParticleContainerPipe';
 import type { WebGPURenderer } from '../../../rendering/renderers/gpu/WebGPURenderer';
 export declare class GpuParticleContainerPipe extends ParticleContainerPipe {
@@ -55798,7 +55825,7 @@ export declare class GpuParticleContainerPipe extends ParticleContainerPipe {
     };
     constructor(renderer: WebGPURenderer);
 }
-`,dc=`import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
+`,pc=`import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 import type { ColorSource } from '../../../color/Color';
 /**
  * Represents a particle with properties for position, scale, rotation, color, and texture.
@@ -55898,7 +55925,7 @@ export declare class Particle implements IParticle {
     set tint(value: ColorSource);
     private _updateColor;
 }
-`,pc=`import { Geometry } from '../../../rendering/renderers/shared/geometry/Geometry';
+`,cc=`import { Geometry } from '../../../rendering/renderers/shared/geometry/Geometry';
 import { ViewableBuffer } from '../../../utils/data/ViewableBuffer';
 import type { IndexBufferArray } from '../../../rendering/renderers/shared/geometry/Geometry';
 import type { IParticle } from './Particle';
@@ -55947,7 +55974,7 @@ export declare class ParticleBuffer {
     update(particles: IParticle[], uploadStatic: boolean): void;
     destroy(): void;
 }
-`,cc=`import { Bounds } from '../../container/bounds/Bounds';
+`,uc=`import { Bounds } from '../../container/bounds/Bounds';
 import { type IRenderLayer } from '../../layers/RenderLayer';
 import { ViewContainer, type ViewContainerOptions } from '../../view/ViewContainer';
 import type { Instruction } from '../../../rendering/renderers/shared/instructions/Instruction';
@@ -56225,7 +56252,7 @@ export declare class ParticleContainer extends ViewContainer implements Instruct
      */
     reparentChildAt(_child: ContainerChild, _index: number): any;
 }
-`,uc=`import { Matrix } from '../../../maths/matrix/Matrix';
+`,mc=`import { Matrix } from '../../../maths/matrix/Matrix';
 import { UniformGroup } from '../../../rendering/renderers/shared/shader/UniformGroup';
 import { State } from '../../../rendering/renderers/shared/state/State';
 import { ParticleBuffer } from './ParticleBuffer';
@@ -56282,7 +56309,7 @@ export declare class ParticleContainerPipe implements RenderPipe<ParticleContain
     /** Destroys the ParticleRenderer. */
     destroy(): void;
 }
-`,mc=`import type { VertexFormat } from '../../../rendering/renderers/shared/geometry/const';
+`,hc=`import type { VertexFormat } from '../../../rendering/renderers/shared/geometry/const';
 import type { IParticle } from './Particle';
 export interface ParticleRendererProperty {
     attributeName: string;
@@ -56292,11 +56319,11 @@ export interface ParticleRendererProperty {
     updateFunction?: (ps: IParticle[], f32v: Float32Array, u32v: Uint32Array, offset: number, stride: number) => void;
 }
 export declare const particleData: Record<string, ParticleRendererProperty>;
-`,hc=`import { Shader } from '../../../../rendering/renderers/shared/shader/Shader';
+`,fc=`import { Shader } from '../../../../rendering/renderers/shared/shader/Shader';
 export declare class ParticleShader extends Shader {
     constructor();
 }
-`,fc=`/**
+`,bc=`/**
  * Generic Mask Stack data structure
  * @function createIndicesForQuads
  * @param {number} size - Number of quads
@@ -56304,14 +56331,14 @@ export declare class ParticleShader extends Shader {
  * @returns {Uint16Array|Uint32Array} - Resulting index buffer
  */
 export declare function createIndicesForQuads(size: number, outBuffer?: Uint16Array | Uint32Array | null): Uint16Array | Uint32Array;
-`,bc=`import type { IParticle } from '../Particle';
+`,gc=`import type { IParticle } from '../Particle';
 import type { ParticleRendererProperty } from '../particleData';
 export type ParticleUpdateFunction = (ps: IParticle[], f32v: Float32Array, u32v: Uint32Array) => void;
 export declare function generateParticleUpdateFunction(properties: Record<string, ParticleRendererProperty>): {
     dynamicUpdate: ParticleUpdateFunction;
     staticUpdate: ParticleUpdateFunction;
 };
-`,gc=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
+`,yc=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { Ticker } from '../../ticker/Ticker';
 import { Sprite } from '../sprite/Sprite';
 import type { SpriteOptions } from '../sprite/Sprite';
@@ -56517,7 +56544,7 @@ export interface FrameObject {
     /** The duration of the frame, in milliseconds. */
     time: number;
 }
-`,yc=`import { type PointData } from '../../maths/point/PointData';
+`,xc=`import { type PointData } from '../../maths/point/PointData';
 import { PlaneGeometry } from '../mesh-plane/PlaneGeometry';
 /**
  * Options for the NineSliceGeometry.
@@ -56569,7 +56596,7 @@ export declare class NineSliceGeometry extends PlaneGeometry {
     /** Updates the UVs of the vertices. */
     updateUvs(): void;
 }
-`,xc=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
+`,vc=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
 import { type PointData } from '../../maths/point/PointData';
 import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { ViewContainer, type ViewContainerOptions } from '../view/ViewContainer';
@@ -56731,7 +56758,7 @@ export declare class NineSlicePlane extends NineSliceSprite {
     /** @deprecated since 8.0.0 */
     constructor(texture: Texture, leftWidth: number, topHeight: number, rightWidth: number, bottomHeight: number);
 }
-`,vc=`declare global
+`,Tc=`declare global
 {
     namespace PixiMixins
     {
@@ -56743,7 +56770,7 @@ export declare class NineSlicePlane extends NineSliceSprite {
 }
 
 export {};
-`,Tc=`import { ExtensionType } from '../../extensions/Extensions';
+`,Sc=`import { ExtensionType } from '../../extensions/Extensions';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import type { RenderPipe } from '../../rendering/renderers/shared/instructions/RenderPipe';
 import type { Renderer } from '../../rendering/renderers/types';
@@ -56767,8 +56794,8 @@ export declare class NineSliceSpritePipe implements RenderPipe<NineSliceSprite> 
     private _initGPUSprite;
     destroy(): void;
 }
-`,Sc=`export {};
-`,wc=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
+`,wc=`export {};
+`,_c=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
 import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { Transform } from '../../utils/misc/Transform';
 import { ViewContainer, type ViewContainerOptions } from '../view/ViewContainer';
@@ -56972,7 +56999,7 @@ export declare class TilingSprite extends ViewContainer implements View, Instruc
      */
     destroy(options?: DestroyOptions): void;
 }
-`,_c=`declare global
+`,Ec=`declare global
 {
     namespace PixiMixins
     {
@@ -56984,7 +57011,7 @@ export declare class TilingSprite extends ViewContainer implements View, Instruc
 }
 
 export {};
-`,Ec=`import { ExtensionType } from '../../extensions/Extensions';
+`,Pc=`import { ExtensionType } from '../../extensions/Extensions';
 import { type Renderer } from '../../rendering/renderers/types';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import type { RenderPipe } from '../../rendering/renderers/shared/instructions/RenderPipe';
@@ -57011,15 +57038,15 @@ export declare class TilingSpritePipe implements RenderPipe<TilingSprite> {
     destroy(): void;
     private _updateCanBatch;
 }
-`,Pc=`export {};
-`,Ac=`import { Matrix } from '../../../maths/matrix/Matrix';
+`,Ac=`export {};
+`,Cc=`import { Matrix } from '../../../maths/matrix/Matrix';
 import { Shader } from '../../../rendering/renderers/shared/shader/Shader';
 import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 export declare class TilingSpriteShader extends Shader {
     constructor();
     updateUniforms(width: number, height: number, matrix: Matrix, anchorX: number, anchorY: number, texture: Texture): void;
 }
-`,Cc=`export declare const tilingBit: {
+`,Rc=`export declare const tilingBit: {
     name: string;
     vertex: {
         header: string;
@@ -57041,18 +57068,18 @@ export declare const tilingBitGl: {
         main: string;
     };
 };
-`,Rc=`import { MeshGeometry } from '../../mesh/shared/MeshGeometry';
+`,Gc=`import { MeshGeometry } from '../../mesh/shared/MeshGeometry';
 export declare class QuadGeometry extends MeshGeometry {
     constructor();
 }
-`,Gc=`import type { Matrix } from '../../../maths/matrix/Matrix';
+`,Mc=`import type { Matrix } from '../../../maths/matrix/Matrix';
 import type { TypedArray } from '../../../rendering/renderers/shared/buffer/Buffer';
 export declare function applyMatrix(array: TypedArray, stride: number, offset: number, matrix: Matrix): void;
-`,Mc=`import type { TilingSprite } from '../TilingSprite';
-export declare function setPositions(tilingSprite: TilingSprite, positions: Float32Array): void;
 `,kc=`import type { TilingSprite } from '../TilingSprite';
+export declare function setPositions(tilingSprite: TilingSprite, positions: Float32Array): void;
+`,Fc=`import type { TilingSprite } from '../TilingSprite';
 export declare function setUvs(tilingSprite: TilingSprite, uvs: Float32Array): void;
-`,Fc=`import type { Matrix } from '../../maths/matrix/Matrix';
+`,Oc=`import type { Matrix } from '../../maths/matrix/Matrix';
 import type { Batch, Batcher } from '../../rendering/batcher/shared/Batcher';
 import type { DefaultBatchableQuadElement } from '../../rendering/batcher/shared/DefaultBatcher';
 import type { Topology } from '../../rendering/renderers/shared/geometry/const';
@@ -57083,7 +57110,7 @@ export declare class BatchableSprite implements DefaultBatchableQuadElement {
     get color(): number;
     reset(): void;
 }
-`,Oc=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
+`,Ic=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
 import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { ViewContainer, type ViewContainerOptions } from '../view/ViewContainer';
 import type { Size } from '../../maths/misc/Size';
@@ -57212,7 +57239,7 @@ export declare class Sprite extends ViewContainer {
      */
     setSize(value: number | Optional<Size, 'height'>, height?: number): void;
 }
-`,Ic=`import { ExtensionType } from '../../extensions/Extensions';
+`,Lc=`import { ExtensionType } from '../../extensions/Extensions';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import type { RenderPipe } from '../../rendering/renderers/shared/instructions/RenderPipe';
 import type { Renderer } from '../../rendering/renderers/types';
@@ -57236,7 +57263,7 @@ export declare class SpritePipe implements RenderPipe<Sprite> {
     private _initGPUSprite;
     destroy(): void;
 }
-`,Lc=`import EventEmitter from 'eventemitter3';
+`,Bc=`import EventEmitter from 'eventemitter3';
 import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import type { FontMetrics } from '../text/canvas/CanvasTextMetrics';
 /** @memberof text */
@@ -57368,7 +57395,7 @@ export declare abstract class AbstractBitmapFont<FontType> extends EventEmitter<
     destroy(destroyTextures?: boolean): void;
 }
 export {};
-`,Bc=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
+`,Dc=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { AbstractBitmapFont } from './AbstractBitmapFont';
 import type { BitmapFontData } from './AbstractBitmapFont';
 import type { BitmapFontInstallOptions } from './BitmapFontManager';
@@ -57413,7 +57440,7 @@ export declare class BitmapFont extends AbstractBitmapFont<BitmapFont> {
      */
     static uninstall(name: string): void;
 }
-`,Dc=`import { TextStyle } from '../text/TextStyle';
+`,Uc=`import { TextStyle } from '../text/TextStyle';
 import type { TextStyleOptions } from '../text/TextStyle';
 import type { BitmapFont } from './BitmapFont';
 import type { BitmapTextLayoutData } from './utils/getBitmapTextLayout';
@@ -57551,7 +57578,7 @@ declare class BitmapFontManagerClass {
 }
 export declare const BitmapFontManager: BitmapFontManagerClass;
 export {};
-`,Uc=`import { AbstractText } from '../text/AbstractText';
+`,jc=`import { AbstractText } from '../text/AbstractText';
 import { TextStyle } from '../text/TextStyle';
 import type { View } from '../../rendering/renderers/shared/view/View';
 import type { TextOptions, TextString } from '../text/AbstractText';
@@ -57668,7 +57695,7 @@ export declare class BitmapText extends AbstractText<TextStyle, TextStyleOptions
     set resolution(value: number);
     get resolution(): number;
 }
-`,jc=`import { ExtensionType } from '../../extensions/Extensions';
+`,Wc=`import { ExtensionType } from '../../extensions/Extensions';
 import { Graphics } from '../graphics/shared/Graphics';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import type { RenderPipe } from '../../rendering/renderers/shared/instructions/RenderPipe';
@@ -57695,7 +57722,7 @@ export declare class BitmapTextPipe implements RenderPipe<BitmapText> {
     private _updateDistanceField;
     destroy(): void;
 }
-`,Wc=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
+`,Hc=`import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { TextStyle } from '../text/TextStyle';
 import { AbstractBitmapFont } from './AbstractBitmapFont';
 import type { CanvasAndContext } from '../../rendering/renderers/shared/texture/CanvasPool';
@@ -57752,7 +57779,7 @@ export declare class DynamicBitmapFont extends AbstractBitmapFont<DynamicBitmapF
     private _drawGlyph;
     destroy(): void;
 }
-`,Hc=`declare global
+`,Vc=`declare global
 {
     namespace PixiMixins
     {
@@ -57763,7 +57790,7 @@ export declare class DynamicBitmapFont extends AbstractBitmapFont<DynamicBitmapF
     }
 }
 export {};
-`,Vc=`import type { BitmapFontData } from '../AbstractBitmapFont';
+`,Nc=`import type { BitmapFontData } from '../AbstractBitmapFont';
 /**
  * Internal data format used to convert to BitmapFontData.
  * @private
@@ -57814,17 +57841,17 @@ export declare const bitmapFontTextParser: {
     test(data: string | XMLDocument | BitmapFontData): boolean;
     parse(txt: string): BitmapFontData;
 };
-`,Nc=`import type { BitmapFontData } from '../AbstractBitmapFont';
+`,zc=`import type { BitmapFontData } from '../AbstractBitmapFont';
 export declare const bitmapFontXMLParser: {
     test(data: string | XMLDocument | BitmapFontData): boolean;
     parse(xml: Document): BitmapFontData;
 };
-`,zc=`import type { BitmapFontData } from '../AbstractBitmapFont';
+`,Xc=`import type { BitmapFontData } from '../AbstractBitmapFont';
 export declare const bitmapFontXMLStringParser: {
     test(data: string | XMLDocument | BitmapFontData): boolean;
     parse(data: string): BitmapFontData;
 };
-`,Xc=`import { LoaderParserPriority } from '../../../assets/loader/parsers/LoaderParser';
+`,Kc=`import { LoaderParserPriority } from '../../../assets/loader/parsers/LoaderParser';
 import { ExtensionType } from '../../../extensions/Extensions';
 import { BitmapFont } from '../BitmapFont';
 import type { Loader } from '../../../assets/loader/Loader';
@@ -57850,8 +57877,8 @@ export declare const loadBitmapFont: {
     load<T_1>(url: string, _options: ResolvedAsset): Promise<string>;
     unload(bitmapFont: BitmapFont, _resolvedAsset: ResolvedAsset<any>, loader: Loader): Promise<void>;
 };
-`,Kc=`export {};
-`,qc=`import type { TextStyle } from '../../text/TextStyle';
+`,qc=`export {};
+`,Yc=`import type { TextStyle } from '../../text/TextStyle';
 import type { AbstractBitmapFont } from '../AbstractBitmapFont';
 export interface BitmapTextLayoutData {
     width: number;
@@ -57867,7 +57894,7 @@ export interface BitmapTextLayoutData {
     }[];
 }
 export declare function getBitmapTextLayout(chars: string[], style: TextStyle, font: AbstractBitmapFont<any>, trimEnd: boolean): BitmapTextLayoutData;
-`,Yc=`/**
+`,Jc=`/**
  * Processes the passed character set data and returns a flattened array of all the characters.
  *
  * Ignored because not directly exposed.
@@ -57876,7 +57903,7 @@ export declare function getBitmapTextLayout(chars: string[], style: TextStyle, f
  * @returns {string[]} the flattened array of characters
  */
 export declare function resolveCharacters(chars: string | (string | string[])[]): string[];
-`,Jc=`import { AbstractText } from '../text/AbstractText';
+`,$c=`import { AbstractText } from '../text/AbstractText';
 import { HTMLTextStyle } from './HTMLTextStyle';
 import type { View } from '../../rendering/renderers/shared/view/View';
 import type { TextOptions, TextString } from '../text/AbstractText';
@@ -57940,7 +57967,7 @@ export declare class HTMLText extends AbstractText<HTMLTextStyle, HTMLTextStyleO
     /** @private */
     protected updateBounds(): void;
 }
-`,$c=`import { ExtensionType } from '../../extensions/Extensions';
+`,Qc=`import { ExtensionType } from '../../extensions/Extensions';
 import { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import { BatchableSprite } from '../sprite/BatchableSprite';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
@@ -57975,7 +58002,7 @@ export declare class HTMLTextPipe implements RenderPipe<HTMLText> {
     };
     destroy(): void;
 }
-`,Qc=`import type { CanvasAndContext } from '../../rendering/renderers/shared/texture/CanvasPool';
+`,Zc=`import type { CanvasAndContext } from '../../rendering/renderers/shared/texture/CanvasPool';
 export declare const nssvg = "http://www.w3.org/2000/svg";
 export declare const nsxhtml = "http://www.w3.org/1999/xhtml";
 export declare class HTMLTextRenderData {
@@ -57987,7 +58014,7 @@ export declare class HTMLTextRenderData {
     canvasAndContext?: CanvasAndContext;
     constructor();
 }
-`,Zc=`import { TextStyle } from '../text/TextStyle';
+`,eu=`import { TextStyle } from '../text/TextStyle';
 import type { FillInput, StrokeInput } from '../graphics/shared/FillTypes';
 import type { TextStyleOptions } from '../text/TextStyle';
 /**
@@ -58064,7 +58091,7 @@ export declare class HTMLTextStyle extends TextStyle {
     set fill(value: FillInput);
     set stroke(value: StrokeInput);
 }
-`,eu=`import { ExtensionType } from '../../extensions/Extensions';
+`,nu=`import { ExtensionType } from '../../extensions/Extensions';
 import { type Renderer } from '../../rendering/renderers/types';
 import { HTMLTextStyle } from './HTMLTextStyle';
 import type { System } from '../../rendering/renderers/shared/system/System';
@@ -58100,7 +58127,7 @@ export declare class HTMLTextSystem implements System {
     getReferenceCount(textKey: string): number;
     destroy(): void;
 }
-`,nu=`declare global
+`,tu=`declare global
 {
     namespace PixiMixins
     {
@@ -58116,8 +58143,8 @@ export declare class HTMLTextSystem implements System {
     }
 }
 export {};
-`,tu=`export {};
-`,ru=`import type { HTMLTextStyle } from '../HTMLTextStyle';
+`,ru=`export {};
+`,ou=`import type { HTMLTextStyle } from '../HTMLTextStyle';
 /**
  * Extracts font families from text. It will extract font families from the style, tagStyles and any font families
  * embedded in the text. It should also strip out duplicates as it goes.
@@ -58126,7 +58153,7 @@ export {};
  * @returns {string[]} - The font families as an array of strings
  */
 export declare function extractFontFamilies(text: string, style: HTMLTextStyle): string[];
-`,ou=`import type { FontCSSStyleOptions } from './loadFontCSS';
+`,au=`import type { FontCSSStyleOptions } from './loadFontCSS';
 export declare const FontStylePromiseCache: Map<string, Promise<string>>;
 /**
  * takes the font families and returns a css string that can be injected into a style tag
@@ -58142,7 +58169,7 @@ export declare function getFontCss(fontFamilies: string[], style: FontCSSStyleOp
     fontWeight: string;
     fontStyle: string;
 }): Promise<string>;
-`,au=`import type { HTMLTextRenderData } from '../HTMLTextRenderData';
+`,iu=`import type { HTMLTextRenderData } from '../HTMLTextRenderData';
 import type { HTMLTextStyle } from '../HTMLTextStyle';
 /**
  * takes all the data and returns a svg url string can be loaded by an image element
@@ -58154,7 +58181,7 @@ import type { HTMLTextStyle } from '../HTMLTextStyle';
  * @returns - The SVG as a url string
  */
 export declare function getSVGUrl(text: string, style: HTMLTextStyle, resolution: number, fontCSS: string, htmlTextData: HTMLTextRenderData): string;
-`,iu=`import type { CanvasAndContext } from '../../../rendering/renderers/shared/texture/CanvasPool';
+`,su=`import type { CanvasAndContext } from '../../../rendering/renderers/shared/texture/CanvasPool';
 /**
  * This function converts an image to a canvas, and returns the canvas.
  * It is used to convert images to canvases to work around a CORS issue where WebGPU cannot
@@ -58167,13 +58194,13 @@ export declare function getSVGUrl(text: string, style: HTMLTextStyle, resolution
  * @param resolution - The resolution of the canvas.
  */
 export declare function getTemporaryCanvasFromImage(image: HTMLImageElement, resolution: number): CanvasAndContext;
-`,su=`/**
+`,lu=`/**
  * Resolves a font url to a base64 string
  * @param url - The url to load the font from
  * @returns - The font as a base64 string
  */
 export declare function loadFontAsBase64(url: string): Promise<string>;
-`,lu=`export interface FontCSSStyleOptions {
+`,du=`export interface FontCSSStyleOptions {
     fontFamily: string | string[];
     fontWeight: string;
     fontStyle: string;
@@ -58186,7 +58213,7 @@ export declare function loadFontAsBase64(url: string): Promise<string>;
  * @returns - The css string
  */
 export declare function loadFontCSS(style: FontCSSStyleOptions, url: string): Promise<string>;
-`,du=`/**
+`,pu=`/**
  * This function loads an SVG image into an HTMLImageElement.
  * The image can then be uploaded as texture to the GPU.
  * iOS has a bug where embedded fonts are not available immediately after the image loads,
@@ -58197,7 +58224,7 @@ export declare function loadFontCSS(style: FontCSSStyleOptions, url: string): Pr
  * @returns - A promise that resolves when the image has loaded
  */
 export declare function loadSVGImage(image: HTMLImageElement, url: string, delay: boolean): Promise<void>;
-`,pu=`import { HTMLTextRenderData } from '../HTMLTextRenderData';
+`,cu=`import { HTMLTextRenderData } from '../HTMLTextRenderData';
 import type { Size } from '../../../maths/misc/Size';
 import type { HTMLTextStyle } from '../HTMLTextStyle';
 /**
@@ -58210,14 +58237,14 @@ import type { HTMLTextStyle } from '../HTMLTextStyle';
  * @returns - The size of the text
  */
 export declare function measureHtmlText(text: string, style: HTMLTextStyle, fontStyleCSS?: string, htmlTextRenderData?: HTMLTextRenderData): Size;
-`,cu=`import type { HTMLTextStyle } from '../HTMLTextStyle';
+`,uu=`import type { HTMLTextStyle } from '../HTMLTextStyle';
 /**
  * Internally converts all of the style properties into CSS equivalents.
  * @param style
  * @returns The CSS style string, for setting \`style\` property of root HTMLElement.
  */
 export declare function textStyleToCSS(style: HTMLTextStyle): string;
-`,uu=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
+`,mu=`import { ObservablePoint } from '../../maths/point/ObservablePoint';
 import { ViewContainer, type ViewContainerOptions } from '../view/ViewContainer';
 import type { Size } from '../../maths/misc/Size';
 import type { PointData } from '../../maths/point/PointData';
@@ -58400,7 +58427,7 @@ export declare abstract class AbstractText<TEXT_STYLE extends TextStyle = TextSt
  * @internal
  */
 export declare function ensureTextOptions<TEXT_STYLE extends TextStyle, TEXT_STYLE_OPTIONS extends TextStyleOptions>(args: any[], name: string): TextOptions<TEXT_STYLE, TEXT_STYLE_OPTIONS>;
-`,mu=`import { AbstractText } from './AbstractText';
+`,hu=`import { AbstractText } from './AbstractText';
 import { TextStyle } from './TextStyle';
 import type { View } from '../../rendering/renderers/shared/view/View';
 import type { TextOptions, TextString } from './AbstractText';
@@ -58443,7 +58470,7 @@ export declare class Text extends AbstractText<TextStyle, TextStyleOptions> impl
     /** @private */
     protected updateBounds(): void;
 }
-`,hu=`declare global
+`,fu=`declare global
 {
     namespace PixiMixins
     {
@@ -58459,7 +58486,7 @@ export declare class Text extends AbstractText<TextStyle, TextStyleOptions> impl
     }
 }
 export {};
-`,fu=`import EventEmitter from 'eventemitter3';
+`,bu=`import EventEmitter from 'eventemitter3';
 import { type ColorSource } from '../../color/Color';
 import type { TextureDestroyOptions, TypeOrBool } from '../container/destroyTypes';
 import type { ConvertedFillStyle, ConvertedStrokeStyle, FillInput, StrokeInput } from '../graphics/shared/FillTypes';
@@ -58741,7 +58768,7 @@ export declare class TextStyle extends EventEmitter<{
     private _createProxy;
     private _isFillStyle;
 }
-`,bu=`import type { ICanvas } from '../../../environment/canvas/ICanvas';
+`,gu=`import type { ICanvas } from '../../../environment/canvas/ICanvas';
 import type { ICanvasRenderingContext2D } from '../../../environment/canvas/ICanvasRenderingContext2D';
 import type { TextStyle } from '../TextStyle';
 /**
@@ -58987,7 +59014,7 @@ export declare class CanvasTextMetrics {
      */
     static get _context(): ICanvasRenderingContext2D;
 }
-`,gu=`import { ExtensionType } from '../../../extensions/Extensions';
+`,yu=`import { ExtensionType } from '../../../extensions/Extensions';
 import { BatchableSprite } from '../../sprite/BatchableSprite';
 import type { InstructionSet } from '../../../rendering/renderers/shared/instructions/InstructionSet';
 import type { RenderPipe } from '../../../rendering/renderers/shared/instructions/RenderPipe';
@@ -59020,7 +59047,7 @@ export declare class CanvasTextPipe implements RenderPipe<Text> {
     };
     destroy(): void;
 }
-`,yu=`import { ExtensionType } from '../../../extensions/Extensions';
+`,xu=`import { ExtensionType } from '../../../extensions/Extensions';
 import { TextStyle } from '../TextStyle';
 import type { ICanvas } from '../../../environment/canvas/ICanvas';
 import type { ICanvasRenderingContext2D } from '../../../environment/canvas/ICanvasRenderingContext2D';
@@ -59106,14 +59133,14 @@ export declare class CanvasTextSystem implements System {
     destroy(): void;
 }
 export {};
-`,xu=`import type { TextStyle } from '../../TextStyle';
+`,vu=`import type { TextStyle } from '../../TextStyle';
 /**
  * Generates a font style string to use for \`TextMetrics.measureFont()\`.
  * @param style
  * @returns Font style string, for passing to \`TextMetrics.measureFont()\`
  */
 export declare function fontStringFromTextStyle(style: TextStyle): string;
-`,vu=`import type { ICanvasRenderingContext2D } from '../../../../environment/canvas/ICanvasRenderingContext2D';
+`,Tu=`import type { ICanvasRenderingContext2D } from '../../../../environment/canvas/ICanvasRenderingContext2D';
 import type { ConvertedFillStyle } from '../../../graphics/shared/FillTypes';
 import type { CanvasTextMetrics } from '../CanvasTextMetrics';
 /**
@@ -59126,12 +59153,12 @@ import type { CanvasTextMetrics } from '../CanvasTextMetrics';
  * @returns Canvas-compatible fill style (string, CanvasGradient, or CanvasPattern)
  */
 export declare function getCanvasFillStyle(fillStyle: ConvertedFillStyle, context: ICanvasRenderingContext2D, textMetrics?: CanvasTextMetrics, padding?: number): string | CanvasGradient | CanvasPattern;
-`,Tu=`export {};
-`,Su=`import { Shader } from '../../../rendering/renderers/shared/shader/Shader';
+`,Su=`export {};
+`,wu=`import { Shader } from '../../../rendering/renderers/shared/shader/Shader';
 export declare class SdfShader extends Shader {
     constructor();
 }
-`,wu=`export declare const localUniformMSDFBit: {
+`,_u=`export declare const localUniformMSDFBit: {
     name: string;
     vertex: {
         header: string;
@@ -59155,7 +59182,7 @@ export declare const localUniformMSDFBitGl: {
         main: string;
     };
 };
-`,_u=`export declare const mSDFBit: {
+`,Eu=`export declare const mSDFBit: {
     name: string;
     fragment: {
         header: string;
@@ -59167,7 +59194,7 @@ export declare const mSDFBitGl: {
         header: string;
     };
 };
-`,Eu=`import { HTMLTextStyle } from '../../text-html/HTMLTextStyle';
+`,Pu=`import { HTMLTextStyle } from '../../text-html/HTMLTextStyle';
 import { TextStyle } from '../TextStyle';
 import type { HTMLTextStyleOptions } from '../../text-html/HTMLTextStyle';
 import type { TextStyleOptions } from '../TextStyle';
@@ -59179,14 +59206,14 @@ import type { TextStyleOptions } from '../TextStyle';
  * @returns - The style class
  */
 export declare function ensureTextStyle(renderMode: string, style: TextStyle | HTMLTextStyle | TextStyleOptions | HTMLTextStyleOptions): TextStyle;
-`,Pu=`import type { TextStyle } from '../TextStyle';
+`,Au=`import type { TextStyle } from '../TextStyle';
 /**
  * Generates a unique key for the text style.
  * @param style - The style to generate a key for.
  * @returns the key for the style.
  */
 export declare function generateTextStyleKey(style: TextStyle): string;
-`,Au=`import type { ICanvas } from '../../../environment/canvas/ICanvas';
+`,Cu=`import type { ICanvas } from '../../../environment/canvas/ICanvas';
 import type { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 /**
  * Takes an image and creates a texture from it, using a power of 2 texture from the texture pool.
@@ -59198,7 +59225,7 @@ import type { Texture } from '../../../rendering/renderers/shared/texture/Textur
  * @returns - The texture
  */
 export declare function getPo2TextureFromSource(image: HTMLImageElement | HTMLCanvasElement | ICanvas, width: number, height: number, resolution: number): Texture;
-`,Cu=`import { type BatchableSprite } from '../../sprite/BatchableSprite';
+`,Ru=`import { type BatchableSprite } from '../../sprite/BatchableSprite';
 import { type AbstractText } from '../AbstractText';
 /**
  * Updates the bounds of the given batchable sprite based on the provided text object.
@@ -59210,7 +59237,7 @@ import { type AbstractText } from '../AbstractText';
  * @param {AbstractText} text - The text object containing the texture and style information.
  */
 export declare function updateTextBounds(batchableSprite: BatchableSprite, text: AbstractText): void;
-`,Ru=`import { type InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
+`,Gu=`import { type InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import { type Renderer } from '../../rendering/renderers/types';
 import { Bounds } from '../container/bounds/Bounds';
 import { Container, type ContainerOptions } from '../container/Container';
@@ -59267,7 +59294,7 @@ export declare abstract class ViewContainer extends Container implements View {
     destroy(options?: DestroyOptions): void;
     collectRenderablesSimple(instructionSet: InstructionSet, renderer: Renderer, currentLayer: IRenderLayer): void;
 }
-`,Gu=`import { Texture } from '../rendering/renderers/shared/texture/Texture';
+`,Mu=`import { Texture } from '../rendering/renderers/shared/texture/Texture';
 import type { PointData } from '../maths/point/PointData';
 import type { TextureSource } from '../rendering/renderers/shared/texture/sources/TextureSource';
 import type { BindableTexture, TextureBorders } from '../rendering/renderers/shared/texture/Texture';
@@ -59528,10 +59555,10 @@ export declare class Spritesheet<S extends SpritesheetData = SpritesheetData> {
      */
     destroy(destroyBase?: boolean): void;
 }
-`,Mu=`export * from './Spritesheet';
+`,ku=`export * from './Spritesheet';
 export * from './spritesheetAsset';
-`,ku=`export {};
-`,Fu=`import { LoaderParserPriority } from '../assets/loader/parsers/LoaderParser';
+`,Fu=`export {};
+`,Ou=`import { LoaderParserPriority } from '../assets/loader/parsers/LoaderParser';
 import { ExtensionType } from '../extensions/Extensions';
 import { Texture } from '../rendering/renderers/shared/texture/Texture';
 import { Spritesheet } from './Spritesheet';
@@ -59607,7 +59634,7 @@ export declare const spritesheetAsset: {
         unload(spritesheet: Spritesheet, _resolvedAsset: ResolvedAsset<any>, loader: Loader): Promise<void>;
     };
 };
-`,Ou=`/**
+`,Iu=`/**
  * A callback which can be added to a ticker.
  * \`\`\`js
  * ticker.add(() => {
@@ -59918,7 +59945,7 @@ export declare class Ticker {
      */
     static get system(): Ticker;
 }
-`,Iu=`import type { Ticker, TickerCallback } from './Ticker';
+`,Lu=`import type { Ticker, TickerCallback } from './Ticker';
 /**
  * Internal class for handling the priority sorting of ticker handlers.
  * @private
@@ -59974,7 +60001,7 @@ export declare class TickerListener<T = any> {
      */
     destroy(hard?: boolean): TickerListener;
 }
-`,Lu=`/**
+`,Bu=`/**
  * Represents the update priorities used by internal Pixi classes when registered with
  * the {@link ticker.Ticker} object. Higher priority items are updated first and lower
  * priority items, such as render, should go later.
@@ -60009,25 +60036,25 @@ export declare enum UPDATE_PRIORITY {
      */
     UTILITY = -50
 }
-`,Bu=`export * from './const';
+`,Du=`export * from './const';
 export * from './Ticker';
 export * from './TickerListener';
-`,Du=`export * from './particle/generateParticleUpdatePolyfill';
+`,Uu=`export * from './particle/generateParticleUpdatePolyfill';
 export * from './particle/particleUpdateFunctions';
 export * from './shader/generateShaderSyncPolyfill';
 export * from './ubo/generateUboSyncPolyfill';
 export * from './ubo/uboSyncFunctions';
 export * from './uniforms/generateUniformsSyncPolyfill';
 export * from './uniforms/uniformSyncFunctions';
-`,Uu=`export {};
-`,ju=`import type { IParticle } from '../../scene/particle-container/shared/Particle';
+`,ju=`export {};
+`,Wu=`import type { IParticle } from '../../scene/particle-container/shared/Particle';
 import type { ParticleRendererProperty } from '../../scene/particle-container/shared/particleData';
 export type ParticleUpdateFunction = (ps: IParticle[], f32v: Float32Array, u32v: Uint32Array, offset: number, stride: number) => void;
 export declare function generateParticleUpdatePolyfill(properties: ParticleRendererProperty[]): {
     dynamicUpdate: ParticleUpdateFunction;
     staticUpdate: ParticleUpdateFunction;
 };
-`,Wu=`import type { IParticle } from '../../scene/particle-container/shared/Particle';
+`,Hu=`import type { IParticle } from '../../scene/particle-container/shared/Particle';
 export declare const particleUpdateFunctions: {
     aVertex: (ps: IParticle[], f32v: Float32Array, _u32v: Uint32Array, offset: number, stride: number) => void;
     aPosition: (ps: IParticle[], f32v: Float32Array, _u32v: Uint32Array, offset: number, stride: number) => void;
@@ -60035,12 +60062,12 @@ export declare const particleUpdateFunctions: {
     aUV: (ps: IParticle[], f32v: Float32Array, _u32v: Uint32Array, offset: number, stride: number) => void;
     aColor: (ps: IParticle[], _f32v: Float32Array, u32v: Uint32Array, offset: number, stride: number) => void;
 };
-`,Hu=`import type { ShaderSyncFunction } from '../../rendering/renderers/gl/shader/GlShaderSystem';
+`,Vu=`import type { ShaderSyncFunction } from '../../rendering/renderers/gl/shader/GlShaderSystem';
 export declare function generateShaderSyncPolyfill(): ShaderSyncFunction;
-`,Vu=`import type { UboElement, UniformsSyncCallback } from '../../rendering/renderers/shared/shader/types';
+`,Nu=`import type { UboElement, UniformsSyncCallback } from '../../rendering/renderers/shared/shader/types';
 export declare function generateUboSyncPolyfillSTD40(uboElements: UboElement[]): UniformsSyncCallback;
 export declare function generateUboSyncPolyfillWGSL(uboElements: UboElement[]): UniformsSyncCallback;
-`,Nu=`/**
+`,zu=`/**
  * This file is auto generated by scripts/utils/autoGenerateUnsafeEvalFunctions.ts
  * Do not edit manually - or you will be sad.
  */
@@ -60049,11 +60076,11 @@ export type UboUploadFunction = (name: string, data: Float32Array, offset: numbe
 export declare const uboParserFunctions: UboUploadFunction[];
 export declare const uboSingleFunctionsWGSL: Record<UNIFORM_TYPES | string, UboUploadFunction>;
 export declare const uboSingleFunctionsSTD40: Record<UNIFORM_TYPES | string, UboUploadFunction>;
-`,zu=`import type { GlUniformData } from '../../rendering/renderers/gl/shader/GlProgram';
+`,Xu=`import type { GlUniformData } from '../../rendering/renderers/gl/shader/GlProgram';
 import type { UniformsSyncCallback } from '../../rendering/renderers/shared/shader/types';
 import type { UniformGroup } from '../../rendering/renderers/shared/shader/UniformGroup';
 export declare function generateUniformsSyncPolyfill(group: UniformGroup, uniformData: Record<string, GlUniformData>): UniformsSyncCallback;
-`,Xu=`/**
+`,Ku=`/**
  * This file is auto generated by scripts/utils/autoGenerateUnsafeEvalFunctions.ts
  * Do not edit manually - or you will be sad.
  */
@@ -60062,7 +60089,7 @@ export type UniformUploadFunction = (name: string, cu: any, cv: any, v: any, ud:
 export declare const uniformSingleParserFunctions: Record<UNIFORM_TYPES | string, UniformUploadFunction>;
 export declare const uniformArrayParserFunctions: Record<UNIFORM_TYPES | string, UniformUploadFunction>;
 export declare const uniformParserFunctions: UniformUploadFunction[];
-`,Ku=`import type { ALPHA_MODES } from '../../rendering/renderers/shared/texture/const';
+`,qu=`import type { ALPHA_MODES } from '../../rendering/renderers/shared/texture/const';
 /**
  * Helper for detecting the correct alpha mode for video textures.
  * For some reason, some browsers/devices/WebGL implementations premultiply the alpha
@@ -60077,7 +60104,7 @@ export declare const uniformParserFunctions: UniformUploadFunction[];
  * @returns {Promise<ALPHA_MODES>} The correct alpha mode for video textures.
  */
 export declare function detectVideoAlphaMode(): Promise<ALPHA_MODES>;
-`,qu=`/**
+`,Yu=`/**
  * The result of the {@link utils.isMobile} function.
  * @ignore
  * @memberof utils
@@ -60161,8 +60188,8 @@ export type isMobileResult = {
  * @memberof utils
  */
 export declare const isMobile: isMobileResult;
-`,Yu=`export declare function isSafari(): boolean;
-`,Ju=`/**
+`,Ju=`export declare function isSafari(): boolean;
+`,$u=`/**
  * Helper for checking for WebGL support.
  * @param failIfMajorPerformanceCaveat - whether to fail if there is a major performance caveat, defaults to false
  * @memberof utils
@@ -60170,7 +60197,7 @@ export declare const isMobile: isMobileResult;
  * @returns {boolean} Is WebGL supported.
  */
 export declare function isWebGLSupported(failIfMajorPerformanceCaveat?: boolean): boolean;
-`,$u=`/// <reference types="@webgpu/types" />
+`,Qu=`/// <reference types="@webgpu/types" />
 /**
  * Helper for checking for WebGPU support.
  * @param options - The options for requesting a GPU adapter.
@@ -60179,14 +60206,14 @@ export declare function isWebGLSupported(failIfMajorPerformanceCaveat?: boolean)
  * @returns Is WebGPU supported.
  */
 export declare function isWebGPUSupported(options?: GPURequestAdapterOptions): Promise<boolean>;
-`,Qu=`/**
+`,Zu=`/**
  * Not all platforms allow to generate function code (e.g., \`new Function\`).
  * this provides the platform-level detection.
  * @private
  * @returns {boolean} \`true\` if \`new Function\` is supported.
  */
 export declare function unsafeEvalSupported(): boolean;
-`,Zu=`import { Rectangle } from '../../maths/shapes/Rectangle';
+`,em=`import { Rectangle } from '../../maths/shapes/Rectangle';
 import type { ICanvas } from '../../environment/canvas/ICanvas';
 /**
  * Measuring the bounds of a canvas' visible (non-transparent) pixels.
@@ -60197,7 +60224,7 @@ import type { ICanvas } from '../../environment/canvas/ICanvas';
  * @memberof utils
  */
 export declare function getCanvasBoundingBox(canvas: ICanvas, resolution?: number): Rectangle;
-`,em=`import EventEmitter from 'eventemitter3';
+`,nm=`import EventEmitter from 'eventemitter3';
 /**
  * Regexp for data URI.
  * Based on: {@link https://github.com/ragingwind/data-uri-regex}
@@ -60214,7 +60241,7 @@ export declare const DATA_URI: RegExp;
 export { EventEmitter };
 /** The current version of PixiJS. This is automatically replaced by the build process. */
 export declare const VERSION = "$_VERSION";
-`,nm=`type TypedArray = Float32Array | Uint32Array | Int32Array | Uint8Array;
+`,tm=`type TypedArray = Float32Array | Uint32Array | Int32Array | Uint8Array;
 /**
  * Flexible wrapper around \`ArrayBuffer\` that also provides typed array views on demand.
  * @memberof utils
@@ -60273,7 +60300,7 @@ export declare class ViewableBuffer {
     static sizeOf(type: string): number;
 }
 export {};
-`,tm=`/**
+`,rm=`/**
  * Takes a hash and removes all the \`undefined\`/\`null\` values from it.
  * In PixiJS, we tend to null properties instead of using 'delete' for performance reasons.
  * However, in some cases, this could be a problem if the hash grows too large over time,
@@ -60299,7 +60326,7 @@ export declare function cleanHash<T>(hash: Record<string, T>): Record<string, T>
  * @memberof utils
  */
 export declare function cleanArray<T>(arr: T[]): T[];
-`,rm=`/**
+`,om=`/**
  * Remove items from a javascript array without generating garbage
  * @function removeItems
  * @memberof utils
@@ -60308,7 +60335,7 @@ export declare function cleanArray<T>(arr: T[]): T[];
  * @param {number} removeCount - how many to remove
  */
 export declare function removeItems(arr: any[], startIdx: number, removeCount: number): void;
-`,om=`type UIDNames = 'default' | 'resource' | 'texture' | 'textureSource' | 'textureResource' | 'batcher' | 'graphicsContext' | 'graphicsView' | 'graphicsPath' | 'fillGradient' | 'fillPattern' | 'meshView' | 'renderable' | 'buffer' | 'bufferResource' | 'geometry' | 'instructionSet' | 'renderTarget' | 'uniform' | 'spriteView' | 'textView' | 'tilingSpriteView' | 'shader';
+`,am=`type UIDNames = 'default' | 'resource' | 'texture' | 'textureSource' | 'textureResource' | 'batcher' | 'graphicsContext' | 'graphicsView' | 'graphicsPath' | 'fillGradient' | 'fillPattern' | 'meshView' | 'renderable' | 'buffer' | 'bufferResource' | 'geometry' | 'instructionSet' | 'renderTarget' | 'uniform' | 'spriteView' | 'textView' | 'tilingSpriteView' | 'shader';
 /**
  * Gets the next unique identifier
  * @param name - The name of the identifier.
@@ -60320,7 +60347,7 @@ export declare function uid(name?: UIDNames): number;
 /** Resets the next unique identifier to 0. This is used for some tests, dont touch or things WILL explode :) */
 export declare function resetUids(): void;
 export {};
-`,am=`import type { ObservablePoint } from '../../maths/point/ObservablePoint';
+`,im=`import type { ObservablePoint } from '../../maths/point/ObservablePoint';
 import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import type { BoundsData } from '../../scene/container/bounds/Bounds';
 /**
@@ -60333,7 +60360,7 @@ import type { BoundsData } from '../../scene/container/bounds/Bounds';
  * @param {Texture} texture - The texture whose dimensions and trimming information are used to update the bounds.
  */
 export declare function updateQuadBounds(bounds: BoundsData, anchor: ObservablePoint, texture: Texture): void;
-`,im=`import { type ExtensionMetadata, ExtensionType } from '../../extensions/Extensions';
+`,sm=`import { type ExtensionMetadata, ExtensionType } from '../../extensions/Extensions';
 import type { Application } from '../../app/Application';
 import type { System } from '../../rendering/renderers/shared/system/System';
 import type { Renderer } from '../../rendering/renderers/types';
@@ -60367,7 +60394,7 @@ export declare class RendererInitHook implements System {
     init(): void;
     destroy(): void;
 }
-`,sm=`export * from './browser/detectVideoAlphaMode';
+`,lm=`export * from './browser/detectVideoAlphaMode';
 export * from './browser/isMobile';
 export * from './browser/isSafari';
 export * from './browser/isWebGLSupported';
@@ -60394,7 +60421,7 @@ export * from './pool/PoolGroup';
 export * from './sayHello';
 export * from './types';
 export * from './utils';
-`,lm=`/**
+`,dm=`/**
  * deprecation name for version 8.0.0
  * @ignore
  */
@@ -60413,7 +60440,7 @@ export declare const v8_3_4 = "8.3.4";
  *        this is mostly to ignore internal deprecation calls.
  */
 export declare function deprecation(version: string, message: string, ignoreDepth?: number): void;
-`,dm=`import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
+`,pm=`import type { Texture } from '../../rendering/renderers/shared/texture/Texture';
 import type { Renderer } from '../../rendering/renderers/types';
 /**
  * Logs a texture to the console as a base64 image.
@@ -60424,7 +60451,7 @@ import type { Renderer } from '../../rendering/renderers/types';
  * @ignore
  */
 export declare function logDebugTexture(texture: Texture, renderer: Renderer, size?: number): Promise<void>;
-`,pm=`import type { Container } from '../../scene/container/Container';
+`,cm=`import type { Container } from '../../scene/container/Container';
 import type { RenderGroup } from '../../scene/container/RenderGroup';
 export declare function logScene(container: Container, depth?: number, data?: {
     color?: string;
@@ -60433,7 +60460,7 @@ export declare function logRenderGroupScene(renderGroup: RenderGroup, depth?: nu
     index: number;
     color?: string;
 }): void;
-`,cm=`/**
+`,um=`/**
  * Logs a PixiJS warning message to the console. Stops logging after 500 warnings have been logged.
  * @param args - The warning message(s) to log
  * @returns {void}
@@ -60441,8 +60468,8 @@ export declare function logRenderGroupScene(renderGroup: RenderGroup, depth?: nu
  * @ignore
  */
 export declare function warn(...args: any[]): void;
-`,um=`export declare const NOOP: () => void;
-`,mm=`import { Matrix } from '../../maths/matrix/Matrix';
+`,mm=`export declare const NOOP: () => void;
+`,hm=`import { Matrix } from '../../maths/matrix/Matrix';
 import { ObservablePoint } from '../../maths/point/ObservablePoint';
 import type { Observer } from '../../maths/point/ObservablePoint';
 /**
@@ -60532,7 +60559,7 @@ export declare class Transform {
     get rotation(): number;
     set rotation(value: number);
 }
-`,hm=`/**
+`,fm=`/**
  * get the resolution / device pixel ratio of an asset by looking for the prefix
  * used by spritesheets and image urls
  * @memberof utils
@@ -60542,7 +60569,7 @@ export declare class Transform {
  * @returns {number} resolution / device pixel ratio of an asset
  */
 export declare function getResolutionOfUrl(url: string, defaultValue?: number): number;
-`,fm=`/**
+`,bm=`/**
  * Path utilities for working with URLs and file paths in a cross-platform way.
  * All paths that are passed in will become normalized to have posix separators.
  * \`\`\`js
@@ -60661,7 +60688,7 @@ export interface Path {
  * @memberof utils
  */
 export declare const path: Path;
-`,bm=`/**
+`,gm=`/**
  * A generic class for managing a pool of items.
  * @template T The type of items in the pool. Must implement {@link utils.PoolItem}.
  * @memberof utils
@@ -60730,7 +60757,7 @@ export type PoolItem = {
  * @memberof utils
  */
 export type PoolItemConstructor<K extends PoolItem> = new () => K;
-`,gm=`import { Pool } from './Pool';
+`,ym=`import { Pool } from './Pool';
 import type { PoolItem, PoolItemConstructor } from './Pool';
 /**
  * A type alias for a constructor of a Pool.
@@ -60783,13 +60810,13 @@ export declare class PoolGroupClass {
     }>;
 }
 export declare const BigPool: PoolGroupClass;
-`,ym=`/**
+`,xm=`/**
  * Prints out the version and renderer information for this running instance of PixiJS.
  * @param type - The name of the renderer this instance is using.
  * @returns {void}
  */
 export declare function sayHello(type: string): void;
-`,xm=`export type ArrayFixed<T, L extends number> = [T, ...Array<T>] & {
+`,vm=`export type ArrayFixed<T, L extends number> = [T, ...Array<T>] & {
     length: L;
 };
 export type Dict<T> = {
@@ -60807,7 +60834,7 @@ export type Dict<T> = {
  * \`\`\`
  * @namespace utils
  */
-`,vm=`/**
+`,Tm=`/**
  * A high performance event emitter
  * @see {@link https://github.com/primus/eventemitter3}
  * @class EventEmitter
@@ -60825,8 +60852,8 @@ export { default as EventEmitter } from 'eventemitter3';
  * @memberof utils
  */
 export { default as earcut } from 'earcut';
-`;function Tm(e,n,t){return n in e?Object.defineProperty(e,n,{value:t,enumerable:!0,configurable:!0,writable:!0}):e[n]=t,e}function M(e,n){var t=Object.keys(e);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(e);n&&(r=r.filter(function(o){return Object.getOwnPropertyDescriptor(e,o).enumerable})),t.push.apply(t,r)}return t}function k(e){for(var n=1;n<arguments.length;n++){var t=arguments[n]!=null?arguments[n]:{};n%2?M(Object(t),!0).forEach(function(r){Tm(e,r,t[r])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(t)):M(Object(t)).forEach(function(r){Object.defineProperty(e,r,Object.getOwnPropertyDescriptor(t,r))})}return e}function Sm(e,n){if(e==null)return{};var t={},r=Object.keys(e),o,a;for(a=0;a<r.length;a++)o=r[a],!(n.indexOf(o)>=0)&&(t[o]=e[o]);return t}function wm(e,n){if(e==null)return{};var t=Sm(e,n),r,o;if(Object.getOwnPropertySymbols){var a=Object.getOwnPropertySymbols(e);for(o=0;o<a.length;o++)r=a[o],!(n.indexOf(r)>=0)&&Object.prototype.propertyIsEnumerable.call(e,r)&&(t[r]=e[r])}return t}function _m(e,n){return Em(e)||Pm(e,n)||Am(e,n)||Cm()}function Em(e){if(Array.isArray(e))return e}function Pm(e,n){if(!(typeof Symbol>"u"||!(Symbol.iterator in Object(e)))){var t=[],r=!0,o=!1,a=void 0;try{for(var i=e[Symbol.iterator](),l;!(r=(l=i.next()).done)&&(t.push(l.value),!(n&&t.length===n));r=!0);}catch(s){o=!0,a=s}finally{try{!r&&i.return!=null&&i.return()}finally{if(o)throw a}}return t}}function Am(e,n){if(e){if(typeof e=="string")return F(e,n);var t=Object.prototype.toString.call(e).slice(8,-1);if(t==="Object"&&e.constructor&&(t=e.constructor.name),t==="Map"||t==="Set")return Array.from(e);if(t==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t))return F(e,n)}}function F(e,n){(n==null||n>e.length)&&(n=e.length);for(var t=0,r=new Array(n);t<n;t++)r[t]=e[t];return r}function Cm(){throw new TypeError(`Invalid attempt to destructure non-iterable instance.
-In order to be iterable, non-array objects must have a [Symbol.iterator]() method.`)}function Rm(e,n,t){return n in e?Object.defineProperty(e,n,{value:t,enumerable:!0,configurable:!0,writable:!0}):e[n]=t,e}function O(e,n){var t=Object.keys(e);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(e);n&&(r=r.filter(function(o){return Object.getOwnPropertyDescriptor(e,o).enumerable})),t.push.apply(t,r)}return t}function I(e){for(var n=1;n<arguments.length;n++){var t=arguments[n]!=null?arguments[n]:{};n%2?O(Object(t),!0).forEach(function(r){Rm(e,r,t[r])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(t)):O(Object(t)).forEach(function(r){Object.defineProperty(e,r,Object.getOwnPropertyDescriptor(t,r))})}return e}function Gm(){for(var e=arguments.length,n=new Array(e),t=0;t<e;t++)n[t]=arguments[t];return function(r){return n.reduceRight(function(o,a){return a(o)},r)}}function y(e){return function n(){for(var t=this,r=arguments.length,o=new Array(r),a=0;a<r;a++)o[a]=arguments[a];return o.length>=e.length?e.apply(this,o):function(){for(var i=arguments.length,l=new Array(i),s=0;s<i;s++)l[s]=arguments[s];return n.apply(t,[].concat(o,l))}}}function E(e){return{}.toString.call(e).includes("Object")}function Mm(e){return!Object.keys(e).length}function T(e){return typeof e=="function"}function km(e,n){return Object.prototype.hasOwnProperty.call(e,n)}function Fm(e,n){return E(n)||p("changeType"),Object.keys(n).some(function(t){return!km(e,t)})&&p("changeField"),n}function Om(e){T(e)||p("selectorType")}function Im(e){T(e)||E(e)||p("handlerType"),E(e)&&Object.values(e).some(function(n){return!T(n)})&&p("handlersType")}function Lm(e){e||p("initialIsRequired"),E(e)||p("initialType"),Mm(e)&&p("initialContent")}function Bm(e,n){throw new Error(e[n]||e.default)}var Dm={initialIsRequired:"initial state is required",initialType:"initial state should be an object",initialContent:"initial state shouldn't be an empty object",handlerType:"handler should be an object or a function",handlersType:"all handlers should be a functions",selectorType:"selector should be a function",changeType:"provided value of changes should be an object",changeField:'it seams you want to change a field in the state which is not specified in the "initial" state',default:"an unknown error accured in `state-local` package"},p=y(Bm)(Dm),w={changes:Fm,selector:Om,handler:Im,initial:Lm};function Um(e){var n=arguments.length>1&&arguments[1]!==void 0?arguments[1]:{};w.initial(e),w.handler(n);var t={current:e},r=y(Hm)(t,n),o=y(Wm)(t),a=y(w.changes)(e),i=y(jm)(t);function l(){var d=arguments.length>0&&arguments[0]!==void 0?arguments[0]:function(c){return c};return w.selector(d),d(t.current)}function s(d){Gm(r,o,a,i)(d)}return[l,s]}function jm(e,n){return T(n)?n(e.current):n}function Wm(e,n){return e.current=I(I({},e.current),n),n}function Hm(e,n,t){return T(n)?n(e.current):Object.keys(t).forEach(function(r){var o;return(o=n[r])===null||o===void 0?void 0:o.call(n,e.current[r])}),t}var Vm={create:Um},Nm={paths:{vs:"https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs"}};function zm(e){return function n(){for(var t=this,r=arguments.length,o=new Array(r),a=0;a<r;a++)o[a]=arguments[a];return o.length>=e.length?e.apply(this,o):function(){for(var i=arguments.length,l=new Array(i),s=0;s<i;s++)l[s]=arguments[s];return n.apply(t,[].concat(o,l))}}}function Xm(e){return{}.toString.call(e).includes("Object")}function Km(e){return e||L("configIsRequired"),Xm(e)||L("configType"),e.urls?(qm(),{paths:{vs:e.urls.monacoBase}}):e}function qm(){console.warn(j.deprecation)}function Ym(e,n){throw new Error(e[n]||e.default)}var j={configIsRequired:"the configuration object is required",configType:"the configuration object should be an object",default:"an unknown error accured in `@monaco-editor/loader` package",deprecation:`Deprecation warning!
+`;function Sm(e,n,t){return n in e?Object.defineProperty(e,n,{value:t,enumerable:!0,configurable:!0,writable:!0}):e[n]=t,e}function M(e,n){var t=Object.keys(e);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(e);n&&(r=r.filter(function(o){return Object.getOwnPropertyDescriptor(e,o).enumerable})),t.push.apply(t,r)}return t}function k(e){for(var n=1;n<arguments.length;n++){var t=arguments[n]!=null?arguments[n]:{};n%2?M(Object(t),!0).forEach(function(r){Sm(e,r,t[r])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(t)):M(Object(t)).forEach(function(r){Object.defineProperty(e,r,Object.getOwnPropertyDescriptor(t,r))})}return e}function wm(e,n){if(e==null)return{};var t={},r=Object.keys(e),o,a;for(a=0;a<r.length;a++)o=r[a],!(n.indexOf(o)>=0)&&(t[o]=e[o]);return t}function _m(e,n){if(e==null)return{};var t=wm(e,n),r,o;if(Object.getOwnPropertySymbols){var a=Object.getOwnPropertySymbols(e);for(o=0;o<a.length;o++)r=a[o],!(n.indexOf(r)>=0)&&Object.prototype.propertyIsEnumerable.call(e,r)&&(t[r]=e[r])}return t}function Em(e,n){return Pm(e)||Am(e,n)||Cm(e,n)||Rm()}function Pm(e){if(Array.isArray(e))return e}function Am(e,n){if(!(typeof Symbol>"u"||!(Symbol.iterator in Object(e)))){var t=[],r=!0,o=!1,a=void 0;try{for(var i=e[Symbol.iterator](),l;!(r=(l=i.next()).done)&&(t.push(l.value),!(n&&t.length===n));r=!0);}catch(s){o=!0,a=s}finally{try{!r&&i.return!=null&&i.return()}finally{if(o)throw a}}return t}}function Cm(e,n){if(e){if(typeof e=="string")return F(e,n);var t=Object.prototype.toString.call(e).slice(8,-1);if(t==="Object"&&e.constructor&&(t=e.constructor.name),t==="Map"||t==="Set")return Array.from(e);if(t==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t))return F(e,n)}}function F(e,n){(n==null||n>e.length)&&(n=e.length);for(var t=0,r=new Array(n);t<n;t++)r[t]=e[t];return r}function Rm(){throw new TypeError(`Invalid attempt to destructure non-iterable instance.
+In order to be iterable, non-array objects must have a [Symbol.iterator]() method.`)}function Gm(e,n,t){return n in e?Object.defineProperty(e,n,{value:t,enumerable:!0,configurable:!0,writable:!0}):e[n]=t,e}function O(e,n){var t=Object.keys(e);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(e);n&&(r=r.filter(function(o){return Object.getOwnPropertyDescriptor(e,o).enumerable})),t.push.apply(t,r)}return t}function I(e){for(var n=1;n<arguments.length;n++){var t=arguments[n]!=null?arguments[n]:{};n%2?O(Object(t),!0).forEach(function(r){Gm(e,r,t[r])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(t)):O(Object(t)).forEach(function(r){Object.defineProperty(e,r,Object.getOwnPropertyDescriptor(t,r))})}return e}function Mm(){for(var e=arguments.length,n=new Array(e),t=0;t<e;t++)n[t]=arguments[t];return function(r){return n.reduceRight(function(o,a){return a(o)},r)}}function y(e){return function n(){for(var t=this,r=arguments.length,o=new Array(r),a=0;a<r;a++)o[a]=arguments[a];return o.length>=e.length?e.apply(this,o):function(){for(var i=arguments.length,l=new Array(i),s=0;s<i;s++)l[s]=arguments[s];return n.apply(t,[].concat(o,l))}}}function E(e){return{}.toString.call(e).includes("Object")}function km(e){return!Object.keys(e).length}function T(e){return typeof e=="function"}function Fm(e,n){return Object.prototype.hasOwnProperty.call(e,n)}function Om(e,n){return E(n)||p("changeType"),Object.keys(n).some(function(t){return!Fm(e,t)})&&p("changeField"),n}function Im(e){T(e)||p("selectorType")}function Lm(e){T(e)||E(e)||p("handlerType"),E(e)&&Object.values(e).some(function(n){return!T(n)})&&p("handlersType")}function Bm(e){e||p("initialIsRequired"),E(e)||p("initialType"),km(e)&&p("initialContent")}function Dm(e,n){throw new Error(e[n]||e.default)}var Um={initialIsRequired:"initial state is required",initialType:"initial state should be an object",initialContent:"initial state shouldn't be an empty object",handlerType:"handler should be an object or a function",handlersType:"all handlers should be a functions",selectorType:"selector should be a function",changeType:"provided value of changes should be an object",changeField:'it seams you want to change a field in the state which is not specified in the "initial" state',default:"an unknown error accured in `state-local` package"},p=y(Dm)(Um),w={changes:Om,selector:Im,handler:Lm,initial:Bm};function jm(e){var n=arguments.length>1&&arguments[1]!==void 0?arguments[1]:{};w.initial(e),w.handler(n);var t={current:e},r=y(Vm)(t,n),o=y(Hm)(t),a=y(w.changes)(e),i=y(Wm)(t);function l(){var d=arguments.length>0&&arguments[0]!==void 0?arguments[0]:function(c){return c};return w.selector(d),d(t.current)}function s(d){Mm(r,o,a,i)(d)}return[l,s]}function Wm(e,n){return T(n)?n(e.current):n}function Hm(e,n){return e.current=I(I({},e.current),n),n}function Vm(e,n,t){return T(n)?n(e.current):Object.keys(t).forEach(function(r){var o;return(o=n[r])===null||o===void 0?void 0:o.call(n,e.current[r])}),t}var Nm={create:jm},zm={paths:{vs:"https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs"}};function Xm(e){return function n(){for(var t=this,r=arguments.length,o=new Array(r),a=0;a<r;a++)o[a]=arguments[a];return o.length>=e.length?e.apply(this,o):function(){for(var i=arguments.length,l=new Array(i),s=0;s<i;s++)l[s]=arguments[s];return n.apply(t,[].concat(o,l))}}}function Km(e){return{}.toString.call(e).includes("Object")}function qm(e){return e||L("configIsRequired"),Km(e)||L("configType"),e.urls?(Ym(),{paths:{vs:e.urls.monacoBase}}):e}function Ym(){console.warn(j.deprecation)}function Jm(e,n){throw new Error(e[n]||e.default)}var j={configIsRequired:"the configuration object is required",configType:"the configuration object should be an object",default:"an unknown error accured in `@monaco-editor/loader` package",deprecation:`Deprecation warning!
     You are using deprecated way of configuration.
 
     Instead of using
@@ -60835,4 +60862,4 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       monaco.config({ paths: { vs: '...' } })
 
     For more please check the link https://github.com/suren-atoyan/monaco-loader#config
-  `},L=zm(Ym)(j),Jm={config:Km},$m=function(){for(var n=arguments.length,t=new Array(n),r=0;r<n;r++)t[r]=arguments[r];return function(o){return t.reduceRight(function(a,i){return i(a)},o)}};function W(e,n){return Object.keys(n).forEach(function(t){n[t]instanceof Object&&e[t]&&Object.assign(n[t],W(e[t],n[t]))}),k(k({},e),n)}var Qm={type:"cancelation",msg:"operation is manually canceled"};function A(e){var n=!1,t=new Promise(function(r,o){e.then(function(a){return n?o(Qm):r(a)}),e.catch(o)});return t.cancel=function(){return n=!0},t}var Zm=Vm.create({config:Nm,isInitialized:!1,resolve:null,reject:null,monaco:null}),H=_m(Zm,2),S=H[0],P=H[1];function eh(e){var n=Jm.config(e),t=n.monaco,r=wm(n,["monaco"]);P(function(o){return{config:W(o.config,r),monaco:t}})}function nh(){var e=S(function(n){var t=n.monaco,r=n.isInitialized,o=n.resolve;return{monaco:t,isInitialized:r,resolve:o}});if(!e.isInitialized){if(P({isInitialized:!0}),e.monaco)return e.resolve(e.monaco),A(C);if(window.monaco&&window.monaco.editor)return V(window.monaco),e.resolve(window.monaco),A(C);$m(th,oh)(ah)}return A(C)}function th(e){return document.body.appendChild(e)}function rh(e){var n=document.createElement("script");return e&&(n.src=e),n}function oh(e){var n=S(function(r){var o=r.config,a=r.reject;return{config:o,reject:a}}),t=rh("".concat(n.config.paths.vs,"/loader.js"));return t.onload=function(){return e()},t.onerror=n.reject,t}function ah(){var e=S(function(t){var r=t.config,o=t.resolve,a=t.reject;return{config:r,resolve:o,reject:a}}),n=window.require;n.config(e.config),n(["vs/editor/editor.main"],function(t){V(t),e.resolve(t)},function(t){e.reject(t)})}function V(e){S().monaco||P({monaco:e})}function ih(){return S(function(e){var n=e.monaco;return n})}var C=new Promise(function(e,n){return P({resolve:e,reject:n})}),sh={config:eh,init:nh,__getMonacoInstance:ih},lh=J("<div>");const B=Object.assign({"../../types/Cont.d.ts":te,"../../types/TypeSchema.d.ts":re,"../../types/components/AnimatedComponent.d.ts":oe,"../../types/components/LevelRefComponent.d.ts":ae,"../../types/components/ScaleComponent.d.ts":ie,"../../types/components/SpriteComponent.d.ts":se,"../../types/components/Transform2DComponent.d.ts":le,"../../types/components/registry.d.ts":de,"../../types/ecs/EcsComponent.d.ts":pe,"../../types/ecs/EcsRegistry.d.ts":ce,"../../types/ecs/EcsWorld.d.ts":ue,"../../types/ecs/EcsWorldAutomergeProjection.d.ts":me,"../../types/ecs/IEcsWorld.d.ts":he,"../../types/ecs/components/ChildrenComponent.d.ts":fe,"../../types/ecs/components/ParentComponent.d.ts":be,"../../types/ecs/components/SortOrderIndexComponent.d.ts":ge,"../../types/ecs/components/registry.d.ts":ye,"../../types/ecs/systems/AutomergeEcsSyncSystem.d.ts":xe,"../../types/index.d.ts":ve,"../../types/index.html.d.ts":Te,"../../types/lib.d.ts":Se,"../../types/math/Complex.d.ts":we,"../../types/math/Transform2D.d.ts":_e,"../../types/math/Vec2.d.ts":Ee,"../../types/pixi-js.d.ts":Pe,"../../types/solid-js-store.d.ts":Ae,"../../types/solid-js.d.ts":Ce,"../../types/solid.js.d.ts":Re,"../../types/systems/CollisionSystem.d.ts":Ge}),N={};for(let e in B)N["prelude/"+e.slice(12)]=B[e];const D=Object.assign({"../../node_modules/solid-js/h/jsx-runtime/types/index.d.ts":Me,"../../node_modules/solid-js/h/jsx-runtime/types/jsx.d.ts":ke,"../../node_modules/solid-js/h/types/hyperscript.d.ts":Fe,"../../node_modules/solid-js/h/types/index.d.ts":Oe,"../../node_modules/solid-js/html/types/index.d.ts":Ie,"../../node_modules/solid-js/html/types/lit.d.ts":Le,"../../node_modules/solid-js/jsx-runtime.d.ts":Be,"../../node_modules/solid-js/store/types/index.d.ts":De,"../../node_modules/solid-js/store/types/modifiers.d.ts":Ue,"../../node_modules/solid-js/store/types/mutable.d.ts":je,"../../node_modules/solid-js/store/types/server.d.ts":We,"../../node_modules/solid-js/store/types/store.d.ts":He,"../../node_modules/solid-js/types/index.d.ts":Ve,"../../node_modules/solid-js/types/jsx.d.ts":Ne,"../../node_modules/solid-js/types/reactive/array.d.ts":ze,"../../node_modules/solid-js/types/reactive/observable.d.ts":Xe,"../../node_modules/solid-js/types/reactive/scheduler.d.ts":Ke,"../../node_modules/solid-js/types/reactive/signal.d.ts":qe,"../../node_modules/solid-js/types/render/Suspense.d.ts":Ye,"../../node_modules/solid-js/types/render/component.d.ts":Je,"../../node_modules/solid-js/types/render/flow.d.ts":$e,"../../node_modules/solid-js/types/render/hydration.d.ts":Qe,"../../node_modules/solid-js/types/render/index.d.ts":Ze,"../../node_modules/solid-js/types/server/index.d.ts":en,"../../node_modules/solid-js/types/server/reactive.d.ts":nn,"../../node_modules/solid-js/types/server/rendering.d.ts":tn,"../../node_modules/solid-js/universal/types/index.d.ts":rn,"../../node_modules/solid-js/universal/types/universal.d.ts":on,"../../node_modules/solid-js/web/storage/types/index.d.ts":an,"../../node_modules/solid-js/web/types/client.d.ts":sn,"../../node_modules/solid-js/web/types/core.d.ts":ln,"../../node_modules/solid-js/web/types/index.d.ts":dn,"../../node_modules/solid-js/web/types/jsx.d.ts":pn,"../../node_modules/solid-js/web/types/server-mock.d.ts":cn,"../../node_modules/solid-js/web/types/server.d.ts":un}),z={};for(let e in D)z["prelude/"+e.slice(19)]=D[e];const U=Object.assign({"../../node_modules/pixi.js/dist/pixi.js.d.ts":mn,"../../node_modules/pixi.js/lib/Shaders.d.ts":hn,"../../node_modules/pixi.js/lib/accessibility/AccessibilityMixins.d.ts":fn,"../../node_modules/pixi.js/lib/accessibility/AccessibilitySystem.d.ts":bn,"../../node_modules/pixi.js/lib/accessibility/accessibilityTarget.d.ts":gn,"../../node_modules/pixi.js/lib/accessibility/index.d.ts":yn,"../../node_modules/pixi.js/lib/accessibility/init.d.ts":xn,"../../node_modules/pixi.js/lib/advanced-blend-modes/ColorBlend.d.ts":vn,"../../node_modules/pixi.js/lib/advanced-blend-modes/ColorBurnBlend.d.ts":Tn,"../../node_modules/pixi.js/lib/advanced-blend-modes/ColorDodgeBlend.d.ts":Sn,"../../node_modules/pixi.js/lib/advanced-blend-modes/DarkenBlend.d.ts":wn,"../../node_modules/pixi.js/lib/advanced-blend-modes/DifferenceBlend.d.ts":_n,"../../node_modules/pixi.js/lib/advanced-blend-modes/DivideBlend.d.ts":En,"../../node_modules/pixi.js/lib/advanced-blend-modes/ExclusionBlend.d.ts":Pn,"../../node_modules/pixi.js/lib/advanced-blend-modes/HardLightBlend.d.ts":An,"../../node_modules/pixi.js/lib/advanced-blend-modes/HardMixBlend.d.ts":Cn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LightenBlend.d.ts":Rn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LinearBurnBlend.d.ts":Gn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LinearDodgeBlend.d.ts":Mn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LinearLightBlend.d.ts":kn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LuminosityBlend.d.ts":Fn,"../../node_modules/pixi.js/lib/advanced-blend-modes/NegationBlend.d.ts":On,"../../node_modules/pixi.js/lib/advanced-blend-modes/OverlayBlend.d.ts":In,"../../node_modules/pixi.js/lib/advanced-blend-modes/PinLightBlend.d.ts":Ln,"../../node_modules/pixi.js/lib/advanced-blend-modes/SaturationBlend.d.ts":Bn,"../../node_modules/pixi.js/lib/advanced-blend-modes/SoftLightBlend.d.ts":Dn,"../../node_modules/pixi.js/lib/advanced-blend-modes/SubtractBlend.d.ts":Un,"../../node_modules/pixi.js/lib/advanced-blend-modes/VividLightBlend.d.ts":jn,"../../node_modules/pixi.js/lib/advanced-blend-modes/index.d.ts":Wn,"../../node_modules/pixi.js/lib/advanced-blend-modes/init.d.ts":Hn,"../../node_modules/pixi.js/lib/app/Application.d.ts":Vn,"../../node_modules/pixi.js/lib/app/ApplicationMixins.d.ts":Nn,"../../node_modules/pixi.js/lib/app/ResizePlugin.d.ts":zn,"../../node_modules/pixi.js/lib/app/TickerPlugin.d.ts":Xn,"../../node_modules/pixi.js/lib/app/index.d.ts":Kn,"../../node_modules/pixi.js/lib/app/init.d.ts":qn,"../../node_modules/pixi.js/lib/assets/AssetExtension.d.ts":Yn,"../../node_modules/pixi.js/lib/assets/Assets.d.ts":Jn,"../../node_modules/pixi.js/lib/assets/AssetsMixins.d.ts":$n,"../../node_modules/pixi.js/lib/assets/BackgroundLoader.d.ts":Qn,"../../node_modules/pixi.js/lib/assets/cache/Cache.d.ts":Zn,"../../node_modules/pixi.js/lib/assets/cache/CacheParser.d.ts":et,"../../node_modules/pixi.js/lib/assets/cache/parsers/cacheTextureArray.d.ts":nt,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectAvif.d.ts":tt,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectDefaults.d.ts":rt,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectMp4.d.ts":ot,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectOgv.d.ts":at,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectWebm.d.ts":it,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectWebp.d.ts":st,"../../node_modules/pixi.js/lib/assets/detections/types.d.ts":lt,"../../node_modules/pixi.js/lib/assets/detections/utils/testImageFormat.d.ts":dt,"../../node_modules/pixi.js/lib/assets/detections/utils/testVideoFormat.d.ts":pt,"../../node_modules/pixi.js/lib/assets/index.d.ts":ct,"../../node_modules/pixi.js/lib/assets/loader/Loader.d.ts":ut,"../../node_modules/pixi.js/lib/assets/loader/parsers/LoaderParser.d.ts":mt,"../../node_modules/pixi.js/lib/assets/loader/parsers/loadJson.d.ts":ht,"../../node_modules/pixi.js/lib/assets/loader/parsers/loadTxt.d.ts":ft,"../../node_modules/pixi.js/lib/assets/loader/parsers/loadWebFont.d.ts":bt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/loadSVG.d.ts":gt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/loadTextures.d.ts":yt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/loadVideoTextures.d.ts":xt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/utils/createTexture.d.ts":vt,"../../node_modules/pixi.js/lib/assets/loader/types.d.ts":Tt,"../../node_modules/pixi.js/lib/assets/loader/workers/WorkerManager.d.ts":St,"../../node_modules/pixi.js/lib/assets/loader/workers/checkImageBitmap.worker.d.ts":wt,"../../node_modules/pixi.js/lib/assets/loader/workers/loadImageBitmap.worker.d.ts":_t,"../../node_modules/pixi.js/lib/assets/resolver/Resolver.d.ts":Et,"../../node_modules/pixi.js/lib/assets/resolver/parsers/resolveJsonUrl.d.ts":Pt,"../../node_modules/pixi.js/lib/assets/resolver/parsers/resolveTextureUrl.d.ts":At,"../../node_modules/pixi.js/lib/assets/resolver/types.d.ts":Ct,"../../node_modules/pixi.js/lib/assets/types.d.ts":Rt,"../../node_modules/pixi.js/lib/assets/utils/checkDataUrl.d.ts":Gt,"../../node_modules/pixi.js/lib/assets/utils/checkExtension.d.ts":Mt,"../../node_modules/pixi.js/lib/assets/utils/convertToList.d.ts":kt,"../../node_modules/pixi.js/lib/assets/utils/copySearchParams.d.ts":Ft,"../../node_modules/pixi.js/lib/assets/utils/createStringVariations.d.ts":Ot,"../../node_modules/pixi.js/lib/assets/utils/isSingleItem.d.ts":It,"../../node_modules/pixi.js/lib/color/Color.d.ts":Lt,"../../node_modules/pixi.js/lib/color/index.d.ts":Bt,"../../node_modules/pixi.js/lib/compressed-textures/basis/detectBasis.d.ts":Dt,"../../node_modules/pixi.js/lib/compressed-textures/basis/init.d.ts":Ut,"../../node_modules/pixi.js/lib/compressed-textures/basis/loadBasis.d.ts":jt,"../../node_modules/pixi.js/lib/compressed-textures/basis/types.d.ts":Wt,"../../node_modules/pixi.js/lib/compressed-textures/basis/utils/createLevelBuffers.d.ts":Ht,"../../node_modules/pixi.js/lib/compressed-textures/basis/utils/gpuFormatToBasisTranscoderFormat.d.ts":Vt,"../../node_modules/pixi.js/lib/compressed-textures/basis/utils/setBasisTranscoderPath.d.ts":Nt,"../../node_modules/pixi.js/lib/compressed-textures/basis/worker/basis.worker.d.ts":zt,"../../node_modules/pixi.js/lib/compressed-textures/basis/worker/loadBasisOnWorker.d.ts":Xt,"../../node_modules/pixi.js/lib/compressed-textures/dds/const.d.ts":Kt,"../../node_modules/pixi.js/lib/compressed-textures/dds/init.d.ts":qt,"../../node_modules/pixi.js/lib/compressed-textures/dds/loadDDS.d.ts":Yt,"../../node_modules/pixi.js/lib/compressed-textures/dds/parseDDS.d.ts":Jt,"../../node_modules/pixi.js/lib/compressed-textures/index.d.ts":$t,"../../node_modules/pixi.js/lib/compressed-textures/ktx/init.d.ts":Qt,"../../node_modules/pixi.js/lib/compressed-textures/ktx/loadKTX.d.ts":Zt,"../../node_modules/pixi.js/lib/compressed-textures/ktx/parseKTX.d.ts":er,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/const.d.ts":nr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/init.d.ts":tr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/loadKTX2.d.ts":rr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/types.d.ts":or,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/convertFormatIfRequired.d.ts":ar,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/createLevelBuffersFromKTX.d.ts":ir,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/getTextureFormatFromKTXTexture.d.ts":sr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/glFormatToGPUFormat.d.ts":lr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/gpuFormatToKTXBasisTranscoderFormat.d.ts":dr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/setKTXTranscoderPath.d.ts":pr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/vkFormatToGPUFormat.d.ts":cr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/worker/ktx.worker.d.ts":ur,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/worker/loadKTX2onWorker.d.ts":mr,"../../node_modules/pixi.js/lib/compressed-textures/shared/detectCompressed.d.ts":hr,"../../node_modules/pixi.js/lib/compressed-textures/shared/resolveCompressedTextureUrl.d.ts":fr,"../../node_modules/pixi.js/lib/culling/Culler.d.ts":br,"../../node_modules/pixi.js/lib/culling/CullerPlugin.d.ts":gr,"../../node_modules/pixi.js/lib/culling/CullingMixins.d.ts":yr,"../../node_modules/pixi.js/lib/culling/cullingMixin.d.ts":xr,"../../node_modules/pixi.js/lib/culling/index.d.ts":vr,"../../node_modules/pixi.js/lib/dom/DOMContainer.d.ts":Tr,"../../node_modules/pixi.js/lib/dom/DOMMixins.d.ts":Sr,"../../node_modules/pixi.js/lib/dom/DOMPipe.d.ts":wr,"../../node_modules/pixi.js/lib/dom/index.d.ts":_r,"../../node_modules/pixi.js/lib/dom/init.d.ts":Er,"../../node_modules/pixi.js/lib/environment-browser/BrowserAdapter.d.ts":Pr,"../../node_modules/pixi.js/lib/environment-browser/browserAll.d.ts":Ar,"../../node_modules/pixi.js/lib/environment-browser/browserExt.d.ts":Cr,"../../node_modules/pixi.js/lib/environment-browser/index.d.ts":Rr,"../../node_modules/pixi.js/lib/environment-webworker/WebWorkerAdapter.d.ts":Gr,"../../node_modules/pixi.js/lib/environment-webworker/index.d.ts":Mr,"../../node_modules/pixi.js/lib/environment-webworker/webworkerAll.d.ts":kr,"../../node_modules/pixi.js/lib/environment-webworker/webworkerExt.d.ts":Fr,"../../node_modules/pixi.js/lib/environment/adapter.d.ts":Or,"../../node_modules/pixi.js/lib/environment/autoDetectEnvironment.d.ts":Ir,"../../node_modules/pixi.js/lib/environment/canvas/ICanvas.d.ts":Lr,"../../node_modules/pixi.js/lib/environment/canvas/ICanvasRenderingContext2D.d.ts":Br,"../../node_modules/pixi.js/lib/environment/index.d.ts":Dr,"../../node_modules/pixi.js/lib/events/EventBoundary.d.ts":Ur,"../../node_modules/pixi.js/lib/events/EventBoundaryTypes.d.ts":jr,"../../node_modules/pixi.js/lib/events/EventSystem.d.ts":Wr,"../../node_modules/pixi.js/lib/events/EventTicker.d.ts":Hr,"../../node_modules/pixi.js/lib/events/EventsMixins.d.ts":Vr,"../../node_modules/pixi.js/lib/events/FederatedEvent.d.ts":Nr,"../../node_modules/pixi.js/lib/events/FederatedEventMap.d.ts":zr,"../../node_modules/pixi.js/lib/events/FederatedEventTarget.d.ts":Xr,"../../node_modules/pixi.js/lib/events/FederatedMouseEvent.d.ts":Kr,"../../node_modules/pixi.js/lib/events/FederatedPointerEvent.d.ts":qr,"../../node_modules/pixi.js/lib/events/FederatedWheelEvent.d.ts":Yr,"../../node_modules/pixi.js/lib/events/deprecatedTypes.d.ts":Jr,"../../node_modules/pixi.js/lib/events/index.d.ts":$r,"../../node_modules/pixi.js/lib/events/init.d.ts":Qr,"../../node_modules/pixi.js/lib/extensions/Extensions.d.ts":Zr,"../../node_modules/pixi.js/lib/extensions/index.d.ts":eo,"../../node_modules/pixi.js/lib/filters/Filter.d.ts":no,"../../node_modules/pixi.js/lib/filters/FilterEffect.d.ts":to,"../../node_modules/pixi.js/lib/filters/FilterMixins.d.ts":ro,"../../node_modules/pixi.js/lib/filters/FilterPipe.d.ts":oo,"../../node_modules/pixi.js/lib/filters/FilterSystem.d.ts":ao,"../../node_modules/pixi.js/lib/filters/blend-modes/BlendModeFilter.d.ts":io,"../../node_modules/pixi.js/lib/filters/blend-modes/hls/GLhls.d.ts":so,"../../node_modules/pixi.js/lib/filters/blend-modes/hls/GPUhls.d.ts":lo,"../../node_modules/pixi.js/lib/filters/defaults/alpha/AlphaFilter.d.ts":po,"../../node_modules/pixi.js/lib/filters/defaults/blur/BlurFilter.d.ts":co,"../../node_modules/pixi.js/lib/filters/defaults/blur/BlurFilterPass.d.ts":uo,"../../node_modules/pixi.js/lib/filters/defaults/blur/const.d.ts":mo,"../../node_modules/pixi.js/lib/filters/defaults/blur/gl/generateBlurFragSource.d.ts":ho,"../../node_modules/pixi.js/lib/filters/defaults/blur/gl/generateBlurGlProgram.d.ts":fo,"../../node_modules/pixi.js/lib/filters/defaults/blur/gl/generateBlurVertSource.d.ts":bo,"../../node_modules/pixi.js/lib/filters/defaults/blur/gpu/generateBlurProgram.d.ts":go,"../../node_modules/pixi.js/lib/filters/defaults/color-matrix/ColorMatrixFilter.d.ts":yo,"../../node_modules/pixi.js/lib/filters/defaults/displacement/DisplacementFilter.d.ts":xo,"../../node_modules/pixi.js/lib/filters/defaults/noise/NoiseFilter.d.ts":vo,"../../node_modules/pixi.js/lib/filters/index.d.ts":To,"../../node_modules/pixi.js/lib/filters/init.d.ts":So,"../../node_modules/pixi.js/lib/filters/mask/MaskFilter.d.ts":wo,"../../node_modules/pixi.js/lib/gif/GifAsset.d.ts":_o,"../../node_modules/pixi.js/lib/gif/GifSource.d.ts":Eo,"../../node_modules/pixi.js/lib/gif/GifSprite.d.ts":Po,"../../node_modules/pixi.js/lib/gif/index.d.ts":Ao,"../../node_modules/pixi.js/lib/gif/init.d.ts":Co,"../../node_modules/pixi.js/lib/index.d.ts":Ro,"../../node_modules/pixi.js/lib/math-extras/MathExtraMixins.d.ts":Go,"../../node_modules/pixi.js/lib/math-extras/index.d.ts":Mo,"../../node_modules/pixi.js/lib/math-extras/init.d.ts":ko,"../../node_modules/pixi.js/lib/math-extras/pointExtras.d.ts":Fo,"../../node_modules/pixi.js/lib/math-extras/rectangleExtras.d.ts":Oo,"../../node_modules/pixi.js/lib/math-extras/util.d.ts":Io,"../../node_modules/pixi.js/lib/maths/index.d.ts":Lo,"../../node_modules/pixi.js/lib/maths/matrix/Matrix.d.ts":Bo,"../../node_modules/pixi.js/lib/maths/matrix/groupD8.d.ts":Do,"../../node_modules/pixi.js/lib/maths/misc/Size.d.ts":Uo,"../../node_modules/pixi.js/lib/maths/misc/const.d.ts":jo,"../../node_modules/pixi.js/lib/maths/misc/pow2.d.ts":Wo,"../../node_modules/pixi.js/lib/maths/misc/squaredDistanceToLineSegment.d.ts":Ho,"../../node_modules/pixi.js/lib/maths/point/ObservablePoint.d.ts":Vo,"../../node_modules/pixi.js/lib/maths/point/Point.d.ts":No,"../../node_modules/pixi.js/lib/maths/point/PointData.d.ts":zo,"../../node_modules/pixi.js/lib/maths/point/PointLike.d.ts":Xo,"../../node_modules/pixi.js/lib/maths/point/pointInTriangle.d.ts":Ko,"../../node_modules/pixi.js/lib/maths/shapes/Circle.d.ts":qo,"../../node_modules/pixi.js/lib/maths/shapes/Ellipse.d.ts":Yo,"../../node_modules/pixi.js/lib/maths/shapes/Polygon.d.ts":Jo,"../../node_modules/pixi.js/lib/maths/shapes/Rectangle.d.ts":$o,"../../node_modules/pixi.js/lib/maths/shapes/RoundedRectangle.d.ts":Qo,"../../node_modules/pixi.js/lib/maths/shapes/ShapePrimitive.d.ts":Zo,"../../node_modules/pixi.js/lib/maths/shapes/Triangle.d.ts":ea,"../../node_modules/pixi.js/lib/prepare/PrepareBase.d.ts":na,"../../node_modules/pixi.js/lib/prepare/PrepareMixins.d.ts":ta,"../../node_modules/pixi.js/lib/prepare/PrepareQueue.d.ts":ra,"../../node_modules/pixi.js/lib/prepare/PrepareSystem.d.ts":oa,"../../node_modules/pixi.js/lib/prepare/PrepareUpload.d.ts":aa,"../../node_modules/pixi.js/lib/prepare/index.d.ts":ia,"../../node_modules/pixi.js/lib/prepare/init.d.ts":sa,"../../node_modules/pixi.js/lib/rendering/RenderingMixins.d.ts":la,"../../node_modules/pixi.js/lib/rendering/batcher/gl/GlBatchAdaptor.d.ts":da,"../../node_modules/pixi.js/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.d.ts":pa,"../../node_modules/pixi.js/lib/rendering/batcher/gl/utils/maxRecommendedTextures.d.ts":ca,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/GpuBatchAdaptor.d.ts":ua,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/generateGPULayout.d.ts":ma,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/generateLayout.d.ts":ha,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts":fa,"../../node_modules/pixi.js/lib/rendering/batcher/shared/BatchGeometry.d.ts":ba,"../../node_modules/pixi.js/lib/rendering/batcher/shared/BatchTextureArray.d.ts":ga,"../../node_modules/pixi.js/lib/rendering/batcher/shared/Batcher.d.ts":ya,"../../node_modules/pixi.js/lib/rendering/batcher/shared/BatcherPipe.d.ts":xa,"../../node_modules/pixi.js/lib/rendering/batcher/shared/DefaultBatcher.d.ts":va,"../../node_modules/pixi.js/lib/rendering/batcher/shared/DefaultShader.d.ts":Ta,"../../node_modules/pixi.js/lib/rendering/high-shader/compileHighShaderToProgram.d.ts":Sa,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/compileHighShader.d.ts":wa,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/types.d.ts":_a,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/addBits.d.ts":Ea,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/compileHooks.d.ts":Pa,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/compileInputs.d.ts":Aa,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/compileOutputs.d.ts":Ca,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/formatShader.d.ts":Ra,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/injectBits.d.ts":Ga,"../../node_modules/pixi.js/lib/rendering/high-shader/defaultProgramTemplate.d.ts":Ma,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/colorBit.d.ts":ka,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/generateTextureBatchBit.d.ts":Fa,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/globalUniformsBit.d.ts":Oa,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/localUniformBit.d.ts":Ia,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/roundPixelsBit.d.ts":La,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/textureBit.d.ts":Ba,"../../node_modules/pixi.js/lib/rendering/index.d.ts":Da,"../../node_modules/pixi.js/lib/rendering/init.d.ts":Ua,"../../node_modules/pixi.js/lib/rendering/mask/MaskEffectManager.d.ts":ja,"../../node_modules/pixi.js/lib/rendering/mask/alpha/AlphaMask.d.ts":Wa,"../../node_modules/pixi.js/lib/rendering/mask/alpha/AlphaMaskPipe.d.ts":Ha,"../../node_modules/pixi.js/lib/rendering/mask/color/ColorMask.d.ts":Va,"../../node_modules/pixi.js/lib/rendering/mask/color/ColorMaskPipe.d.ts":Na,"../../node_modules/pixi.js/lib/rendering/mask/scissor/ScissorMask.d.ts":za,"../../node_modules/pixi.js/lib/rendering/mask/stencil/StencilMask.d.ts":Xa,"../../node_modules/pixi.js/lib/rendering/mask/stencil/StencilMaskPipe.d.ts":Ka,"../../node_modules/pixi.js/lib/rendering/mask/utils/addMaskBounds.d.ts":qa,"../../node_modules/pixi.js/lib/rendering/mask/utils/addMaskLocalBounds.d.ts":Ya,"../../node_modules/pixi.js/lib/rendering/renderers/autoDetectRenderer.d.ts":Ja,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlBackBufferSystem.d.ts":$a,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlColorMaskSystem.d.ts":Qa,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlEncoderSystem.d.ts":Za,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlRenderTarget.d.ts":ei,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlStencilSystem.d.ts":ni,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlUboSystem.d.ts":ti,"../../node_modules/pixi.js/lib/rendering/renderers/gl/WebGLRenderer.d.ts":ri,"../../node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBuffer.d.ts":oi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.d.ts":ai,"../../node_modules/pixi.js/lib/rendering/renderers/gl/buffer/const.d.ts":ii,"../../node_modules/pixi.js/lib/rendering/renderers/gl/const.d.ts":si,"../../node_modules/pixi.js/lib/rendering/renderers/gl/context/GlContextSystem.d.ts":li,"../../node_modules/pixi.js/lib/rendering/renderers/gl/context/GlRenderingContext.d.ts":di,"../../node_modules/pixi.js/lib/rendering/renderers/gl/context/WebGLExtensions.d.ts":pi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.d.ts":ci,"../../node_modules/pixi.js/lib/rendering/renderers/gl/geometry/utils/getGlTypeFromFormat.d.ts":ui,"../../node_modules/pixi.js/lib/rendering/renderers/gl/renderTarget/GlRenderTargetAdaptor.d.ts":mi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/renderTarget/GlRenderTargetSystem.d.ts":hi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GenerateShaderSyncCode.d.ts":fi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgram.d.ts":bi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgramData.d.ts":gi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlShaderSystem.d.ts":yi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlUniformGroupSystem.d.ts":xi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/const.d.ts":vi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/getBatchSamplersUniformGroup.d.ts":Ti,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/migrateFragmentFromV7toV8.d.ts":Si,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/compileShader.d.ts":wi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/defaultValue.d.ts":_i,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/ensureAttributes.d.ts":Ei,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/extractAttributesFromGlProgram.d.ts":Pi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/generateProgram.d.ts":Ai,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getMaxFragmentPrecision.d.ts":Ci,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.d.ts":Ri,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUboData.d.ts":Gi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUniformData.d.ts":Mi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/logProgramError.d.ts":ki,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapSize.d.ts":Fi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapType.d.ts":Oi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/addProgramDefines.d.ts":Ii,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/ensurePrecision.d.ts":Li,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/insertVersion.d.ts":Bi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/setProgramName.d.ts":Di,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/stripVersion.d.ts":Ui,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboElementsSTD40.d.ts":ji,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboSyncSTD40.d.ts":Wi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateArraySyncSTD40.d.ts":Hi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSync.d.ts":Vi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSyncTypes.d.ts":Ni,"../../node_modules/pixi.js/lib/rendering/renderers/gl/state/GlStateSystem.d.ts":zi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/state/mapWebGLBlendModesToPixi.d.ts":Xi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/GlTexture.d.ts":Ki,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/GlTextureSystem.d.ts":qi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/const.d.ts":Yi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/GLTextureUploader.d.ts":Ji,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadBufferImageResource.d.ts":$i,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadCompressedTextureResource.d.ts":Qi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadImageResource.d.ts":Zi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadVideoResource.d.ts":es,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/applyStyleParams.d.ts":ns,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/getSupportedGlCompressedTextureFormats.d.ts":ts,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/mapFormatToGlFormat.d.ts":rs,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/mapFormatToGlInternalFormat.d.ts":os,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/mapFormatToGlType.d.ts":as,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/pixiToGlMaps.d.ts":is,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/unpremultiplyAlpha.d.ts":ss,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/BindGroupSystem.d.ts":ls,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuColorMaskSystem.d.ts":ds,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuDeviceSystem.d.ts":ps,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuEncoderSystem.d.ts":cs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuStencilSystem.d.ts":us,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUboSystem.d.ts":ms,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUniformBatchPipe.d.ts":hs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/WebGPURenderer.d.ts":fs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/buffer/GpuBufferSystem.d.ts":bs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/buffer/GpuReadBuffer.d.ts":gs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/buffer/UboBatch.d.ts":ys,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/pipeline/PipelineSystem.d.ts":xs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTarget.d.ts":vs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTargetAdaptor.d.ts":Ts,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTargetSystem.d.ts":Ss,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/calculateProjection.d.ts":ws,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindGroup.d.ts":_s,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindResource.d.ts":Es,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/GpuProgram.d.ts":Ps,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/GpuShaderSystem.d.ts":As,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboElementsWGSL.d.ts":Cs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboSyncFunctionWGSL.d.ts":Rs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/extractAttributesFromGpuProgram.d.ts":Gs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/extractStructAndGroups.d.ts":Ms,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateArraySyncWGSL.d.ts":ks,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateGpuLayoutGroups.d.ts":Fs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateLayoutHash.d.ts":Os,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/removeStructAndGroupDuplicates.d.ts":Is,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuBlendModesToPixi.d.ts":Ls,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuStateSystem.d.ts":Bs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuStencilModesToPixi.d.ts":Ds,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/GpuTextureSystem.d.ts":Us,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/GpuTextureUploader.d.ts":js,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadBufferImageResource.d.ts":Ws,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadCompressedTextureResource.d.ts":Hs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadImageSource.d.ts":Vs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadVideoSource.d.ts":Ns,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/utils/GpuMipmapGenerator.d.ts":zs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/utils/getSupportedGPUCompressedTextureFormats.d.ts":Xs,"../../node_modules/pixi.js/lib/rendering/renderers/shared/Renderable.d.ts":Ks,"../../node_modules/pixi.js/lib/rendering/renderers/shared/SchedulerSystem.d.ts":qs,"../../node_modules/pixi.js/lib/rendering/renderers/shared/background/BackgroundSystem.d.ts":Ys,"../../node_modules/pixi.js/lib/rendering/renderers/shared/blendModes/BlendModePipe.d.ts":Js,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/Buffer.d.ts":$s,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/BufferResource.d.ts":Qs,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/const.d.ts":Zs,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/utils/fastCopy.d.ts":el,"../../node_modules/pixi.js/lib/rendering/renderers/shared/extract/ExtractSystem.d.ts":nl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/extract/GenerateTextureSystem.d.ts":tl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/Geometry.d.ts":rl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/const.d.ts":ol,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/buildUvs.d.ts":al,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/ensureIsBuffer.d.ts":il,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getAttributeInfoFromFormat.d.ts":sl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getGeometryBounds.d.ts":ll,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/transformVertices.d.ts":dl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/instructions/Instruction.d.ts":pl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/instructions/InstructionSet.d.ts":cl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/instructions/RenderPipe.d.ts":ul,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/GlobalUniformSystem.d.ts":ml,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/RenderTarget.d.ts":hl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/RenderTargetSystem.d.ts":fl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/isRenderingToScreen.d.ts":bl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/viewportFromFrame.d.ts":gl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/Shader.d.ts":yl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/ShaderSystem.d.ts":xl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/UboSystem.d.ts":vl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/UniformGroup.d.ts":Tl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/const.d.ts":Sl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.d.ts":wl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/createUboSyncFunction.d.ts":_l,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/getDefaultUniformValue.d.ts":El,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uboSyncFunctions.d.ts":Pl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uniformParsers.d.ts":Al,"../../node_modules/pixi.js/lib/rendering/renderers/shared/startup/HelloSystem.d.ts":Cl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/state/State.d.ts":Rl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/state/const.d.ts":Gl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/state/getAdjustedBlendModeBlend.d.ts":Ml,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/AbstractRenderer.d.ts":kl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/SharedSystems.d.ts":Fl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/System.d.ts":Ol,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/SystemRunner.d.ts":Il,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/utils/typeUtils.d.ts":Ll,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/CanvasPool.d.ts":Bl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/GenerateCanvas.d.ts":Dl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/RenderTexture.d.ts":Ul,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/RenderableGCSystem.d.ts":jl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/Texture.d.ts":Wl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureGCSystem.d.ts":Hl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureMatrix.d.ts":Vl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TexturePool.d.ts":Nl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureStyle.d.ts":zl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureUvs.d.ts":Xl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/const.d.ts":Kl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/BufferImageSource.d.ts":ql,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/CanvasSource.d.ts":Yl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/CompressedSource.d.ts":Jl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/ImageSource.d.ts":$l,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/TextureSource.d.ts":Ql,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/VideoSource.d.ts":Zl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/generateUID.d.ts":ed,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/getCanvasTexture.d.ts":nd,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/getSupportedCompressedTextureFormats.d.ts":td,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/getSupportedTextureFormats.d.ts":rd,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/textureFrom.d.ts":od,"../../node_modules/pixi.js/lib/rendering/renderers/shared/utils/createIdFromString.d.ts":ad,"../../node_modules/pixi.js/lib/rendering/renderers/shared/utils/parseFunctionBody.d.ts":id,"../../node_modules/pixi.js/lib/rendering/renderers/shared/view/View.d.ts":sd,"../../node_modules/pixi.js/lib/rendering/renderers/shared/view/ViewSystem.d.ts":ld,"../../node_modules/pixi.js/lib/rendering/renderers/types.d.ts":dd,"../../node_modules/pixi.js/lib/scene/SceneMixins.d.ts":pd,"../../node_modules/pixi.js/lib/scene/container/Container.d.ts":cd,"../../node_modules/pixi.js/lib/scene/container/CustomRenderPipe.d.ts":ud,"../../node_modules/pixi.js/lib/scene/container/Effect.d.ts":md,"../../node_modules/pixi.js/lib/scene/container/RenderContainer.d.ts":hd,"../../node_modules/pixi.js/lib/scene/container/RenderGroup.d.ts":fd,"../../node_modules/pixi.js/lib/scene/container/RenderGroupPipe.d.ts":bd,"../../node_modules/pixi.js/lib/scene/container/RenderGroupSystem.d.ts":gd,"../../node_modules/pixi.js/lib/scene/container/bounds/Bounds.d.ts":yd,"../../node_modules/pixi.js/lib/scene/container/bounds/getFastGlobalBounds.d.ts":xd,"../../node_modules/pixi.js/lib/scene/container/bounds/getGlobalBounds.d.ts":vd,"../../node_modules/pixi.js/lib/scene/container/bounds/getLocalBounds.d.ts":Td,"../../node_modules/pixi.js/lib/scene/container/bounds/getRenderableBounds.d.ts":Sd,"../../node_modules/pixi.js/lib/scene/container/bounds/utils/matrixAndBoundsPool.d.ts":wd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/cacheAsTextureMixin.d.ts":_d,"../../node_modules/pixi.js/lib/scene/container/container-mixins/childrenHelperMixin.d.ts":Ed,"../../node_modules/pixi.js/lib/scene/container/container-mixins/collectRenderablesMixin.d.ts":Pd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/effectsMixin.d.ts":Ad,"../../node_modules/pixi.js/lib/scene/container/container-mixins/findMixin.d.ts":Cd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/getFastGlobalBoundsMixin.d.ts":Rd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/getGlobalMixin.d.ts":Gd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/measureMixin.d.ts":Md,"../../node_modules/pixi.js/lib/scene/container/container-mixins/onRenderMixin.d.ts":kd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/sortMixin.d.ts":Fd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/toLocalGlobalMixin.d.ts":Od,"../../node_modules/pixi.js/lib/scene/container/destroyTypes.d.ts":Id,"../../node_modules/pixi.js/lib/scene/container/utils/assignWithIgnore.d.ts":Ld,"../../node_modules/pixi.js/lib/scene/container/utils/checkChildrenDidChange.d.ts":Bd,"../../node_modules/pixi.js/lib/scene/container/utils/clearList.d.ts":Dd,"../../node_modules/pixi.js/lib/scene/container/utils/collectAllRenderables.d.ts":Ud,"../../node_modules/pixi.js/lib/scene/container/utils/definedProps.d.ts":jd,"../../node_modules/pixi.js/lib/scene/container/utils/executeInstructions.d.ts":Wd,"../../node_modules/pixi.js/lib/scene/container/utils/mixHexColors.d.ts":Hd,"../../node_modules/pixi.js/lib/scene/container/utils/multiplyColors.d.ts":Vd,"../../node_modules/pixi.js/lib/scene/container/utils/multiplyHexColors.d.ts":Nd,"../../node_modules/pixi.js/lib/scene/container/utils/updateLocalTransform.d.ts":zd,"../../node_modules/pixi.js/lib/scene/container/utils/updateRenderGroupTransforms.d.ts":Xd,"../../node_modules/pixi.js/lib/scene/container/utils/updateWorldTransform.d.ts":Kd,"../../node_modules/pixi.js/lib/scene/container/utils/validateRenderables.d.ts":qd,"../../node_modules/pixi.js/lib/scene/graphics/GraphicsMixins.d.ts":Yd,"../../node_modules/pixi.js/lib/scene/graphics/gl/GlGraphicsAdaptor.d.ts":Jd,"../../node_modules/pixi.js/lib/scene/graphics/gpu/GpuGraphicsAdaptor.d.ts":$d,"../../node_modules/pixi.js/lib/scene/graphics/gpu/colorToUniform.d.ts":Qd,"../../node_modules/pixi.js/lib/scene/graphics/init.d.ts":Zd,"../../node_modules/pixi.js/lib/scene/graphics/shared/BatchableGraphics.d.ts":ep,"../../node_modules/pixi.js/lib/scene/graphics/shared/FillTypes.d.ts":np,"../../node_modules/pixi.js/lib/scene/graphics/shared/Graphics.d.ts":tp,"../../node_modules/pixi.js/lib/scene/graphics/shared/GraphicsContext.d.ts":rp,"../../node_modules/pixi.js/lib/scene/graphics/shared/GraphicsContextSystem.d.ts":op,"../../node_modules/pixi.js/lib/scene/graphics/shared/GraphicsPipe.d.ts":ap,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/ShapeBuildCommand.d.ts":ip,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildAdaptiveBezier.d.ts":sp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildAdaptiveQuadratic.d.ts":lp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildArc.d.ts":dp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildArcTo.d.ts":pp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildArcToSvg.d.ts":cp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildCircle.d.ts":up,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildLine.d.ts":mp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildPixelLine.d.ts":hp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildPolygon.d.ts":fp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildRectangle.d.ts":bp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildTriangle.d.ts":gp,"../../node_modules/pixi.js/lib/scene/graphics/shared/const.d.ts":yp,"../../node_modules/pixi.js/lib/scene/graphics/shared/fill/FillGradient.d.ts":xp,"../../node_modules/pixi.js/lib/scene/graphics/shared/fill/FillPattern.d.ts":vp,"../../node_modules/pixi.js/lib/scene/graphics/shared/path/GraphicsPath.d.ts":Tp,"../../node_modules/pixi.js/lib/scene/graphics/shared/path/ShapePath.d.ts":Sp,"../../node_modules/pixi.js/lib/scene/graphics/shared/path/roundShape.d.ts":wp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/SVGParser.d.ts":_p,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGDefinitions.d.ts":Ep,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGFloatAttribute.d.ts":Pp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGPath.d.ts":Ap,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGStyle.d.ts":Cp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/utils/extractSvgUrlId.d.ts":Rp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/utils/parse-svg-path.d.ts":Gp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/buildContextBatches.d.ts":Mp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/buildGeometryFromPath.d.ts":kp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/convertFillInputToFillStyle.d.ts":Fp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/generateTextureFillMatrix.d.ts":Op,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/getOrientationOfPoints.d.ts":Ip,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/triangulateWithHoles.d.ts":Lp,"../../node_modules/pixi.js/lib/scene/index.d.ts":Bp,"../../node_modules/pixi.js/lib/scene/layers/RenderLayer.d.ts":Dp,"../../node_modules/pixi.js/lib/scene/mesh-perspective/PerspectiveMesh.d.ts":Up,"../../node_modules/pixi.js/lib/scene/mesh-perspective/PerspectivePlaneGeometry.d.ts":jp,"../../node_modules/pixi.js/lib/scene/mesh-perspective/utils/applyProjectiveTransformationToPlane.d.ts":Wp,"../../node_modules/pixi.js/lib/scene/mesh-perspective/utils/compute2DProjections.d.ts":Hp,"../../node_modules/pixi.js/lib/scene/mesh-plane/MeshPlane.d.ts":Vp,"../../node_modules/pixi.js/lib/scene/mesh-plane/PlaneGeometry.d.ts":Np,"../../node_modules/pixi.js/lib/scene/mesh-simple/MeshRope.d.ts":zp,"../../node_modules/pixi.js/lib/scene/mesh-simple/MeshSimple.d.ts":Xp,"../../node_modules/pixi.js/lib/scene/mesh-simple/RopeGeometry.d.ts":Kp,"../../node_modules/pixi.js/lib/scene/mesh/MeshMixins.d.ts":qp,"../../node_modules/pixi.js/lib/scene/mesh/gl/GlMeshAdaptor.d.ts":Yp,"../../node_modules/pixi.js/lib/scene/mesh/gpu/GpuMeshAdapter.d.ts":Jp,"../../node_modules/pixi.js/lib/scene/mesh/init.d.ts":$p,"../../node_modules/pixi.js/lib/scene/mesh/shared/BatchableMesh.d.ts":Qp,"../../node_modules/pixi.js/lib/scene/mesh/shared/Mesh.d.ts":Zp,"../../node_modules/pixi.js/lib/scene/mesh/shared/MeshGeometry.d.ts":ec,"../../node_modules/pixi.js/lib/scene/mesh/shared/MeshPipe.d.ts":nc,"../../node_modules/pixi.js/lib/scene/mesh/shared/getTextureDefaultMatrix.d.ts":tc,"../../node_modules/pixi.js/lib/scene/particle-container/ParticleMixins.d.ts":rc,"../../node_modules/pixi.js/lib/scene/particle-container/gl/GlParticleContainerAdaptor.d.ts":oc,"../../node_modules/pixi.js/lib/scene/particle-container/gpu/GpuParticleContainerAdaptor.d.ts":ac,"../../node_modules/pixi.js/lib/scene/particle-container/init.d.ts":ic,"../../node_modules/pixi.js/lib/scene/particle-container/shared/GlParticleContainerPipe.d.ts":sc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/GpuParticleContainerPipe.d.ts":lc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/Particle.d.ts":dc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/ParticleBuffer.d.ts":pc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/ParticleContainer.d.ts":cc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/ParticleContainerPipe.d.ts":uc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/particleData.d.ts":mc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/shader/ParticleShader.d.ts":hc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/utils/createIndicesForQuads.d.ts":fc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/utils/generateParticleUpdateFunction.d.ts":bc,"../../node_modules/pixi.js/lib/scene/sprite-animated/AnimatedSprite.d.ts":gc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceGeometry.d.ts":yc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceSprite.d.ts":xc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceSpriteMixins.d.ts":vc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceSpritePipe.d.ts":Tc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/init.d.ts":Sc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/TilingSprite.d.ts":wc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/TilingSpriteMixins.d.ts":_c,"../../node_modules/pixi.js/lib/scene/sprite-tiling/TilingSpritePipe.d.ts":Ec,"../../node_modules/pixi.js/lib/scene/sprite-tiling/init.d.ts":Pc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/shader/TilingSpriteShader.d.ts":Ac,"../../node_modules/pixi.js/lib/scene/sprite-tiling/shader/tilingBit.d.ts":Cc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/QuadGeometry.d.ts":Rc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/applyMatrix.d.ts":Gc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/setPositions.d.ts":Mc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/setUvs.d.ts":kc,"../../node_modules/pixi.js/lib/scene/sprite/BatchableSprite.d.ts":Fc,"../../node_modules/pixi.js/lib/scene/sprite/Sprite.d.ts":Oc,"../../node_modules/pixi.js/lib/scene/sprite/SpritePipe.d.ts":Ic,"../../node_modules/pixi.js/lib/scene/text-bitmap/AbstractBitmapFont.d.ts":Lc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapFont.d.ts":Bc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.d.ts":Dc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapText.d.ts":Uc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapTextPipe.d.ts":jc,"../../node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.d.ts":Wc,"../../node_modules/pixi.js/lib/scene/text-bitmap/TextBitmapMixins.d.ts":Hc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontTextParser.d.ts":Vc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLParser.d.ts":Nc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLStringParser.d.ts":zc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/loadBitmapFont.d.ts":Xc,"../../node_modules/pixi.js/lib/scene/text-bitmap/init.d.ts":Kc,"../../node_modules/pixi.js/lib/scene/text-bitmap/utils/getBitmapTextLayout.d.ts":qc,"../../node_modules/pixi.js/lib/scene/text-bitmap/utils/resolveCharacters.d.ts":Yc,"../../node_modules/pixi.js/lib/scene/text-html/HTMLText.d.ts":Jc,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextPipe.d.ts":$c,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextRenderData.d.ts":Qc,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextStyle.d.ts":Zc,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextSystem.d.ts":eu,"../../node_modules/pixi.js/lib/scene/text-html/TextHTMLMixins.d.ts":nu,"../../node_modules/pixi.js/lib/scene/text-html/init.d.ts":tu,"../../node_modules/pixi.js/lib/scene/text-html/utils/extractFontFamilies.d.ts":ru,"../../node_modules/pixi.js/lib/scene/text-html/utils/getFontCss.d.ts":ou,"../../node_modules/pixi.js/lib/scene/text-html/utils/getSVGUrl.d.ts":au,"../../node_modules/pixi.js/lib/scene/text-html/utils/getTemporaryCanvasFromImage.d.ts":iu,"../../node_modules/pixi.js/lib/scene/text-html/utils/loadFontAsBase64.d.ts":su,"../../node_modules/pixi.js/lib/scene/text-html/utils/loadFontCSS.d.ts":lu,"../../node_modules/pixi.js/lib/scene/text-html/utils/loadSVGImage.d.ts":du,"../../node_modules/pixi.js/lib/scene/text-html/utils/measureHtmlText.d.ts":pu,"../../node_modules/pixi.js/lib/scene/text-html/utils/textStyleToCSS.d.ts":cu,"../../node_modules/pixi.js/lib/scene/text/AbstractText.d.ts":uu,"../../node_modules/pixi.js/lib/scene/text/Text.d.ts":mu,"../../node_modules/pixi.js/lib/scene/text/TextMixins.d.ts":hu,"../../node_modules/pixi.js/lib/scene/text/TextStyle.d.ts":fu,"../../node_modules/pixi.js/lib/scene/text/canvas/CanvasTextMetrics.d.ts":bu,"../../node_modules/pixi.js/lib/scene/text/canvas/CanvasTextPipe.d.ts":gu,"../../node_modules/pixi.js/lib/scene/text/canvas/CanvasTextSystem.d.ts":yu,"../../node_modules/pixi.js/lib/scene/text/canvas/utils/fontStringFromTextStyle.d.ts":xu,"../../node_modules/pixi.js/lib/scene/text/canvas/utils/getCanvasFillStyle.d.ts":vu,"../../node_modules/pixi.js/lib/scene/text/init.d.ts":Tu,"../../node_modules/pixi.js/lib/scene/text/sdfShader/SdfShader.d.ts":Su,"../../node_modules/pixi.js/lib/scene/text/sdfShader/shader-bits/localUniformMSDFBit.d.ts":wu,"../../node_modules/pixi.js/lib/scene/text/sdfShader/shader-bits/mSDFBit.d.ts":_u,"../../node_modules/pixi.js/lib/scene/text/utils/ensureTextStyle.d.ts":Eu,"../../node_modules/pixi.js/lib/scene/text/utils/generateTextStyleKey.d.ts":Pu,"../../node_modules/pixi.js/lib/scene/text/utils/getPo2TextureFromSource.d.ts":Au,"../../node_modules/pixi.js/lib/scene/text/utils/updateTextBounds.d.ts":Cu,"../../node_modules/pixi.js/lib/scene/view/ViewContainer.d.ts":Ru,"../../node_modules/pixi.js/lib/spritesheet/Spritesheet.d.ts":Gu,"../../node_modules/pixi.js/lib/spritesheet/index.d.ts":Mu,"../../node_modules/pixi.js/lib/spritesheet/init.d.ts":ku,"../../node_modules/pixi.js/lib/spritesheet/spritesheetAsset.d.ts":Fu,"../../node_modules/pixi.js/lib/ticker/Ticker.d.ts":Ou,"../../node_modules/pixi.js/lib/ticker/TickerListener.d.ts":Iu,"../../node_modules/pixi.js/lib/ticker/const.d.ts":Lu,"../../node_modules/pixi.js/lib/ticker/index.d.ts":Bu,"../../node_modules/pixi.js/lib/unsafe-eval/index.d.ts":Du,"../../node_modules/pixi.js/lib/unsafe-eval/init.d.ts":Uu,"../../node_modules/pixi.js/lib/unsafe-eval/particle/generateParticleUpdatePolyfill.d.ts":ju,"../../node_modules/pixi.js/lib/unsafe-eval/particle/particleUpdateFunctions.d.ts":Wu,"../../node_modules/pixi.js/lib/unsafe-eval/shader/generateShaderSyncPolyfill.d.ts":Hu,"../../node_modules/pixi.js/lib/unsafe-eval/ubo/generateUboSyncPolyfill.d.ts":Vu,"../../node_modules/pixi.js/lib/unsafe-eval/ubo/uboSyncFunctions.d.ts":Nu,"../../node_modules/pixi.js/lib/unsafe-eval/uniforms/generateUniformsSyncPolyfill.d.ts":zu,"../../node_modules/pixi.js/lib/unsafe-eval/uniforms/uniformSyncFunctions.d.ts":Xu,"../../node_modules/pixi.js/lib/utils/browser/detectVideoAlphaMode.d.ts":Ku,"../../node_modules/pixi.js/lib/utils/browser/isMobile.d.ts":qu,"../../node_modules/pixi.js/lib/utils/browser/isSafari.d.ts":Yu,"../../node_modules/pixi.js/lib/utils/browser/isWebGLSupported.d.ts":Ju,"../../node_modules/pixi.js/lib/utils/browser/isWebGPUSupported.d.ts":$u,"../../node_modules/pixi.js/lib/utils/browser/unsafeEvalSupported.d.ts":Qu,"../../node_modules/pixi.js/lib/utils/canvas/getCanvasBoundingBox.d.ts":Zu,"../../node_modules/pixi.js/lib/utils/const.d.ts":em,"../../node_modules/pixi.js/lib/utils/data/ViewableBuffer.d.ts":nm,"../../node_modules/pixi.js/lib/utils/data/clean.d.ts":tm,"../../node_modules/pixi.js/lib/utils/data/removeItems.d.ts":rm,"../../node_modules/pixi.js/lib/utils/data/uid.d.ts":om,"../../node_modules/pixi.js/lib/utils/data/updateQuadBounds.d.ts":am,"../../node_modules/pixi.js/lib/utils/global/globalHooks.d.ts":im,"../../node_modules/pixi.js/lib/utils/index.d.ts":sm,"../../node_modules/pixi.js/lib/utils/logging/deprecation.d.ts":lm,"../../node_modules/pixi.js/lib/utils/logging/logDebugTexture.d.ts":dm,"../../node_modules/pixi.js/lib/utils/logging/logScene.d.ts":pm,"../../node_modules/pixi.js/lib/utils/logging/warn.d.ts":cm,"../../node_modules/pixi.js/lib/utils/misc/NOOP.d.ts":um,"../../node_modules/pixi.js/lib/utils/misc/Transform.d.ts":mm,"../../node_modules/pixi.js/lib/utils/network/getResolutionOfUrl.d.ts":hm,"../../node_modules/pixi.js/lib/utils/path.d.ts":fm,"../../node_modules/pixi.js/lib/utils/pool/Pool.d.ts":bm,"../../node_modules/pixi.js/lib/utils/pool/PoolGroup.d.ts":gm,"../../node_modules/pixi.js/lib/utils/sayHello.d.ts":ym,"../../node_modules/pixi.js/lib/utils/types.d.ts":xm,"../../node_modules/pixi.js/lib/utils/utils.d.ts":vm});let X={};for(let e in U)X["prelude/"+e.slice(19)]=U[e];const dh={...N,...z,...X};let x=await sh.init();const f=navigator&&/android/i.test(navigator.userAgent);let _=new q;function hh(e){for(let[t,r]of Object.entries(dh)){let o=x.languages.typescript.typescriptDefaults.addExtraLib(r,t);R(()=>o.dispose())}x.languages.typescript.typescriptDefaults.setCompilerOptions({paths:{prelude:["./prelude/lib.js"],"prelude/solid-js":["./prelude/solid-js/types/index.js"],"prelude/solid-js/store":["./prelude/solid-js/store/types/index.js"],"prelude/pixi.js":["./prelude/pixi.js/lib/index.js"]}});let n=(t,r,o)=>{m(Z(()=>o.contents,a=>m(()=>{switch(a.type){case"File":{let i=a.id,l=t+a.name,s=r+a.name,d=o.openFileById(i);m(v(d,c=>{if(c.type!="Success")return;let u=c.value,b=x.editor.createModel(ee(()=>u.doc.source),"typescript",x.Uri.parse(s));m(v(()=>u.doc.source,h=>{b.setValue(h)},{defer:!0}));let g={model:b,file:u};_.set(l,g),R(()=>{b.dispose(),_.get(l)===g&&_.delete(l)})}));break}case"Folder":{let i=a.id,l=o.openFolderById(i);m(v(l,s=>{if(s.type!="Success")return;let d=s.value;n(t+a.name+"/",r+a.name+"/",d)}));break}}})))};n("","file:///",e)}const fh=e=>{let[n,t]=G(),[r,o]=G();return Q(()=>{let a=n();if(a==null)return;let i=x.editor.create(a,{language:"typescript",quickSuggestions:{other:!f,comments:!f,strings:!f},automaticLayout:!0,acceptSuggestionOnCommitCharacter:!f,acceptSuggestionOnEnter:f?"off":"on",accessibilitySupport:f?"off":"on",theme:"vs-dark"});o(i);let l=ne(()=>{if(e.path!=null)return _.get(e.path)});m(v(l,s=>{if(s==null)return;let d=s.model,c=s.file;i.setModel(d);let u=!1,b=()=>{if(u)return;let h=r()?.getModel()?.getValue();h!=null&&c.docHandle.change(K=>{$(K,["source"],h)})},g=d?.onDidChangeContent(b);R(()=>{g?.dispose()}),m(v(()=>c.doc.source,h=>{u=!0;try{d.setValue(h)}finally{u=!1}}))}))}),(()=>{var a=lh(),i=t;return typeof i=="function"?Y(i,a):t=a,a.style.setProperty("width","100%"),a.style.setProperty("height","100%"),a.style.setProperty("overflow","hidden"),a})()};export{fh as default,hh as mountAutomergeFolderToMonacoVfsWhileMounted};
+  `},L=Xm(Jm)(j),$m={config:qm},Qm=function(){for(var n=arguments.length,t=new Array(n),r=0;r<n;r++)t[r]=arguments[r];return function(o){return t.reduceRight(function(a,i){return i(a)},o)}};function W(e,n){return Object.keys(n).forEach(function(t){n[t]instanceof Object&&e[t]&&Object.assign(n[t],W(e[t],n[t]))}),k(k({},e),n)}var Zm={type:"cancelation",msg:"operation is manually canceled"};function A(e){var n=!1,t=new Promise(function(r,o){e.then(function(a){return n?o(Zm):r(a)}),e.catch(o)});return t.cancel=function(){return n=!0},t}var eh=Nm.create({config:zm,isInitialized:!1,resolve:null,reject:null,monaco:null}),H=Em(eh,2),S=H[0],P=H[1];function nh(e){var n=$m.config(e),t=n.monaco,r=_m(n,["monaco"]);P(function(o){return{config:W(o.config,r),monaco:t}})}function th(){var e=S(function(n){var t=n.monaco,r=n.isInitialized,o=n.resolve;return{monaco:t,isInitialized:r,resolve:o}});if(!e.isInitialized){if(P({isInitialized:!0}),e.monaco)return e.resolve(e.monaco),A(C);if(window.monaco&&window.monaco.editor)return V(window.monaco),e.resolve(window.monaco),A(C);Qm(rh,ah)(ih)}return A(C)}function rh(e){return document.body.appendChild(e)}function oh(e){var n=document.createElement("script");return e&&(n.src=e),n}function ah(e){var n=S(function(r){var o=r.config,a=r.reject;return{config:o,reject:a}}),t=oh("".concat(n.config.paths.vs,"/loader.js"));return t.onload=function(){return e()},t.onerror=n.reject,t}function ih(){var e=S(function(t){var r=t.config,o=t.resolve,a=t.reject;return{config:r,resolve:o,reject:a}}),n=window.require;n.config(e.config),n(["vs/editor/editor.main"],function(t){V(t),e.resolve(t)},function(t){e.reject(t)})}function V(e){S().monaco||P({monaco:e})}function sh(){return S(function(e){var n=e.monaco;return n})}var C=new Promise(function(e,n){return P({resolve:e,reject:n})}),lh={config:nh,init:th,__getMonacoInstance:sh},dh=J("<div>");const B=Object.assign({"../../types/Cont.d.ts":te,"../../types/TypeSchema.d.ts":re,"../../types/components/AnimatedComponent.d.ts":oe,"../../types/components/LevelRefComponent.d.ts":ae,"../../types/components/ScaleComponent.d.ts":ie,"../../types/components/SpriteComponent.d.ts":se,"../../types/components/Transform2DComponent.d.ts":le,"../../types/components/registry.d.ts":de,"../../types/cont-do.d.ts":pe,"../../types/ecs/EcsComponent.d.ts":ce,"../../types/ecs/EcsRegistry.d.ts":ue,"../../types/ecs/EcsWorld.d.ts":me,"../../types/ecs/EcsWorldAutomergeProjection.d.ts":he,"../../types/ecs/IEcsWorld.d.ts":fe,"../../types/ecs/components/ChildrenComponent.d.ts":be,"../../types/ecs/components/ParentComponent.d.ts":ge,"../../types/ecs/components/SortOrderIndexComponent.d.ts":ye,"../../types/ecs/components/registry.d.ts":xe,"../../types/ecs/systems/AutomergeEcsSyncSystem.d.ts":ve,"../../types/index.d.ts":Te,"../../types/index.html.d.ts":Se,"../../types/lib.d.ts":we,"../../types/math/Complex.d.ts":_e,"../../types/math/Transform2D.d.ts":Ee,"../../types/math/Vec2.d.ts":Pe,"../../types/pixi-js.d.ts":Ae,"../../types/solid-js-store.d.ts":Ce,"../../types/solid-js.d.ts":Re,"../../types/solid.js.d.ts":Ge,"../../types/systems/CollisionSystem.d.ts":Me}),N={};for(let e in B)N["prelude/"+e.slice(12)]=B[e];const D=Object.assign({"../../node_modules/solid-js/h/jsx-runtime/types/index.d.ts":ke,"../../node_modules/solid-js/h/jsx-runtime/types/jsx.d.ts":Fe,"../../node_modules/solid-js/h/types/hyperscript.d.ts":Oe,"../../node_modules/solid-js/h/types/index.d.ts":Ie,"../../node_modules/solid-js/html/types/index.d.ts":Le,"../../node_modules/solid-js/html/types/lit.d.ts":Be,"../../node_modules/solid-js/jsx-runtime.d.ts":De,"../../node_modules/solid-js/store/types/index.d.ts":Ue,"../../node_modules/solid-js/store/types/modifiers.d.ts":je,"../../node_modules/solid-js/store/types/mutable.d.ts":We,"../../node_modules/solid-js/store/types/server.d.ts":He,"../../node_modules/solid-js/store/types/store.d.ts":Ve,"../../node_modules/solid-js/types/index.d.ts":Ne,"../../node_modules/solid-js/types/jsx.d.ts":ze,"../../node_modules/solid-js/types/reactive/array.d.ts":Xe,"../../node_modules/solid-js/types/reactive/observable.d.ts":Ke,"../../node_modules/solid-js/types/reactive/scheduler.d.ts":qe,"../../node_modules/solid-js/types/reactive/signal.d.ts":Ye,"../../node_modules/solid-js/types/render/Suspense.d.ts":Je,"../../node_modules/solid-js/types/render/component.d.ts":$e,"../../node_modules/solid-js/types/render/flow.d.ts":Qe,"../../node_modules/solid-js/types/render/hydration.d.ts":Ze,"../../node_modules/solid-js/types/render/index.d.ts":en,"../../node_modules/solid-js/types/server/index.d.ts":nn,"../../node_modules/solid-js/types/server/reactive.d.ts":tn,"../../node_modules/solid-js/types/server/rendering.d.ts":rn,"../../node_modules/solid-js/universal/types/index.d.ts":on,"../../node_modules/solid-js/universal/types/universal.d.ts":an,"../../node_modules/solid-js/web/storage/types/index.d.ts":sn,"../../node_modules/solid-js/web/types/client.d.ts":ln,"../../node_modules/solid-js/web/types/core.d.ts":dn,"../../node_modules/solid-js/web/types/index.d.ts":pn,"../../node_modules/solid-js/web/types/jsx.d.ts":cn,"../../node_modules/solid-js/web/types/server-mock.d.ts":un,"../../node_modules/solid-js/web/types/server.d.ts":mn}),z={};for(let e in D)z["prelude/"+e.slice(19)]=D[e];const U=Object.assign({"../../node_modules/pixi.js/dist/pixi.js.d.ts":hn,"../../node_modules/pixi.js/lib/Shaders.d.ts":fn,"../../node_modules/pixi.js/lib/accessibility/AccessibilityMixins.d.ts":bn,"../../node_modules/pixi.js/lib/accessibility/AccessibilitySystem.d.ts":gn,"../../node_modules/pixi.js/lib/accessibility/accessibilityTarget.d.ts":yn,"../../node_modules/pixi.js/lib/accessibility/index.d.ts":xn,"../../node_modules/pixi.js/lib/accessibility/init.d.ts":vn,"../../node_modules/pixi.js/lib/advanced-blend-modes/ColorBlend.d.ts":Tn,"../../node_modules/pixi.js/lib/advanced-blend-modes/ColorBurnBlend.d.ts":Sn,"../../node_modules/pixi.js/lib/advanced-blend-modes/ColorDodgeBlend.d.ts":wn,"../../node_modules/pixi.js/lib/advanced-blend-modes/DarkenBlend.d.ts":_n,"../../node_modules/pixi.js/lib/advanced-blend-modes/DifferenceBlend.d.ts":En,"../../node_modules/pixi.js/lib/advanced-blend-modes/DivideBlend.d.ts":Pn,"../../node_modules/pixi.js/lib/advanced-blend-modes/ExclusionBlend.d.ts":An,"../../node_modules/pixi.js/lib/advanced-blend-modes/HardLightBlend.d.ts":Cn,"../../node_modules/pixi.js/lib/advanced-blend-modes/HardMixBlend.d.ts":Rn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LightenBlend.d.ts":Gn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LinearBurnBlend.d.ts":Mn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LinearDodgeBlend.d.ts":kn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LinearLightBlend.d.ts":Fn,"../../node_modules/pixi.js/lib/advanced-blend-modes/LuminosityBlend.d.ts":On,"../../node_modules/pixi.js/lib/advanced-blend-modes/NegationBlend.d.ts":In,"../../node_modules/pixi.js/lib/advanced-blend-modes/OverlayBlend.d.ts":Ln,"../../node_modules/pixi.js/lib/advanced-blend-modes/PinLightBlend.d.ts":Bn,"../../node_modules/pixi.js/lib/advanced-blend-modes/SaturationBlend.d.ts":Dn,"../../node_modules/pixi.js/lib/advanced-blend-modes/SoftLightBlend.d.ts":Un,"../../node_modules/pixi.js/lib/advanced-blend-modes/SubtractBlend.d.ts":jn,"../../node_modules/pixi.js/lib/advanced-blend-modes/VividLightBlend.d.ts":Wn,"../../node_modules/pixi.js/lib/advanced-blend-modes/index.d.ts":Hn,"../../node_modules/pixi.js/lib/advanced-blend-modes/init.d.ts":Vn,"../../node_modules/pixi.js/lib/app/Application.d.ts":Nn,"../../node_modules/pixi.js/lib/app/ApplicationMixins.d.ts":zn,"../../node_modules/pixi.js/lib/app/ResizePlugin.d.ts":Xn,"../../node_modules/pixi.js/lib/app/TickerPlugin.d.ts":Kn,"../../node_modules/pixi.js/lib/app/index.d.ts":qn,"../../node_modules/pixi.js/lib/app/init.d.ts":Yn,"../../node_modules/pixi.js/lib/assets/AssetExtension.d.ts":Jn,"../../node_modules/pixi.js/lib/assets/Assets.d.ts":$n,"../../node_modules/pixi.js/lib/assets/AssetsMixins.d.ts":Qn,"../../node_modules/pixi.js/lib/assets/BackgroundLoader.d.ts":Zn,"../../node_modules/pixi.js/lib/assets/cache/Cache.d.ts":et,"../../node_modules/pixi.js/lib/assets/cache/CacheParser.d.ts":nt,"../../node_modules/pixi.js/lib/assets/cache/parsers/cacheTextureArray.d.ts":tt,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectAvif.d.ts":rt,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectDefaults.d.ts":ot,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectMp4.d.ts":at,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectOgv.d.ts":it,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectWebm.d.ts":st,"../../node_modules/pixi.js/lib/assets/detections/parsers/detectWebp.d.ts":lt,"../../node_modules/pixi.js/lib/assets/detections/types.d.ts":dt,"../../node_modules/pixi.js/lib/assets/detections/utils/testImageFormat.d.ts":pt,"../../node_modules/pixi.js/lib/assets/detections/utils/testVideoFormat.d.ts":ct,"../../node_modules/pixi.js/lib/assets/index.d.ts":ut,"../../node_modules/pixi.js/lib/assets/loader/Loader.d.ts":mt,"../../node_modules/pixi.js/lib/assets/loader/parsers/LoaderParser.d.ts":ht,"../../node_modules/pixi.js/lib/assets/loader/parsers/loadJson.d.ts":ft,"../../node_modules/pixi.js/lib/assets/loader/parsers/loadTxt.d.ts":bt,"../../node_modules/pixi.js/lib/assets/loader/parsers/loadWebFont.d.ts":gt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/loadSVG.d.ts":yt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/loadTextures.d.ts":xt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/loadVideoTextures.d.ts":vt,"../../node_modules/pixi.js/lib/assets/loader/parsers/textures/utils/createTexture.d.ts":Tt,"../../node_modules/pixi.js/lib/assets/loader/types.d.ts":St,"../../node_modules/pixi.js/lib/assets/loader/workers/WorkerManager.d.ts":wt,"../../node_modules/pixi.js/lib/assets/loader/workers/checkImageBitmap.worker.d.ts":_t,"../../node_modules/pixi.js/lib/assets/loader/workers/loadImageBitmap.worker.d.ts":Et,"../../node_modules/pixi.js/lib/assets/resolver/Resolver.d.ts":Pt,"../../node_modules/pixi.js/lib/assets/resolver/parsers/resolveJsonUrl.d.ts":At,"../../node_modules/pixi.js/lib/assets/resolver/parsers/resolveTextureUrl.d.ts":Ct,"../../node_modules/pixi.js/lib/assets/resolver/types.d.ts":Rt,"../../node_modules/pixi.js/lib/assets/types.d.ts":Gt,"../../node_modules/pixi.js/lib/assets/utils/checkDataUrl.d.ts":Mt,"../../node_modules/pixi.js/lib/assets/utils/checkExtension.d.ts":kt,"../../node_modules/pixi.js/lib/assets/utils/convertToList.d.ts":Ft,"../../node_modules/pixi.js/lib/assets/utils/copySearchParams.d.ts":Ot,"../../node_modules/pixi.js/lib/assets/utils/createStringVariations.d.ts":It,"../../node_modules/pixi.js/lib/assets/utils/isSingleItem.d.ts":Lt,"../../node_modules/pixi.js/lib/color/Color.d.ts":Bt,"../../node_modules/pixi.js/lib/color/index.d.ts":Dt,"../../node_modules/pixi.js/lib/compressed-textures/basis/detectBasis.d.ts":Ut,"../../node_modules/pixi.js/lib/compressed-textures/basis/init.d.ts":jt,"../../node_modules/pixi.js/lib/compressed-textures/basis/loadBasis.d.ts":Wt,"../../node_modules/pixi.js/lib/compressed-textures/basis/types.d.ts":Ht,"../../node_modules/pixi.js/lib/compressed-textures/basis/utils/createLevelBuffers.d.ts":Vt,"../../node_modules/pixi.js/lib/compressed-textures/basis/utils/gpuFormatToBasisTranscoderFormat.d.ts":Nt,"../../node_modules/pixi.js/lib/compressed-textures/basis/utils/setBasisTranscoderPath.d.ts":zt,"../../node_modules/pixi.js/lib/compressed-textures/basis/worker/basis.worker.d.ts":Xt,"../../node_modules/pixi.js/lib/compressed-textures/basis/worker/loadBasisOnWorker.d.ts":Kt,"../../node_modules/pixi.js/lib/compressed-textures/dds/const.d.ts":qt,"../../node_modules/pixi.js/lib/compressed-textures/dds/init.d.ts":Yt,"../../node_modules/pixi.js/lib/compressed-textures/dds/loadDDS.d.ts":Jt,"../../node_modules/pixi.js/lib/compressed-textures/dds/parseDDS.d.ts":$t,"../../node_modules/pixi.js/lib/compressed-textures/index.d.ts":Qt,"../../node_modules/pixi.js/lib/compressed-textures/ktx/init.d.ts":Zt,"../../node_modules/pixi.js/lib/compressed-textures/ktx/loadKTX.d.ts":er,"../../node_modules/pixi.js/lib/compressed-textures/ktx/parseKTX.d.ts":nr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/const.d.ts":tr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/init.d.ts":rr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/loadKTX2.d.ts":or,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/types.d.ts":ar,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/convertFormatIfRequired.d.ts":ir,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/createLevelBuffersFromKTX.d.ts":sr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/getTextureFormatFromKTXTexture.d.ts":lr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/glFormatToGPUFormat.d.ts":dr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/gpuFormatToKTXBasisTranscoderFormat.d.ts":pr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/setKTXTranscoderPath.d.ts":cr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/utils/vkFormatToGPUFormat.d.ts":ur,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/worker/ktx.worker.d.ts":mr,"../../node_modules/pixi.js/lib/compressed-textures/ktx2/worker/loadKTX2onWorker.d.ts":hr,"../../node_modules/pixi.js/lib/compressed-textures/shared/detectCompressed.d.ts":fr,"../../node_modules/pixi.js/lib/compressed-textures/shared/resolveCompressedTextureUrl.d.ts":br,"../../node_modules/pixi.js/lib/culling/Culler.d.ts":gr,"../../node_modules/pixi.js/lib/culling/CullerPlugin.d.ts":yr,"../../node_modules/pixi.js/lib/culling/CullingMixins.d.ts":xr,"../../node_modules/pixi.js/lib/culling/cullingMixin.d.ts":vr,"../../node_modules/pixi.js/lib/culling/index.d.ts":Tr,"../../node_modules/pixi.js/lib/dom/DOMContainer.d.ts":Sr,"../../node_modules/pixi.js/lib/dom/DOMMixins.d.ts":wr,"../../node_modules/pixi.js/lib/dom/DOMPipe.d.ts":_r,"../../node_modules/pixi.js/lib/dom/index.d.ts":Er,"../../node_modules/pixi.js/lib/dom/init.d.ts":Pr,"../../node_modules/pixi.js/lib/environment-browser/BrowserAdapter.d.ts":Ar,"../../node_modules/pixi.js/lib/environment-browser/browserAll.d.ts":Cr,"../../node_modules/pixi.js/lib/environment-browser/browserExt.d.ts":Rr,"../../node_modules/pixi.js/lib/environment-browser/index.d.ts":Gr,"../../node_modules/pixi.js/lib/environment-webworker/WebWorkerAdapter.d.ts":Mr,"../../node_modules/pixi.js/lib/environment-webworker/index.d.ts":kr,"../../node_modules/pixi.js/lib/environment-webworker/webworkerAll.d.ts":Fr,"../../node_modules/pixi.js/lib/environment-webworker/webworkerExt.d.ts":Or,"../../node_modules/pixi.js/lib/environment/adapter.d.ts":Ir,"../../node_modules/pixi.js/lib/environment/autoDetectEnvironment.d.ts":Lr,"../../node_modules/pixi.js/lib/environment/canvas/ICanvas.d.ts":Br,"../../node_modules/pixi.js/lib/environment/canvas/ICanvasRenderingContext2D.d.ts":Dr,"../../node_modules/pixi.js/lib/environment/index.d.ts":Ur,"../../node_modules/pixi.js/lib/events/EventBoundary.d.ts":jr,"../../node_modules/pixi.js/lib/events/EventBoundaryTypes.d.ts":Wr,"../../node_modules/pixi.js/lib/events/EventSystem.d.ts":Hr,"../../node_modules/pixi.js/lib/events/EventTicker.d.ts":Vr,"../../node_modules/pixi.js/lib/events/EventsMixins.d.ts":Nr,"../../node_modules/pixi.js/lib/events/FederatedEvent.d.ts":zr,"../../node_modules/pixi.js/lib/events/FederatedEventMap.d.ts":Xr,"../../node_modules/pixi.js/lib/events/FederatedEventTarget.d.ts":Kr,"../../node_modules/pixi.js/lib/events/FederatedMouseEvent.d.ts":qr,"../../node_modules/pixi.js/lib/events/FederatedPointerEvent.d.ts":Yr,"../../node_modules/pixi.js/lib/events/FederatedWheelEvent.d.ts":Jr,"../../node_modules/pixi.js/lib/events/deprecatedTypes.d.ts":$r,"../../node_modules/pixi.js/lib/events/index.d.ts":Qr,"../../node_modules/pixi.js/lib/events/init.d.ts":Zr,"../../node_modules/pixi.js/lib/extensions/Extensions.d.ts":eo,"../../node_modules/pixi.js/lib/extensions/index.d.ts":no,"../../node_modules/pixi.js/lib/filters/Filter.d.ts":to,"../../node_modules/pixi.js/lib/filters/FilterEffect.d.ts":ro,"../../node_modules/pixi.js/lib/filters/FilterMixins.d.ts":oo,"../../node_modules/pixi.js/lib/filters/FilterPipe.d.ts":ao,"../../node_modules/pixi.js/lib/filters/FilterSystem.d.ts":io,"../../node_modules/pixi.js/lib/filters/blend-modes/BlendModeFilter.d.ts":so,"../../node_modules/pixi.js/lib/filters/blend-modes/hls/GLhls.d.ts":lo,"../../node_modules/pixi.js/lib/filters/blend-modes/hls/GPUhls.d.ts":po,"../../node_modules/pixi.js/lib/filters/defaults/alpha/AlphaFilter.d.ts":co,"../../node_modules/pixi.js/lib/filters/defaults/blur/BlurFilter.d.ts":uo,"../../node_modules/pixi.js/lib/filters/defaults/blur/BlurFilterPass.d.ts":mo,"../../node_modules/pixi.js/lib/filters/defaults/blur/const.d.ts":ho,"../../node_modules/pixi.js/lib/filters/defaults/blur/gl/generateBlurFragSource.d.ts":fo,"../../node_modules/pixi.js/lib/filters/defaults/blur/gl/generateBlurGlProgram.d.ts":bo,"../../node_modules/pixi.js/lib/filters/defaults/blur/gl/generateBlurVertSource.d.ts":go,"../../node_modules/pixi.js/lib/filters/defaults/blur/gpu/generateBlurProgram.d.ts":yo,"../../node_modules/pixi.js/lib/filters/defaults/color-matrix/ColorMatrixFilter.d.ts":xo,"../../node_modules/pixi.js/lib/filters/defaults/displacement/DisplacementFilter.d.ts":vo,"../../node_modules/pixi.js/lib/filters/defaults/noise/NoiseFilter.d.ts":To,"../../node_modules/pixi.js/lib/filters/index.d.ts":So,"../../node_modules/pixi.js/lib/filters/init.d.ts":wo,"../../node_modules/pixi.js/lib/filters/mask/MaskFilter.d.ts":_o,"../../node_modules/pixi.js/lib/gif/GifAsset.d.ts":Eo,"../../node_modules/pixi.js/lib/gif/GifSource.d.ts":Po,"../../node_modules/pixi.js/lib/gif/GifSprite.d.ts":Ao,"../../node_modules/pixi.js/lib/gif/index.d.ts":Co,"../../node_modules/pixi.js/lib/gif/init.d.ts":Ro,"../../node_modules/pixi.js/lib/index.d.ts":Go,"../../node_modules/pixi.js/lib/math-extras/MathExtraMixins.d.ts":Mo,"../../node_modules/pixi.js/lib/math-extras/index.d.ts":ko,"../../node_modules/pixi.js/lib/math-extras/init.d.ts":Fo,"../../node_modules/pixi.js/lib/math-extras/pointExtras.d.ts":Oo,"../../node_modules/pixi.js/lib/math-extras/rectangleExtras.d.ts":Io,"../../node_modules/pixi.js/lib/math-extras/util.d.ts":Lo,"../../node_modules/pixi.js/lib/maths/index.d.ts":Bo,"../../node_modules/pixi.js/lib/maths/matrix/Matrix.d.ts":Do,"../../node_modules/pixi.js/lib/maths/matrix/groupD8.d.ts":Uo,"../../node_modules/pixi.js/lib/maths/misc/Size.d.ts":jo,"../../node_modules/pixi.js/lib/maths/misc/const.d.ts":Wo,"../../node_modules/pixi.js/lib/maths/misc/pow2.d.ts":Ho,"../../node_modules/pixi.js/lib/maths/misc/squaredDistanceToLineSegment.d.ts":Vo,"../../node_modules/pixi.js/lib/maths/point/ObservablePoint.d.ts":No,"../../node_modules/pixi.js/lib/maths/point/Point.d.ts":zo,"../../node_modules/pixi.js/lib/maths/point/PointData.d.ts":Xo,"../../node_modules/pixi.js/lib/maths/point/PointLike.d.ts":Ko,"../../node_modules/pixi.js/lib/maths/point/pointInTriangle.d.ts":qo,"../../node_modules/pixi.js/lib/maths/shapes/Circle.d.ts":Yo,"../../node_modules/pixi.js/lib/maths/shapes/Ellipse.d.ts":Jo,"../../node_modules/pixi.js/lib/maths/shapes/Polygon.d.ts":$o,"../../node_modules/pixi.js/lib/maths/shapes/Rectangle.d.ts":Qo,"../../node_modules/pixi.js/lib/maths/shapes/RoundedRectangle.d.ts":Zo,"../../node_modules/pixi.js/lib/maths/shapes/ShapePrimitive.d.ts":ea,"../../node_modules/pixi.js/lib/maths/shapes/Triangle.d.ts":na,"../../node_modules/pixi.js/lib/prepare/PrepareBase.d.ts":ta,"../../node_modules/pixi.js/lib/prepare/PrepareMixins.d.ts":ra,"../../node_modules/pixi.js/lib/prepare/PrepareQueue.d.ts":oa,"../../node_modules/pixi.js/lib/prepare/PrepareSystem.d.ts":aa,"../../node_modules/pixi.js/lib/prepare/PrepareUpload.d.ts":ia,"../../node_modules/pixi.js/lib/prepare/index.d.ts":sa,"../../node_modules/pixi.js/lib/prepare/init.d.ts":la,"../../node_modules/pixi.js/lib/rendering/RenderingMixins.d.ts":da,"../../node_modules/pixi.js/lib/rendering/batcher/gl/GlBatchAdaptor.d.ts":pa,"../../node_modules/pixi.js/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.d.ts":ca,"../../node_modules/pixi.js/lib/rendering/batcher/gl/utils/maxRecommendedTextures.d.ts":ua,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/GpuBatchAdaptor.d.ts":ma,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/generateGPULayout.d.ts":ha,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/generateLayout.d.ts":fa,"../../node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.d.ts":ba,"../../node_modules/pixi.js/lib/rendering/batcher/shared/BatchGeometry.d.ts":ga,"../../node_modules/pixi.js/lib/rendering/batcher/shared/BatchTextureArray.d.ts":ya,"../../node_modules/pixi.js/lib/rendering/batcher/shared/Batcher.d.ts":xa,"../../node_modules/pixi.js/lib/rendering/batcher/shared/BatcherPipe.d.ts":va,"../../node_modules/pixi.js/lib/rendering/batcher/shared/DefaultBatcher.d.ts":Ta,"../../node_modules/pixi.js/lib/rendering/batcher/shared/DefaultShader.d.ts":Sa,"../../node_modules/pixi.js/lib/rendering/high-shader/compileHighShaderToProgram.d.ts":wa,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/compileHighShader.d.ts":_a,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/types.d.ts":Ea,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/addBits.d.ts":Pa,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/compileHooks.d.ts":Aa,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/compileInputs.d.ts":Ca,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/compileOutputs.d.ts":Ra,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/formatShader.d.ts":Ga,"../../node_modules/pixi.js/lib/rendering/high-shader/compiler/utils/injectBits.d.ts":Ma,"../../node_modules/pixi.js/lib/rendering/high-shader/defaultProgramTemplate.d.ts":ka,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/colorBit.d.ts":Fa,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/generateTextureBatchBit.d.ts":Oa,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/globalUniformsBit.d.ts":Ia,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/localUniformBit.d.ts":La,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/roundPixelsBit.d.ts":Ba,"../../node_modules/pixi.js/lib/rendering/high-shader/shader-bits/textureBit.d.ts":Da,"../../node_modules/pixi.js/lib/rendering/index.d.ts":Ua,"../../node_modules/pixi.js/lib/rendering/init.d.ts":ja,"../../node_modules/pixi.js/lib/rendering/mask/MaskEffectManager.d.ts":Wa,"../../node_modules/pixi.js/lib/rendering/mask/alpha/AlphaMask.d.ts":Ha,"../../node_modules/pixi.js/lib/rendering/mask/alpha/AlphaMaskPipe.d.ts":Va,"../../node_modules/pixi.js/lib/rendering/mask/color/ColorMask.d.ts":Na,"../../node_modules/pixi.js/lib/rendering/mask/color/ColorMaskPipe.d.ts":za,"../../node_modules/pixi.js/lib/rendering/mask/scissor/ScissorMask.d.ts":Xa,"../../node_modules/pixi.js/lib/rendering/mask/stencil/StencilMask.d.ts":Ka,"../../node_modules/pixi.js/lib/rendering/mask/stencil/StencilMaskPipe.d.ts":qa,"../../node_modules/pixi.js/lib/rendering/mask/utils/addMaskBounds.d.ts":Ya,"../../node_modules/pixi.js/lib/rendering/mask/utils/addMaskLocalBounds.d.ts":Ja,"../../node_modules/pixi.js/lib/rendering/renderers/autoDetectRenderer.d.ts":$a,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlBackBufferSystem.d.ts":Qa,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlColorMaskSystem.d.ts":Za,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlEncoderSystem.d.ts":ei,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlRenderTarget.d.ts":ni,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlStencilSystem.d.ts":ti,"../../node_modules/pixi.js/lib/rendering/renderers/gl/GlUboSystem.d.ts":ri,"../../node_modules/pixi.js/lib/rendering/renderers/gl/WebGLRenderer.d.ts":oi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBuffer.d.ts":ai,"../../node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.d.ts":ii,"../../node_modules/pixi.js/lib/rendering/renderers/gl/buffer/const.d.ts":si,"../../node_modules/pixi.js/lib/rendering/renderers/gl/const.d.ts":li,"../../node_modules/pixi.js/lib/rendering/renderers/gl/context/GlContextSystem.d.ts":di,"../../node_modules/pixi.js/lib/rendering/renderers/gl/context/GlRenderingContext.d.ts":pi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/context/WebGLExtensions.d.ts":ci,"../../node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.d.ts":ui,"../../node_modules/pixi.js/lib/rendering/renderers/gl/geometry/utils/getGlTypeFromFormat.d.ts":mi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/renderTarget/GlRenderTargetAdaptor.d.ts":hi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/renderTarget/GlRenderTargetSystem.d.ts":fi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GenerateShaderSyncCode.d.ts":bi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgram.d.ts":gi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgramData.d.ts":yi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlShaderSystem.d.ts":xi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlUniformGroupSystem.d.ts":vi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/const.d.ts":Ti,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/getBatchSamplersUniformGroup.d.ts":Si,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/migrateFragmentFromV7toV8.d.ts":wi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/compileShader.d.ts":_i,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/defaultValue.d.ts":Ei,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/ensureAttributes.d.ts":Pi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/extractAttributesFromGlProgram.d.ts":Ai,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/generateProgram.d.ts":Ci,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getMaxFragmentPrecision.d.ts":Ri,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.d.ts":Gi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUboData.d.ts":Mi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUniformData.d.ts":ki,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/logProgramError.d.ts":Fi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapSize.d.ts":Oi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapType.d.ts":Ii,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/addProgramDefines.d.ts":Li,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/ensurePrecision.d.ts":Bi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/insertVersion.d.ts":Di,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/setProgramName.d.ts":Ui,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/preprocessors/stripVersion.d.ts":ji,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboElementsSTD40.d.ts":Wi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboSyncSTD40.d.ts":Hi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateArraySyncSTD40.d.ts":Vi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSync.d.ts":Ni,"../../node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSyncTypes.d.ts":zi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/state/GlStateSystem.d.ts":Xi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/state/mapWebGLBlendModesToPixi.d.ts":Ki,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/GlTexture.d.ts":qi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/GlTextureSystem.d.ts":Yi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/const.d.ts":Ji,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/GLTextureUploader.d.ts":$i,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadBufferImageResource.d.ts":Qi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadCompressedTextureResource.d.ts":Zi,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadImageResource.d.ts":es,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadVideoResource.d.ts":ns,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/applyStyleParams.d.ts":ts,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/getSupportedGlCompressedTextureFormats.d.ts":rs,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/mapFormatToGlFormat.d.ts":os,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/mapFormatToGlInternalFormat.d.ts":as,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/mapFormatToGlType.d.ts":is,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/pixiToGlMaps.d.ts":ss,"../../node_modules/pixi.js/lib/rendering/renderers/gl/texture/utils/unpremultiplyAlpha.d.ts":ls,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/BindGroupSystem.d.ts":ds,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuColorMaskSystem.d.ts":ps,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuDeviceSystem.d.ts":cs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuEncoderSystem.d.ts":us,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuStencilSystem.d.ts":ms,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUboSystem.d.ts":hs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUniformBatchPipe.d.ts":fs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/WebGPURenderer.d.ts":bs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/buffer/GpuBufferSystem.d.ts":gs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/buffer/GpuReadBuffer.d.ts":ys,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/buffer/UboBatch.d.ts":xs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/pipeline/PipelineSystem.d.ts":vs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTarget.d.ts":Ts,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTargetAdaptor.d.ts":Ss,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTargetSystem.d.ts":ws,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/calculateProjection.d.ts":_s,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindGroup.d.ts":Es,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindResource.d.ts":Ps,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/GpuProgram.d.ts":As,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/GpuShaderSystem.d.ts":Cs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboElementsWGSL.d.ts":Rs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboSyncFunctionWGSL.d.ts":Gs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/extractAttributesFromGpuProgram.d.ts":Ms,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/extractStructAndGroups.d.ts":ks,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateArraySyncWGSL.d.ts":Fs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateGpuLayoutGroups.d.ts":Os,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateLayoutHash.d.ts":Is,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/removeStructAndGroupDuplicates.d.ts":Ls,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuBlendModesToPixi.d.ts":Bs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuStateSystem.d.ts":Ds,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuStencilModesToPixi.d.ts":Us,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/GpuTextureSystem.d.ts":js,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/GpuTextureUploader.d.ts":Ws,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadBufferImageResource.d.ts":Hs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadCompressedTextureResource.d.ts":Vs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadImageSource.d.ts":Ns,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/uploaders/gpuUploadVideoSource.d.ts":zs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/utils/GpuMipmapGenerator.d.ts":Xs,"../../node_modules/pixi.js/lib/rendering/renderers/gpu/texture/utils/getSupportedGPUCompressedTextureFormats.d.ts":Ks,"../../node_modules/pixi.js/lib/rendering/renderers/shared/Renderable.d.ts":qs,"../../node_modules/pixi.js/lib/rendering/renderers/shared/SchedulerSystem.d.ts":Ys,"../../node_modules/pixi.js/lib/rendering/renderers/shared/background/BackgroundSystem.d.ts":Js,"../../node_modules/pixi.js/lib/rendering/renderers/shared/blendModes/BlendModePipe.d.ts":$s,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/Buffer.d.ts":Qs,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/BufferResource.d.ts":Zs,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/const.d.ts":el,"../../node_modules/pixi.js/lib/rendering/renderers/shared/buffer/utils/fastCopy.d.ts":nl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/extract/ExtractSystem.d.ts":tl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/extract/GenerateTextureSystem.d.ts":rl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/Geometry.d.ts":ol,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/const.d.ts":al,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/buildUvs.d.ts":il,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/ensureIsBuffer.d.ts":sl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getAttributeInfoFromFormat.d.ts":ll,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getGeometryBounds.d.ts":dl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/transformVertices.d.ts":pl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/instructions/Instruction.d.ts":cl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/instructions/InstructionSet.d.ts":ul,"../../node_modules/pixi.js/lib/rendering/renderers/shared/instructions/RenderPipe.d.ts":ml,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/GlobalUniformSystem.d.ts":hl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/RenderTarget.d.ts":fl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/RenderTargetSystem.d.ts":bl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/isRenderingToScreen.d.ts":gl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/renderTarget/viewportFromFrame.d.ts":yl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/Shader.d.ts":xl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/ShaderSystem.d.ts":vl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/UboSystem.d.ts":Tl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/UniformGroup.d.ts":Sl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/const.d.ts":wl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.d.ts":_l,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/createUboSyncFunction.d.ts":El,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/getDefaultUniformValue.d.ts":Pl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uboSyncFunctions.d.ts":Al,"../../node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uniformParsers.d.ts":Cl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/startup/HelloSystem.d.ts":Rl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/state/State.d.ts":Gl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/state/const.d.ts":Ml,"../../node_modules/pixi.js/lib/rendering/renderers/shared/state/getAdjustedBlendModeBlend.d.ts":kl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/AbstractRenderer.d.ts":Fl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/SharedSystems.d.ts":Ol,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/System.d.ts":Il,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/SystemRunner.d.ts":Ll,"../../node_modules/pixi.js/lib/rendering/renderers/shared/system/utils/typeUtils.d.ts":Bl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/CanvasPool.d.ts":Dl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/GenerateCanvas.d.ts":Ul,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/RenderTexture.d.ts":jl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/RenderableGCSystem.d.ts":Wl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/Texture.d.ts":Hl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureGCSystem.d.ts":Vl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureMatrix.d.ts":Nl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TexturePool.d.ts":zl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureStyle.d.ts":Xl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureUvs.d.ts":Kl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/const.d.ts":ql,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/BufferImageSource.d.ts":Yl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/CanvasSource.d.ts":Jl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/CompressedSource.d.ts":$l,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/ImageSource.d.ts":Ql,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/TextureSource.d.ts":Zl,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/VideoSource.d.ts":ed,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/generateUID.d.ts":nd,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/getCanvasTexture.d.ts":td,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/getSupportedCompressedTextureFormats.d.ts":rd,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/getSupportedTextureFormats.d.ts":od,"../../node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/textureFrom.d.ts":ad,"../../node_modules/pixi.js/lib/rendering/renderers/shared/utils/createIdFromString.d.ts":id,"../../node_modules/pixi.js/lib/rendering/renderers/shared/utils/parseFunctionBody.d.ts":sd,"../../node_modules/pixi.js/lib/rendering/renderers/shared/view/View.d.ts":ld,"../../node_modules/pixi.js/lib/rendering/renderers/shared/view/ViewSystem.d.ts":dd,"../../node_modules/pixi.js/lib/rendering/renderers/types.d.ts":pd,"../../node_modules/pixi.js/lib/scene/SceneMixins.d.ts":cd,"../../node_modules/pixi.js/lib/scene/container/Container.d.ts":ud,"../../node_modules/pixi.js/lib/scene/container/CustomRenderPipe.d.ts":md,"../../node_modules/pixi.js/lib/scene/container/Effect.d.ts":hd,"../../node_modules/pixi.js/lib/scene/container/RenderContainer.d.ts":fd,"../../node_modules/pixi.js/lib/scene/container/RenderGroup.d.ts":bd,"../../node_modules/pixi.js/lib/scene/container/RenderGroupPipe.d.ts":gd,"../../node_modules/pixi.js/lib/scene/container/RenderGroupSystem.d.ts":yd,"../../node_modules/pixi.js/lib/scene/container/bounds/Bounds.d.ts":xd,"../../node_modules/pixi.js/lib/scene/container/bounds/getFastGlobalBounds.d.ts":vd,"../../node_modules/pixi.js/lib/scene/container/bounds/getGlobalBounds.d.ts":Td,"../../node_modules/pixi.js/lib/scene/container/bounds/getLocalBounds.d.ts":Sd,"../../node_modules/pixi.js/lib/scene/container/bounds/getRenderableBounds.d.ts":wd,"../../node_modules/pixi.js/lib/scene/container/bounds/utils/matrixAndBoundsPool.d.ts":_d,"../../node_modules/pixi.js/lib/scene/container/container-mixins/cacheAsTextureMixin.d.ts":Ed,"../../node_modules/pixi.js/lib/scene/container/container-mixins/childrenHelperMixin.d.ts":Pd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/collectRenderablesMixin.d.ts":Ad,"../../node_modules/pixi.js/lib/scene/container/container-mixins/effectsMixin.d.ts":Cd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/findMixin.d.ts":Rd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/getFastGlobalBoundsMixin.d.ts":Gd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/getGlobalMixin.d.ts":Md,"../../node_modules/pixi.js/lib/scene/container/container-mixins/measureMixin.d.ts":kd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/onRenderMixin.d.ts":Fd,"../../node_modules/pixi.js/lib/scene/container/container-mixins/sortMixin.d.ts":Od,"../../node_modules/pixi.js/lib/scene/container/container-mixins/toLocalGlobalMixin.d.ts":Id,"../../node_modules/pixi.js/lib/scene/container/destroyTypes.d.ts":Ld,"../../node_modules/pixi.js/lib/scene/container/utils/assignWithIgnore.d.ts":Bd,"../../node_modules/pixi.js/lib/scene/container/utils/checkChildrenDidChange.d.ts":Dd,"../../node_modules/pixi.js/lib/scene/container/utils/clearList.d.ts":Ud,"../../node_modules/pixi.js/lib/scene/container/utils/collectAllRenderables.d.ts":jd,"../../node_modules/pixi.js/lib/scene/container/utils/definedProps.d.ts":Wd,"../../node_modules/pixi.js/lib/scene/container/utils/executeInstructions.d.ts":Hd,"../../node_modules/pixi.js/lib/scene/container/utils/mixHexColors.d.ts":Vd,"../../node_modules/pixi.js/lib/scene/container/utils/multiplyColors.d.ts":Nd,"../../node_modules/pixi.js/lib/scene/container/utils/multiplyHexColors.d.ts":zd,"../../node_modules/pixi.js/lib/scene/container/utils/updateLocalTransform.d.ts":Xd,"../../node_modules/pixi.js/lib/scene/container/utils/updateRenderGroupTransforms.d.ts":Kd,"../../node_modules/pixi.js/lib/scene/container/utils/updateWorldTransform.d.ts":qd,"../../node_modules/pixi.js/lib/scene/container/utils/validateRenderables.d.ts":Yd,"../../node_modules/pixi.js/lib/scene/graphics/GraphicsMixins.d.ts":Jd,"../../node_modules/pixi.js/lib/scene/graphics/gl/GlGraphicsAdaptor.d.ts":$d,"../../node_modules/pixi.js/lib/scene/graphics/gpu/GpuGraphicsAdaptor.d.ts":Qd,"../../node_modules/pixi.js/lib/scene/graphics/gpu/colorToUniform.d.ts":Zd,"../../node_modules/pixi.js/lib/scene/graphics/init.d.ts":ep,"../../node_modules/pixi.js/lib/scene/graphics/shared/BatchableGraphics.d.ts":np,"../../node_modules/pixi.js/lib/scene/graphics/shared/FillTypes.d.ts":tp,"../../node_modules/pixi.js/lib/scene/graphics/shared/Graphics.d.ts":rp,"../../node_modules/pixi.js/lib/scene/graphics/shared/GraphicsContext.d.ts":op,"../../node_modules/pixi.js/lib/scene/graphics/shared/GraphicsContextSystem.d.ts":ap,"../../node_modules/pixi.js/lib/scene/graphics/shared/GraphicsPipe.d.ts":ip,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/ShapeBuildCommand.d.ts":sp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildAdaptiveBezier.d.ts":lp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildAdaptiveQuadratic.d.ts":dp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildArc.d.ts":pp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildArcTo.d.ts":cp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildArcToSvg.d.ts":up,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildCircle.d.ts":mp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildLine.d.ts":hp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildPixelLine.d.ts":fp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildPolygon.d.ts":bp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildRectangle.d.ts":gp,"../../node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildTriangle.d.ts":yp,"../../node_modules/pixi.js/lib/scene/graphics/shared/const.d.ts":xp,"../../node_modules/pixi.js/lib/scene/graphics/shared/fill/FillGradient.d.ts":vp,"../../node_modules/pixi.js/lib/scene/graphics/shared/fill/FillPattern.d.ts":Tp,"../../node_modules/pixi.js/lib/scene/graphics/shared/path/GraphicsPath.d.ts":Sp,"../../node_modules/pixi.js/lib/scene/graphics/shared/path/ShapePath.d.ts":wp,"../../node_modules/pixi.js/lib/scene/graphics/shared/path/roundShape.d.ts":_p,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/SVGParser.d.ts":Ep,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGDefinitions.d.ts":Pp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGFloatAttribute.d.ts":Ap,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGPath.d.ts":Cp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/parseSVGStyle.d.ts":Rp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/utils/extractSvgUrlId.d.ts":Gp,"../../node_modules/pixi.js/lib/scene/graphics/shared/svg/utils/parse-svg-path.d.ts":Mp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/buildContextBatches.d.ts":kp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/buildGeometryFromPath.d.ts":Fp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/convertFillInputToFillStyle.d.ts":Op,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/generateTextureFillMatrix.d.ts":Ip,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/getOrientationOfPoints.d.ts":Lp,"../../node_modules/pixi.js/lib/scene/graphics/shared/utils/triangulateWithHoles.d.ts":Bp,"../../node_modules/pixi.js/lib/scene/index.d.ts":Dp,"../../node_modules/pixi.js/lib/scene/layers/RenderLayer.d.ts":Up,"../../node_modules/pixi.js/lib/scene/mesh-perspective/PerspectiveMesh.d.ts":jp,"../../node_modules/pixi.js/lib/scene/mesh-perspective/PerspectivePlaneGeometry.d.ts":Wp,"../../node_modules/pixi.js/lib/scene/mesh-perspective/utils/applyProjectiveTransformationToPlane.d.ts":Hp,"../../node_modules/pixi.js/lib/scene/mesh-perspective/utils/compute2DProjections.d.ts":Vp,"../../node_modules/pixi.js/lib/scene/mesh-plane/MeshPlane.d.ts":Np,"../../node_modules/pixi.js/lib/scene/mesh-plane/PlaneGeometry.d.ts":zp,"../../node_modules/pixi.js/lib/scene/mesh-simple/MeshRope.d.ts":Xp,"../../node_modules/pixi.js/lib/scene/mesh-simple/MeshSimple.d.ts":Kp,"../../node_modules/pixi.js/lib/scene/mesh-simple/RopeGeometry.d.ts":qp,"../../node_modules/pixi.js/lib/scene/mesh/MeshMixins.d.ts":Yp,"../../node_modules/pixi.js/lib/scene/mesh/gl/GlMeshAdaptor.d.ts":Jp,"../../node_modules/pixi.js/lib/scene/mesh/gpu/GpuMeshAdapter.d.ts":$p,"../../node_modules/pixi.js/lib/scene/mesh/init.d.ts":Qp,"../../node_modules/pixi.js/lib/scene/mesh/shared/BatchableMesh.d.ts":Zp,"../../node_modules/pixi.js/lib/scene/mesh/shared/Mesh.d.ts":ec,"../../node_modules/pixi.js/lib/scene/mesh/shared/MeshGeometry.d.ts":nc,"../../node_modules/pixi.js/lib/scene/mesh/shared/MeshPipe.d.ts":tc,"../../node_modules/pixi.js/lib/scene/mesh/shared/getTextureDefaultMatrix.d.ts":rc,"../../node_modules/pixi.js/lib/scene/particle-container/ParticleMixins.d.ts":oc,"../../node_modules/pixi.js/lib/scene/particle-container/gl/GlParticleContainerAdaptor.d.ts":ac,"../../node_modules/pixi.js/lib/scene/particle-container/gpu/GpuParticleContainerAdaptor.d.ts":ic,"../../node_modules/pixi.js/lib/scene/particle-container/init.d.ts":sc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/GlParticleContainerPipe.d.ts":lc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/GpuParticleContainerPipe.d.ts":dc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/Particle.d.ts":pc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/ParticleBuffer.d.ts":cc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/ParticleContainer.d.ts":uc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/ParticleContainerPipe.d.ts":mc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/particleData.d.ts":hc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/shader/ParticleShader.d.ts":fc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/utils/createIndicesForQuads.d.ts":bc,"../../node_modules/pixi.js/lib/scene/particle-container/shared/utils/generateParticleUpdateFunction.d.ts":gc,"../../node_modules/pixi.js/lib/scene/sprite-animated/AnimatedSprite.d.ts":yc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceGeometry.d.ts":xc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceSprite.d.ts":vc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceSpriteMixins.d.ts":Tc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceSpritePipe.d.ts":Sc,"../../node_modules/pixi.js/lib/scene/sprite-nine-slice/init.d.ts":wc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/TilingSprite.d.ts":_c,"../../node_modules/pixi.js/lib/scene/sprite-tiling/TilingSpriteMixins.d.ts":Ec,"../../node_modules/pixi.js/lib/scene/sprite-tiling/TilingSpritePipe.d.ts":Pc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/init.d.ts":Ac,"../../node_modules/pixi.js/lib/scene/sprite-tiling/shader/TilingSpriteShader.d.ts":Cc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/shader/tilingBit.d.ts":Rc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/QuadGeometry.d.ts":Gc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/applyMatrix.d.ts":Mc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/setPositions.d.ts":kc,"../../node_modules/pixi.js/lib/scene/sprite-tiling/utils/setUvs.d.ts":Fc,"../../node_modules/pixi.js/lib/scene/sprite/BatchableSprite.d.ts":Oc,"../../node_modules/pixi.js/lib/scene/sprite/Sprite.d.ts":Ic,"../../node_modules/pixi.js/lib/scene/sprite/SpritePipe.d.ts":Lc,"../../node_modules/pixi.js/lib/scene/text-bitmap/AbstractBitmapFont.d.ts":Bc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapFont.d.ts":Dc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.d.ts":Uc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapText.d.ts":jc,"../../node_modules/pixi.js/lib/scene/text-bitmap/BitmapTextPipe.d.ts":Wc,"../../node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.d.ts":Hc,"../../node_modules/pixi.js/lib/scene/text-bitmap/TextBitmapMixins.d.ts":Vc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontTextParser.d.ts":Nc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLParser.d.ts":zc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLStringParser.d.ts":Xc,"../../node_modules/pixi.js/lib/scene/text-bitmap/asset/loadBitmapFont.d.ts":Kc,"../../node_modules/pixi.js/lib/scene/text-bitmap/init.d.ts":qc,"../../node_modules/pixi.js/lib/scene/text-bitmap/utils/getBitmapTextLayout.d.ts":Yc,"../../node_modules/pixi.js/lib/scene/text-bitmap/utils/resolveCharacters.d.ts":Jc,"../../node_modules/pixi.js/lib/scene/text-html/HTMLText.d.ts":$c,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextPipe.d.ts":Qc,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextRenderData.d.ts":Zc,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextStyle.d.ts":eu,"../../node_modules/pixi.js/lib/scene/text-html/HTMLTextSystem.d.ts":nu,"../../node_modules/pixi.js/lib/scene/text-html/TextHTMLMixins.d.ts":tu,"../../node_modules/pixi.js/lib/scene/text-html/init.d.ts":ru,"../../node_modules/pixi.js/lib/scene/text-html/utils/extractFontFamilies.d.ts":ou,"../../node_modules/pixi.js/lib/scene/text-html/utils/getFontCss.d.ts":au,"../../node_modules/pixi.js/lib/scene/text-html/utils/getSVGUrl.d.ts":iu,"../../node_modules/pixi.js/lib/scene/text-html/utils/getTemporaryCanvasFromImage.d.ts":su,"../../node_modules/pixi.js/lib/scene/text-html/utils/loadFontAsBase64.d.ts":lu,"../../node_modules/pixi.js/lib/scene/text-html/utils/loadFontCSS.d.ts":du,"../../node_modules/pixi.js/lib/scene/text-html/utils/loadSVGImage.d.ts":pu,"../../node_modules/pixi.js/lib/scene/text-html/utils/measureHtmlText.d.ts":cu,"../../node_modules/pixi.js/lib/scene/text-html/utils/textStyleToCSS.d.ts":uu,"../../node_modules/pixi.js/lib/scene/text/AbstractText.d.ts":mu,"../../node_modules/pixi.js/lib/scene/text/Text.d.ts":hu,"../../node_modules/pixi.js/lib/scene/text/TextMixins.d.ts":fu,"../../node_modules/pixi.js/lib/scene/text/TextStyle.d.ts":bu,"../../node_modules/pixi.js/lib/scene/text/canvas/CanvasTextMetrics.d.ts":gu,"../../node_modules/pixi.js/lib/scene/text/canvas/CanvasTextPipe.d.ts":yu,"../../node_modules/pixi.js/lib/scene/text/canvas/CanvasTextSystem.d.ts":xu,"../../node_modules/pixi.js/lib/scene/text/canvas/utils/fontStringFromTextStyle.d.ts":vu,"../../node_modules/pixi.js/lib/scene/text/canvas/utils/getCanvasFillStyle.d.ts":Tu,"../../node_modules/pixi.js/lib/scene/text/init.d.ts":Su,"../../node_modules/pixi.js/lib/scene/text/sdfShader/SdfShader.d.ts":wu,"../../node_modules/pixi.js/lib/scene/text/sdfShader/shader-bits/localUniformMSDFBit.d.ts":_u,"../../node_modules/pixi.js/lib/scene/text/sdfShader/shader-bits/mSDFBit.d.ts":Eu,"../../node_modules/pixi.js/lib/scene/text/utils/ensureTextStyle.d.ts":Pu,"../../node_modules/pixi.js/lib/scene/text/utils/generateTextStyleKey.d.ts":Au,"../../node_modules/pixi.js/lib/scene/text/utils/getPo2TextureFromSource.d.ts":Cu,"../../node_modules/pixi.js/lib/scene/text/utils/updateTextBounds.d.ts":Ru,"../../node_modules/pixi.js/lib/scene/view/ViewContainer.d.ts":Gu,"../../node_modules/pixi.js/lib/spritesheet/Spritesheet.d.ts":Mu,"../../node_modules/pixi.js/lib/spritesheet/index.d.ts":ku,"../../node_modules/pixi.js/lib/spritesheet/init.d.ts":Fu,"../../node_modules/pixi.js/lib/spritesheet/spritesheetAsset.d.ts":Ou,"../../node_modules/pixi.js/lib/ticker/Ticker.d.ts":Iu,"../../node_modules/pixi.js/lib/ticker/TickerListener.d.ts":Lu,"../../node_modules/pixi.js/lib/ticker/const.d.ts":Bu,"../../node_modules/pixi.js/lib/ticker/index.d.ts":Du,"../../node_modules/pixi.js/lib/unsafe-eval/index.d.ts":Uu,"../../node_modules/pixi.js/lib/unsafe-eval/init.d.ts":ju,"../../node_modules/pixi.js/lib/unsafe-eval/particle/generateParticleUpdatePolyfill.d.ts":Wu,"../../node_modules/pixi.js/lib/unsafe-eval/particle/particleUpdateFunctions.d.ts":Hu,"../../node_modules/pixi.js/lib/unsafe-eval/shader/generateShaderSyncPolyfill.d.ts":Vu,"../../node_modules/pixi.js/lib/unsafe-eval/ubo/generateUboSyncPolyfill.d.ts":Nu,"../../node_modules/pixi.js/lib/unsafe-eval/ubo/uboSyncFunctions.d.ts":zu,"../../node_modules/pixi.js/lib/unsafe-eval/uniforms/generateUniformsSyncPolyfill.d.ts":Xu,"../../node_modules/pixi.js/lib/unsafe-eval/uniforms/uniformSyncFunctions.d.ts":Ku,"../../node_modules/pixi.js/lib/utils/browser/detectVideoAlphaMode.d.ts":qu,"../../node_modules/pixi.js/lib/utils/browser/isMobile.d.ts":Yu,"../../node_modules/pixi.js/lib/utils/browser/isSafari.d.ts":Ju,"../../node_modules/pixi.js/lib/utils/browser/isWebGLSupported.d.ts":$u,"../../node_modules/pixi.js/lib/utils/browser/isWebGPUSupported.d.ts":Qu,"../../node_modules/pixi.js/lib/utils/browser/unsafeEvalSupported.d.ts":Zu,"../../node_modules/pixi.js/lib/utils/canvas/getCanvasBoundingBox.d.ts":em,"../../node_modules/pixi.js/lib/utils/const.d.ts":nm,"../../node_modules/pixi.js/lib/utils/data/ViewableBuffer.d.ts":tm,"../../node_modules/pixi.js/lib/utils/data/clean.d.ts":rm,"../../node_modules/pixi.js/lib/utils/data/removeItems.d.ts":om,"../../node_modules/pixi.js/lib/utils/data/uid.d.ts":am,"../../node_modules/pixi.js/lib/utils/data/updateQuadBounds.d.ts":im,"../../node_modules/pixi.js/lib/utils/global/globalHooks.d.ts":sm,"../../node_modules/pixi.js/lib/utils/index.d.ts":lm,"../../node_modules/pixi.js/lib/utils/logging/deprecation.d.ts":dm,"../../node_modules/pixi.js/lib/utils/logging/logDebugTexture.d.ts":pm,"../../node_modules/pixi.js/lib/utils/logging/logScene.d.ts":cm,"../../node_modules/pixi.js/lib/utils/logging/warn.d.ts":um,"../../node_modules/pixi.js/lib/utils/misc/NOOP.d.ts":mm,"../../node_modules/pixi.js/lib/utils/misc/Transform.d.ts":hm,"../../node_modules/pixi.js/lib/utils/network/getResolutionOfUrl.d.ts":fm,"../../node_modules/pixi.js/lib/utils/path.d.ts":bm,"../../node_modules/pixi.js/lib/utils/pool/Pool.d.ts":gm,"../../node_modules/pixi.js/lib/utils/pool/PoolGroup.d.ts":ym,"../../node_modules/pixi.js/lib/utils/sayHello.d.ts":xm,"../../node_modules/pixi.js/lib/utils/types.d.ts":vm,"../../node_modules/pixi.js/lib/utils/utils.d.ts":Tm});let X={};for(let e in U)X["prelude/"+e.slice(19)]=U[e];const ph={...N,...z,...X};let x=await lh.init();const f=navigator&&/android/i.test(navigator.userAgent);let _=new q;function fh(e){for(let[t,r]of Object.entries(ph)){let o=x.languages.typescript.typescriptDefaults.addExtraLib(r,t);R(()=>o.dispose())}x.languages.typescript.typescriptDefaults.setCompilerOptions({paths:{prelude:["./prelude/lib.js"],"prelude/solid-js":["./prelude/solid-js/types/index.js"],"prelude/solid-js/store":["./prelude/solid-js/store/types/index.js"],"prelude/pixi.js":["./prelude/pixi.js/lib/index.js"]}});let n=(t,r,o)=>{m(Z(()=>o.contents,a=>m(()=>{switch(a.type){case"File":{let i=a.id,l=t+a.name,s=r+a.name,d=o.openFileById(i);m(v(d,c=>{if(c.type!="Success")return;let u=c.value,b=x.editor.createModel(ee(()=>u.doc.source),"typescript",x.Uri.parse(s));m(v(()=>u.doc.source,h=>{b.setValue(h)},{defer:!0}));let g={model:b,file:u};_.set(l,g),R(()=>{b.dispose(),_.get(l)===g&&_.delete(l)})}));break}case"Folder":{let i=a.id,l=o.openFolderById(i);m(v(l,s=>{if(s.type!="Success")return;let d=s.value;n(t+a.name+"/",r+a.name+"/",d)}));break}}})))};n("","file:///",e)}const bh=e=>{let[n,t]=G(),[r,o]=G();return Q(()=>{let a=n();if(a==null)return;let i=x.editor.create(a,{language:"typescript",quickSuggestions:{other:!f,comments:!f,strings:!f},automaticLayout:!0,acceptSuggestionOnCommitCharacter:!f,acceptSuggestionOnEnter:f?"off":"on",accessibilitySupport:f?"off":"on",theme:"vs-dark"});o(i);let l=ne(()=>{if(e.path!=null)return _.get(e.path)});m(v(l,s=>{if(s==null)return;let d=s.model,c=s.file;i.setModel(d);let u=!1,b=()=>{if(u)return;let h=r()?.getModel()?.getValue();h!=null&&c.docHandle.change(K=>{$(K,["source"],h)})},g=d?.onDidChangeContent(b);R(()=>{g?.dispose()}),m(v(()=>c.doc.source,h=>{u=!0;try{d.setValue(h)}finally{u=!1}}))}))}),(()=>{var a=dh(),i=t;return typeof i=="function"?Y(i,a):t=a,a.style.setProperty("width","100%"),a.style.setProperty("height","100%"),a.style.setProperty("overflow","hidden"),a})()};export{bh as default,fh as mountAutomergeFolderToMonacoVfsWhileMounted};
