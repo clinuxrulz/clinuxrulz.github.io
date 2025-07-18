@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
+        </style>
+        <link rel="stylesheet" href="css/main_ui.css">
+        <link rel="stylesheet" href="js/jquery-ui.min.css">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <script src="js/jquery.min.js"></script>
+        <script src="js/jquery-ui.min.js"></script>
+        <script src="js/jquery.ui.touch-punch.min.js"></script>
+        <script src="js/w3.js"></script>
+        <script src="js/fetch.umd.js"></script>
+        <script src="js/promise-polyfill.min.js"></script>
+        <script src="js/polyfills.js"></script>
+        <script src="js/script_loader.js"></script>
+    </head>
+    <body>
+        <script  type="text/javascript" src="online-quote.js"></script>
+
+        <div id="shedDesignerApp" style="width:100vw;height:100vh;"></div>
+        <script>
+            loadShedDesignerApp(".", document.getElementById("shedDesignerApp"), function(app) {
+                window.app = app;
+            });
+        </script>
+    </body>
+</html>
