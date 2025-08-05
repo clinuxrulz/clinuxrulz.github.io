@@ -1,0 +1,1 @@
+(function(){"use strict";class o extends AudioWorkletProcessor{constructor(){super()}static get parameterDescriptors(){return[{name:"value",defaultValue:0}]}process(c,s,r){const t=s[0][0];for(let e=0;e<t.length;++e){let u=r.value.length>1?r.value[e]:r.value[0];t[e]=u}return!0}}registerProcessor("number-audio-worklet-processor",o)})();
