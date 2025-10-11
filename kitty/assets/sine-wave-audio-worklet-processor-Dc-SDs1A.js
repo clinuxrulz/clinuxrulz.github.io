@@ -1,1 +1,0 @@
-(function(){"use strict";class r extends AudioWorkletProcessor{phase;constructor(){super(),this.phase=0}process(s,o,n){const a=s[0][0],c=s[1][0],h=s[2][0],t=o[0][0];for(let e=0;e<t.length;++e)this.phase+=2*Math.PI*a[e]/sampleRate,t[e]=c[e]*Math.sin(this.phase)+h[e];return this.phase%=2*Math.PI,!0}}registerProcessor("sine-wave-audio-worklet-processor",r)})();
