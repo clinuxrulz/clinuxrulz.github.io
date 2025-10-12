@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest.json",
+  "short_name": "Free PODD",
+  "name": "Free PODD",
+  "orientation": "landscape",
+  "categories": [
+    "communication"
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [
+  ],
+  "screenshots": [
+  ],
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "icon-48.png",
+      "sizes": "48x48"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#513b56",
+  "background_color": "#e6ecf0"
+}

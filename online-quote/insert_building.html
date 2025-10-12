@@ -1,0 +1,35 @@
+
+Insert Building:<br/>
+By Corner:<br/>
+<div style="margin-left:20px;">
+    <form>
+        <table>
+            <tr>
+                <td><input name="corner" type="radio" id="radInsertBuildingTLCorner"></td>
+                <td><input name="corner" type="radio" id="radInsertBuildingTCCorner"></td>
+                <td><input name="corner" type="radio" id="radInsertBuildingTRCorner"></td>
+            </tr>
+            <tr>
+                <td><input name="corner" type="radio" id="radInsertBuildingCLCorner"></td>
+                <td></td>
+                <td><input name="corner" type="radio" id="radInsertBuildingCRCorner"></td>
+            </tr>
+            <tr>
+                <td><input name="corner" type="radio" id="radInsertBuildingBLCorner" checked></td>
+                <td><input name="corner" type="radio" id="radInsertBuildingBCCorner"></td>
+                <td><input name="corner" type="radio" id="radInsertBuildingBRCorner"></td>
+            </tr>
+        </table>
+    </form>
+</div>
+Rotation: <br/>
+<div style="margin-left:20px">
+    <form>
+        <input name="rotation" type="radio" id="radInsertBuildingRot0" checked><label for="radInsertBuildingRot0">0</label><br/>
+        <input name="rotation" type="radio" id="radInsertBuildingRot90"><label for="radInsertBuildingRot90"> 90</label><br/>
+        <input name="rotation" type="radio" id="radInsertBuildingRotCustom"><label for="radInsertBuildingRotCustom"> Custom</label><br/>
+        <div id="divInsertBuildingRotCustom" style="margin-left:20px;display:none;">
+            <input type="text" id="txtInsertBuildingRotCustom" value="0"><br/>
+        </div>
+    </form>
+</div>

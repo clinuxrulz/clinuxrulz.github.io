@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+    <script type="module" crossorigin src="./assets/index-6d782552.js"></script>
+  </head>
+  <body style="margin: 0px;">
+    <canvas id="canvas" width="640" height="480" style="width: 75%; height: 100%;"></canvas>
+    
+    <script>
+        let canvas = document.getElementById("canvas");
+        function goFullscreen() {
+            canvas.requestFullscreen();
+        }
+    </script>
+    <button style="position: absolute; right: 0px; top: 0px;" onclick="goFullscreen()">
+        Fullscreen
+    </button>
+  </body>
+</html>

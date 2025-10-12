@@ -1,0 +1,88 @@
+<div class="flex-container" style="width:100%;height:100%;overflow-x:hidden;overflow-y:hidden">
+    <div>
+    <div>
+    <div class="vertical-tabs">
+    
+    <div class="flex-vertical firsttbs">
+        <button class="w3-bar-item w3-button" onclick="openProperties('shedTypeProperties')"><i class="si si-size"></i>Size</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('addProperties')"><i class="si si-add"></i>Add</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('coloursProperties')"><i class="si si-color"></i>Colours</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('optionsProperties')" style="display:none">Options</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('saveAndShareProperties'); updateShareLink();" style="display:none">Save & Share</button>
+        <button class="w3-bar-item w3-button" onclick="openProperties('shedQuotesnow');"><i class="si si-quote"></i>Quote</button>
+        <!-- <button class="w3-bar-item w3-button" onclick="return thendnf()">Quote</button> -->
+    </div>
+    <div class="propcontainer" style="flex-shrink:0; overflow-x:hidden; overflow-y:scroll;"><span class="close" id="close" onclick="return closeSide()">x</span>
+        <div style="display:none" id="shedTypeProperties" class="properties" w3-include-html="building_properties.html">
+        </div>
+        <div id="addProperties" class="properties" style="display:none"><!-- style="display:none"-->
+            <div class="flex-vertical submenbutton">
+                <button id="btnEditBays">Bays Sizes</button>
+                <button id="btnAddPADoor" onclick="addOpeningButtonClickCallback('paDoor')">PA Door</button>
+                <button id="btnAddWindow" onclick="addOpeningButtonClickCallback('window')">Window</button>
+                <button id="btnAddRollerDoor" onclick="addOpeningButtonClickCallback('rollerDoor')">Roller Door</button>
+                <button id="btnToggleBays" onclick="toggleBaysButtonClickCallback()">Open Bays</button>
+                <button id="btnToggleWalls" onclick="toggleWallsButtonClickCallback('toggleWalls')">Internal Walls</button>
+                <button id="btnSheetingStyle">Partial Cladding</button>
+                <button id="btnAddSkylight">Skylight</button>
+                <button id="btnAddWhirlybird">Whirlybird</button>
+                <button id="btnToggleLeanTo">Toggle Lean-To</button>
+                <button id="btnInsertMezzanine">Mezz</button>
+                <button id="btnInsertBuilding">Building</button>
+            </div>
+            <div id="toggleLeanToProperties" style="display:block"><br />
+                <div class="form-group">Lean-To Properties:</div>
+                <div class="form-group">Span: <input class="form-control" id="txtLeanToSpan" type="text"></div>
+                <div class="form-group">Height: <input class="form-control" id="txtLeanToHeight" type="text"></div>
+                <div class="form-group">Pitch: <input class="form-control" id="txtLeanToPitch" type="text"></div>
+            </div>
+        </div>
+        <div id="windowsDoorsSkylightsProperties" class="properties" style="display:none">
+            Tab a wall or a roof segment to zoom in and configure doors, windows, skylights.
+        </div>
+        <div id="coloursProperties" class="properties" style="display:none" w3-include-html="colour_properties.html">
+        </div>
+        <div id="optionsProperties" class="properties" style="display:none">
+            <input id="chkAnimate" type="checkbox"> Animate<br/>
+        </div>
+        <div id="saveAndShareProperties" class="properties" style="display:none">
+            <a id="shareLink" href="">link</a>
+            <button id="btnDownload" type="button" onclick="download()">Download</button>
+        </div>
+        <div id="shedQuotesnow" class="properties" style="display:none">
+           <div class="form-group">
+           <label class="control-label">Site Address: </label>
+           <textarea style="width:100%" class="form-control" type="text" id="site_address" name="site_address"></textarea>
+           </div>
+           <div style="text-align:center" class="form-group">
+           <button class="btn" onclick="return thendnf()">Proceed</button>
+           </div>
+        </div>
+        <div id="todoProperties" class="properties" style="display:none">
+            TODO
+        </div>
+        <div class="bottompart">
+            <hr>
+            <div id="addOpeningProperties" style="display:none" w3-include-html="opening_properties.html">
+            </div>
+            <div id="mezzanineProperties" style="display:none" w3-include-html="mezzanine_properties.html">
+            </div>
+            <div id="bayEditProperties" style="display:none" w3-include-html="bay_edit_properties.html">
+            </div>
+            <div id="wallSheetingStyleProperties" style="display:none" w3-include-html="wall_sheeting_style_properties.html">
+            </div>
+            <div id="divInsertBuilding" style="display:none" w3-include-html="insert_building.html">
+            </div>
+        </div>
+    </div>
+    
+    </div>
+    </div>
+    
+    <div class="canouter">
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    </div>
+    
+</div>

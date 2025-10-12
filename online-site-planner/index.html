@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <style>
+            html, body { height: 100%; width: 100%; margin: 0; }
+
+            .flex-container {
+                display: flex;
+            }
+
+            .flex-vertical {
+                flex-direction: column;
+            }
+        </style>
+        <link rel="stylesheet" href="js/jquery-ui.min.css">
+        <script src="js/jquery.min.js"></script>
+        <script src="js/jquery-ui.min.js"></script>
+    </head>
+    <body>
+        <script  type="text/javascript" src="online-quote.js"></script>
+
+        <script>
+            function openProperties(propertiesName) {
+                var i;
+                var x = document.getElementsByClassName("properties");
+                for (i = 0; i < x.length; i++) {
+                    x[i].style.display = "none"; 
+                }
+                document.getElementById(propertiesName).style.display = "block";
+                openPropertiesAppCallback(propertiesName);
+            }
+            function appLoaded() {
+                initUI();
+            }
+            function initUI() {
+                $(function() {
+                });
+            }
+        </script>
+
+        <div class="flex-container" style="width:100%;height:100%;">
+            <div class="flex-container flex-vertical">
+                <button class="w3-bar-item w3-button" onclick="openProperties('drawProperties')">Draw</button>
+            </div>
+            <div>
+                <div id="drawProperties" class="properties">
+                    <button id="btnDrawLine">Line</button><br/>
+                    <button id="btnDrawCircle">Circle</button><br/>
+                    <button id="btnFillet">Fillet</button><br/>
+                </div>
+                <div id="todoProperties" class="properties" style="display:none">
+                    TODO
+                </div>
+            </div>
+            <div style="width:100%">
+                <canvas id="canvas" width="800" height="600" style="border-style:solid"></canvas>
+            </div>
+        </div>
+    </body>
+</html>
