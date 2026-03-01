@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <meta name="viewport" content="initial-scale=1.0, width=device-width">
+    </head>
+    <body style="margin: 0; padding: 0;">
+        <script type="module">
+            import init, { run_game } from "./flying_shooter_lib.js";
+
+            async function start() {
+                await init();
+                run_game();
+            }
+
+            start();
+        </script>
+    </body>
+</html>
