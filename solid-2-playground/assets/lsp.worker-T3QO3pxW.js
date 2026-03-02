@@ -43555,7 +43555,7 @@ interface Promise<T> {
      */
     finally(onfinally?: (() => void) | undefined | null): Promise<T>;
 }
-`,Ce=`/*! *****************************************************************************
+`,xe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43592,7 +43592,7 @@ interface RegExp {
      */
     readonly dotAll: boolean;
 }
-`,xe=`/*! *****************************************************************************
+`,Ce=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43742,7 +43742,7 @@ declare namespace Intl {
         unknown: never;
     }
 }
-`,Ge=`/*! *****************************************************************************
+`,_e=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43775,7 +43775,7 @@ interface ObjectConstructor {
      */
     fromEntries(entries: Iterable<readonly any[]>): any;
 }
-`,_e=`/*! *****************************************************************************
+`,Ge=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52661,7 +52661,7 @@ interface IteratorObject<T, TReturn, TNext> extends Disposable {
 
 interface AsyncIteratorObject<T, TReturn, TNext> extends AsyncDisposable {
 }
-`,Cn=`/*! *****************************************************************************
+`,xn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52685,7 +52685,7 @@ interface ErrorConstructor {
      */
     isError(error: unknown): error is Error;
 }
-`,xn=`/*! *****************************************************************************
+`,Cn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53323,7 +53323,7 @@ declare global {
 
     var Iterator: IteratorConstructor;
 }
-`,Gn=`/*! *****************************************************************************
+`,_n=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53357,7 +53357,7 @@ interface PromiseConstructor {
      */
     try<T, U extends unknown[]>(callbackFn: (...args: U) => T | PromiseLike<T>, ...args: U): Promise<Awaited<T>>;
 }
-`,_n=`/*! *****************************************************************************
+`,Gn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -72529,11 +72529,818 @@ export function getNextMatch(start: Node, elementName: string): Element;
 export function getNextMarker(start: Node): [Node, Array<Node>];
 /** @deprecated not supported on the server side */
 export function runHydrationEvents(): void;
-`,ut={};function y(){return y=Object.assign?Object.assign.bind():function(e){for(var n=1;n<arguments.length;n++){var t=arguments[n];for(var r in t)({}).hasOwnProperty.call(t,r)&&(e[r]=t[r])}return e},y.apply(null,arguments)}var G=!1;try{G=typeof localStorage<"u"}catch{}var ft=typeof process<"u",bt=G&&typeof localStorage.getItem=="function"&&localStorage.getItem("DEBUG")||ft&&ut.DEBUG,_=bt?console.log:function(e){return""};function gt(e,n,t,r,o){r===void 0&&(r={});var a=y({},z(t),r),i=yt(e,n,a,t,o),s=i.languageServiceHost,c=i.updateFile,l=i.deleteFile,d=t.createLanguageService(s),p=d.getCompilerOptionsDiagnostics();if(p.length){var m=B(e,r,t);throw new Error(t.formatDiagnostics(p,m.compilerHost))}return{name:"vfs",sys:e,languageService:d,getSourceFile:function(u){var h;return(h=d.getProgram())==null?void 0:h.getSourceFile(u)},createFile:function(u,h){c(t.createSourceFile(u,h,a.target,!1))},updateFile:function(u,h,b){var O=d.getProgram().getSourceFile(u);if(!O)throw new Error("Did not find a source file for "+u);var w=O.text,N=b??t.createTextSpan(0,w.length),Jt=w.slice(0,N.start)+h+w.slice(N.start+N.length),Qt=t.updateSourceFile(O,Jt,{span:N,newLength:h.length});c(Qt)},deleteFile:function(u){var h=d.getProgram().getSourceFile(u);h&&l(h)}}}function T(e){throw new Error("Method '"+e+"' is not implemented.")}function A(e,n){return function(){for(var t=arguments.length,r=new Array(t),o=0;o<t;o++)r[o]=arguments[o];var a=n.apply(void 0,r),i=typeof a=="string"?a.slice(0,80)+"...":a;return _.apply(void 0,["> "+e].concat(r)),_("< "+i),a}}var z=function(n){return y({},n.getDefaultCompilerOptions(),{jsx:n.JsxEmit.React,strict:!0,esModuleInterop:!0,module:n.ModuleKind.ESNext,suppressOutputPathCheck:!0,skipLibCheck:!0,skipDefaultLibCheck:!0},n.versionMajorMinor&&Number(n.versionMajorMinor.split(".")[0])>=6?{ignoreDeprecations:"6.0"}:{moduleResolution:n.ModuleResolutionKind.NodeJs})},k=function(n){return n.replace("/","/lib.").toLowerCase()};function vt(e){return{args:[],createDirectory:function(){return T("createDirectory")},directoryExists:A("directoryExists",function(n){return Array.from(e.keys()).some(function(t){return t.startsWith(n)})}),exit:function(){return T("exit")},fileExists:A("fileExists",function(n){return e.has(n)||e.has(k(n))}),getCurrentDirectory:function(){return"/"},getDirectories:function(){return[]},getExecutingFilePath:function(){return T("getExecutingFilePath")},readDirectory:A("readDirectory",function(n){return n==="/"?Array.from(e.keys()):[]}),readFile:A("readFile",function(n){var t;return(t=e.get(n))!=null?t:e.get(k(n))}),resolvePath:function(t){return t},newLine:`
-`,useCaseSensitiveFileNames:!0,write:function(){return T("write")},writeFile:function(t,r){e.set(t,r)},deleteFile:function(t){e.delete(t)}}}function B(e,n,t){var r=new Map,o=function(s){return r.set(s.fileName,s),s},a={compilerHost:y({},e,{getCanonicalFileName:function(s){return s},getDefaultLibFileName:function(){return"/"+t.getDefaultLibFileName(n)},getNewLine:function(){return e.newLine},getSourceFile:function(s,c){var l;return r.get(s)||o(t.createSourceFile(s,e.readFile(s),(l=c??n.target)!=null?l:z(t).target,!1))},useCaseSensitiveFileNames:function(){return e.useCaseSensitiveFileNames}}),updateFile:function(s){var c=r.has(s.fileName);return e.writeFile(s.fileName,s.text),r.set(s.fileName,s),c},deleteFile:function(s){var c=r.has(s.fileName);return r.delete(s.fileName),e.deleteFile(s.fileName),c}};return a}function yt(e,n,t,r,o){var a=[].concat(n),i=B(e,t,r),s=i.compilerHost,c=i.updateFile,l=i.deleteFile,d=new Map,p=0,m=y({},s,{getProjectVersion:function(){return p.toString()},getCompilationSettings:function(){return t},getCustomTransformers:function(){return o},getScriptFileNames:function(){return a.slice()},getScriptSnapshot:function(h){var b=e.readFile(h);if(b&&typeof b=="string")return r.ScriptSnapshot.fromString(b)},getScriptVersion:function(h){return d.get(h)||"0"},writeFile:e.writeFile}),f={languageServiceHost:m,updateFile:function(h){p++,d.set(h.fileName,p.toString()),a.includes(h.fileName)||a.push(h.fileName),c(h)},deleteFile:function(h){p++,d.set(h.fileName,p.toString());var b=a.indexOf(h.fileName);b!==-1&&a.splice(b,1),l(h)}};return f}/**
+`,ut=`import { Queue, type Computed, type Effect } from "./core/index.js";
+import type { Signal } from "./core/index.js";
+export interface BoundaryComputed<T> extends Computed<T> {
+    _propagationMask: number;
+}
+export declare class CollectionQueue extends Queue {
+    _collectionType: number;
+    _sources: Set<Computed<any>>;
+    _disabled: Signal<boolean>;
+    _initialized: boolean;
+    constructor(type: number);
+    run(type: number): void;
+    notify(node: Effect<any>, type: number, flags: number, error?: any): boolean;
+    checkSources(): void;
+}
+export declare function createLoadBoundary(fn: () => any, fallback: () => any): () => unknown;
+export declare function createErrorBoundary<U>(fn: () => any, fallback: (error: unknown, reset: () => void) => U): () => unknown;
+export declare function flatten(children: any, options?: {
+    skipNonRendered?: boolean;
+    doNotUnwrap?: boolean;
+}): any;
+`,ft=`export declare function action<Args extends any[], Y, R>(genFn: (...args: Args) => Generator<Y, R, any> | AsyncGenerator<Y, R, any>): (...args: Args) => Promise<R>;
+`,bt=`import { type OptimisticLane } from "./lanes.js";
+import type { Computed } from "./types.js";
+export declare function handleAsync<T>(el: Computed<T>, result: T | PromiseLike<T> | AsyncIterable<T>, setter?: (value: T) => void): T;
+export declare function clearStatus(el: Computed<any>): void;
+export declare function notifyStatus(el: Computed<any>, status: number, error: any, blockStatus?: boolean, lane?: OptimisticLane): void;
+`,gt=`export declare const REACTIVE_NONE = 0;
+export declare const REACTIVE_CHECK: number;
+export declare const REACTIVE_DIRTY: number;
+export declare const REACTIVE_RECOMPUTING_DEPS: number;
+export declare const REACTIVE_IN_HEAP: number;
+export declare const REACTIVE_IN_HEAP_HEIGHT: number;
+export declare const REACTIVE_ZOMBIE: number;
+export declare const REACTIVE_DISPOSED: number;
+export declare const REACTIVE_OPTIMISTIC_DIRTY: number;
+export declare const REACTIVE_SNAPSHOT_STALE: number;
+export declare const STATUS_NONE = 0;
+export declare const STATUS_PENDING: number;
+export declare const STATUS_ERROR: number;
+export declare const STATUS_UNINITIALIZED: number;
+export declare const EFFECT_PURE = 0;
+export declare const EFFECT_RENDER = 1;
+export declare const EFFECT_USER = 2;
+export declare const EFFECT_TRACKED = 3;
+export declare const NOT_PENDING: {};
+export declare const NO_SNAPSHOT: {};
+export declare const STORE_SNAPSHOT_PROPS = "sp";
+export declare const SUPPORTS_PROXY: boolean;
+export declare const defaultContext: {};
+export declare const $REFRESH: unique symbol;
+`,vt=`import type { Owner } from "./types.js";
+export interface Context<T> {
+    readonly id: symbol;
+    readonly defaultValue: T | undefined;
+}
+export type ContextRecord = Record<string | symbol, unknown>;
+/**
+ * Context provides a form of dependency injection. It is used to save from needing to pass
+ * data as props through intermediate components. This function creates a new context object
+ * that can be used with \`getContext\` and \`setContext\`.
+ *
+ * A default value can be provided here which will be used when a specific value is not provided
+ * via a \`setContext\` call.
+ */
+export declare function createContext<T>(defaultValue?: T, description?: string): Context<T>;
+/**
+ * Attempts to get a context value for the given key.
+ *
+ * @throws \`NoOwnerError\` if there's no owner at the time of call.
+ * @throws \`ContextNotFoundError\` if a context value has not been set yet.
+ */
+export declare function getContext<T>(context: Context<T>, owner?: Owner | null): T;
+/**
+ * Attempts to set a context value on the parent scope with the given key.
+ *
+ * @throws \`NoOwnerError\` if there's no owner at the time of call.
+ */
+export declare function setContext<T>(context: Context<T>, value?: T, owner?: Owner | null): void;
+`,yt=`import { $REFRESH } from "./constants.js";
+import { type OptimisticLane } from "./lanes.js";
+import type { Computed, FirewallSignal, NodeOptions, Owner, Signal } from "./types.js";
+export declare let tracking: boolean;
+export declare let stale: boolean;
+export declare let refreshing: boolean;
+export declare let pendingCheckActive: boolean;
+export declare let foundPending: boolean;
+export declare let pendingReadActive: boolean;
+export declare let context: Owner | null;
+export declare let currentOptimisticLane: OptimisticLane | null;
+export declare let snapshotCaptureActive: boolean;
+export declare let snapshotSources: Set<any> | null;
+export declare function setSnapshotCapture(active: boolean): void;
+export declare function markSnapshotScope(owner: Owner): void;
+export declare function releaseSnapshotScope(owner: Owner): void;
+export declare function clearSnapshots(): void;
+export declare function recompute(el: Computed<any>, create?: boolean): void;
+export declare function computed<T>(fn: (prev?: T) => T | PromiseLike<T> | AsyncIterable<T>): Computed<T>;
+export declare function computed<T>(fn: (prev: T) => T | PromiseLike<T> | AsyncIterable<T>, initialValue?: T, options?: NodeOptions<T>): Computed<T>;
+export declare function signal<T>(v: T, options?: NodeOptions<T>): Signal<T>;
+export declare function signal<T>(v: T, options?: NodeOptions<T>, firewall?: Computed<any>): FirewallSignal<T>;
+export declare function optimisticSignal<T>(v: T, options?: NodeOptions<T>): Signal<T>;
+export declare function optimisticComputed<T>(fn: (prev?: T) => T | PromiseLike<T> | AsyncIterable<T>, initialValue?: T, options?: NodeOptions<T>): Computed<T>;
+export declare function isEqual<T>(a: T, b: T): boolean;
+/**
+ * Returns the current value stored inside the given compute function without triggering any
+ * dependencies. Use \`untrack\` if you want to also disable owner tracking.
+ */
+export declare let strictRead: string | false;
+export declare function setStrictRead(v: string | false): string | false;
+export declare function untrack<T>(fn: () => T): T;
+export declare function read<T>(el: Signal<T> | Computed<T>): T;
+export declare function setSignal<T>(el: Signal<T> | Computed<T>, v: T | ((prev: T) => T)): T;
+export declare function runWithOwner<T>(owner: Owner | null, fn: () => T): T;
+/**
+ * Update _pendingSignal when pending state changes. When the override clears
+ * (pending -> not pending), merge the sub-lane into the source's lane so
+ * isPending effects are blocked until the full scope resolves.
+ */
+export declare function updatePendingSignal(el: Signal<any> | Computed<any>): void;
+export declare function staleValues<T>(fn: () => T, set?: boolean): T;
+export declare function pending<T>(fn: () => T): T;
+export declare function isPending(fn: () => any): boolean;
+export declare function refresh<T>(fn: (() => T) | (T & {
+    [$REFRESH]: any;
+})): T;
+export declare function isRefreshing(): boolean;
+`,Et=`import type { Computed, NodeOptions, Owner } from "./types.js";
+export declare let leafEffectActive: boolean;
+export interface Effect<T> extends Computed<T>, Owner {
+    _effectFn: (val: T, prev: T | undefined) => void | (() => void);
+    _errorFn?: (err: unknown, cleanup: () => void) => void;
+    _cleanup?: () => void;
+    _modified: boolean;
+    _prevValue: T | undefined;
+    _type: number;
+}
+/**
+ * Effects are the leaf nodes of our reactive graph. When their sources change, they are
+ * automatically added to the queue of effects to re-execute, which will cause them to fetch their
+ * sources and recompute
+ */
+export declare function effect<T>(compute: (prev: T | undefined) => T, effect: (val: T, prev: T | undefined) => void | (() => void), error?: (err: unknown, cleanup: () => void) => void | (() => void), initialValue?: T, options?: NodeOptions<any> & {
+    render?: boolean;
+    defer?: boolean;
+}): void;
+export interface TrackedEffect extends Computed<void> {
+    _cleanup?: () => void;
+    _modified: boolean;
+    _type: number;
+    _run: () => void;
+}
+/**
+ * Internal tracked effect - bypasses heap, goes directly to effect queue.
+ * Children forbidden (__DEV__ throws). Uses stale reads.
+ */
+export declare function trackedEffect(fn: () => void | (() => void), options?: NodeOptions<any>): void;
+`,Tt=`export declare class NotReadyError extends Error {
+    source: any;
+    constructor(source: any);
+}
+export declare class StatusError extends Error {
+    source: any;
+    constructor(source: any, original: any);
+}
+export declare class NoOwnerError extends Error {
+    constructor();
+}
+export declare class ContextNotFoundError extends Error {
+    constructor();
+}
+`,At=`import type { Computed, Link, Signal } from "./types.js";
+export declare function unlinkSubs(link: Link): Link | null;
+export declare function link(dep: Signal<any> | Computed<any>, sub: Computed<any>): void;
+`,Rt=`import type { Computed } from "./types.js";
+export interface Heap {
+    _heap: (Computed<unknown> | undefined)[];
+    _marked: boolean;
+    _min: number;
+    _max: number;
+}
+export declare function increaseHeapSize(n: number, heap: Heap): void;
+export declare function insertIntoHeap(n: Computed<any>, heap: Heap): void;
+export declare function insertIntoHeapHeight(n: Computed<unknown>, heap: Heap): void;
+export declare function deleteFromHeap(n: Computed<unknown>, heap: Heap): void;
+export declare function markHeap(heap: Heap): void;
+export declare function markNode(el: Computed<unknown>, newState?: number): void;
+export declare function runHeap(heap: Heap, recompute: (el: Computed<unknown>) => void): void;
+`,St=`export { ContextNotFoundError, NoOwnerError, NotReadyError } from "./error.js";
+export { isEqual, untrack, runWithOwner, computed, signal, read, setSignal, optimisticSignal, optimisticComputed, isPending, pending, refresh, isRefreshing, staleValues, setSnapshotCapture, markSnapshotScope, releaseSnapshotScope, clearSnapshots, setStrictRead } from "./core.js";
+export { createOwner, createRoot, dispose, getNextChildId, getObserver, getOwner, isDisposed, onCleanup, peekNextChildId } from "./owner.js";
+export { createContext, getContext, setContext, type Context, type ContextRecord } from "./context.js";
+export { handleAsync } from "./async.js";
+export type { Computed, Disposable, FirewallSignal, Link, Owner, Root, Signal, NodeOptions } from "./types.js";
+export { effect, trackedEffect, type Effect, type TrackedEffect } from "./effect.js";
+export { action } from "./action.js";
+export { flush, Queue, GlobalQueue, trackOptimisticStore, type IQueue, type QueueCallback } from "./scheduler.js";
+export * from "./constants.js";
+`,Mt=`import { type QueueCallback, type Transition } from "./scheduler.js";
+import type { Computed, Signal } from "./types.js";
+/**
+ * OptimisticLane represents the context for a single optimistic write.
+ * Each optimistic signal creates its own lane. Lanes merge when their
+ * dependency graphs overlap.
+ */
+export interface OptimisticLane {
+    _source: Signal<any>;
+    _pendingAsync: Set<Computed<any>>;
+    _effectQueues: [QueueCallback[], QueueCallback[]];
+    _mergedInto: OptimisticLane | null;
+    _transition: Transition | null;
+    _parentLane: OptimisticLane | null;
+}
+export declare const signalLanes: WeakMap<Signal<any>, OptimisticLane>;
+export declare const activeLanes: Set<OptimisticLane>;
+/**
+ * Get an existing lane for a signal or create a new one.
+ * Reuses lane for multiple writes to the same signal.
+ */
+export declare function getOrCreateLane(signal: Signal<any>): OptimisticLane;
+/**
+ * Union-find: find the root lane.
+ */
+export declare function findLane(lane: OptimisticLane): OptimisticLane;
+/**
+ * Merge two lanes when their dependency graphs overlap.
+ */
+export declare function mergeLanes(lane1: OptimisticLane, lane2: OptimisticLane): OptimisticLane;
+/**
+ * Resolve a node's lane: follow union-find chain, verify active, clear if stale.
+ */
+export declare function resolveLane(el: {
+    _optimisticLane?: OptimisticLane;
+}): OptimisticLane | undefined;
+/**
+ * Check if a node has an active optimistic override (pending value differs from base).
+ */
+export declare function hasActiveOverride(el: {
+    _optimistic?: boolean;
+    _pendingValue?: any;
+}): boolean;
+/**
+ * Assign or merge a lane onto a node. At convergence points (node already has
+ * a different active lane), merge unless the node has an active override.
+ */
+export declare function assignOrMergeLane(el: {
+    _optimisticLane?: OptimisticLane;
+    _optimistic?: boolean;
+    _pendingValue?: any;
+}, sourceLane: OptimisticLane): void;
+`,It=`import type { Computed, Disposable, Owner, Root } from "./types.js";
+export declare function markDisposal(el: Owner): void;
+export declare function dispose(node: Computed<unknown>): void;
+export declare function disposeChildren(node: Owner, self?: boolean, zombie?: boolean): void;
+export declare function getNextChildId(owner: Owner): string;
+export declare function peekNextChildId(owner: Owner): string;
+export declare function getObserver(): Owner | null;
+export declare function getOwner(): Owner | null;
+export declare function onCleanup(fn: Disposable): Disposable;
+export declare function isDisposed(node: Owner): boolean;
+export declare function createOwner(options?: {
+    id?: string;
+    transparent?: boolean;
+}): Root;
+/**
+ * Creates a new non-tracked reactive context with manual disposal
+ *
+ * @param fn a function in which the reactive state is scoped
+ * @returns the output of \`fn\`.
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/create-root
+ */
+export declare function createRoot<T>(init: ((dispose: () => void) => T) | (() => T), options?: {
+    id?: string;
+    transparent?: boolean;
+}): T;
+`,Lt=`import { type Heap } from "./heap.js";
+import { activeLanes, assignOrMergeLane, findLane } from "./lanes.js";
+import type { Computed, Signal } from "./types.js";
+export { activeLanes, assignOrMergeLane, findLane };
+export { getOrCreateLane, hasActiveOverride, mergeLanes, resolveLane, type OptimisticLane } from "./lanes.js";
+export declare const dirtyQueue: Heap;
+export declare const zombieQueue: Heap;
+export declare let clock: number;
+export declare let activeTransition: Transition | null;
+export declare let projectionWriteActive: boolean;
+export declare function setProjectionWriteActive(value: boolean): void;
+export type QueueCallback = (type: number) => void;
+type QueueStub = {
+    _queues: [QueueCallback[], QueueCallback[]];
+    _children: QueueStub[];
+};
+export interface Transition {
+    _time: number;
+    _asyncNodes: Computed<any>[];
+    _pendingNodes: Signal<any>[];
+    _optimisticNodes: Signal<any>[];
+    _optimisticStores: Set<any>;
+    _actions: Array<Generator<any, any, any> | AsyncGenerator<any, any, any>>;
+    _queueStash: QueueStub;
+    _done: boolean | Transition;
+}
+export declare function schedule(): void;
+export interface IQueue {
+    enqueue(type: number, fn: QueueCallback): void;
+    run(type: number): boolean | void;
+    addChild(child: IQueue): void;
+    removeChild(child: IQueue): void;
+    created: number;
+    notify(node: Computed<any>, mask: number, flags: number, error?: any): boolean;
+    stashQueues(stub: QueueStub): void;
+    restoreQueues(stub: QueueStub): void;
+    _parent: IQueue | null;
+}
+export declare class Queue implements IQueue {
+    _parent: IQueue | null;
+    _queues: [QueueCallback[], QueueCallback[]];
+    _children: IQueue[];
+    created: number;
+    addChild(child: IQueue): void;
+    removeChild(child: IQueue): void;
+    notify(node: Computed<any>, mask: number, flags: number, error?: any): boolean;
+    run(type: number): void;
+    enqueue(type: number, fn: QueueCallback): void;
+    stashQueues(stub: QueueStub): void;
+    restoreQueues(stub: QueueStub): void;
+}
+export declare class GlobalQueue extends Queue {
+    _running: boolean;
+    _pendingNodes: Signal<any>[];
+    _optimisticNodes: Signal<any>[];
+    _optimisticStores: Set<any>;
+    static _update: (el: Computed<unknown>) => void;
+    static _dispose: (el: Computed<unknown>, self: boolean, zombie: boolean) => void;
+    static _clearOptimisticStore: ((store: any) => void) | null;
+    flush(): void;
+    notify(node: Computed<any>, mask: number, flags: number, error?: any): boolean;
+    initTransition(transition?: Transition | null): void;
+}
+export declare function insertSubs(node: Signal<any> | Computed<any>, optimistic?: boolean): void;
+export declare function finalizePureQueue(completingTransition?: Transition | null, incomplete?: boolean): void;
+export declare function trackOptimisticStore(store: any): void;
+export declare const globalQueue: GlobalQueue;
+/**
+ * By default, changes are batched on the microtask queue which is an async process. You can flush
+ * the queue synchronously to get the latest updates by calling \`flush()\`.
+ */
+export declare function flush(): void;
+export declare function currentTransition(transition: Transition): Transition;
+export declare function setActiveTransition(transition: Transition | null): void;
+export declare function runInTransition<T>(transition: Transition, fn: () => T): T;
+`,Dt=`import type { NOT_PENDING } from "./constants.js";
+import type { OptimisticLane } from "./lanes.js";
+import type { IQueue, Transition } from "./scheduler.js";
+export interface Disposable {
+    (): void;
+}
+export interface Link {
+    _dep: Signal<unknown> | Computed<unknown>;
+    _sub: Computed<unknown>;
+    _nextDep: Link | null;
+    _prevSub: Link | null;
+    _nextSub: Link | null;
+}
+export interface NodeOptions<T> {
+    id?: string;
+    name?: string;
+    transparent?: boolean;
+    equals?: ((prev: T, next: T) => boolean) | false;
+    pureWrite?: boolean;
+    unobserved?: () => void;
+    lazy?: boolean;
+}
+export interface RawSignal<T> {
+    _subs: Link | null;
+    _subsTail: Link | null;
+    _value: T;
+    _snapshotValue?: any;
+    _name?: string;
+    _equals: false | ((a: T, b: T) => boolean);
+    _pureWrite?: boolean;
+    _unobserved?: () => void;
+    _time: number;
+    _transition: Transition | null;
+    _pendingValue: T | typeof NOT_PENDING;
+    _optimistic?: boolean;
+    _optimisticLane?: OptimisticLane;
+    _pendingSignal?: Signal<boolean>;
+    _pendingValueComputed?: Computed<T>;
+    _parentSource?: Signal<any> | Computed<any>;
+}
+export interface FirewallSignal<T> extends RawSignal<T> {
+    _firewall: Computed<any>;
+    _nextChild: FirewallSignal<unknown> | null;
+}
+export type Signal<T> = RawSignal<T> | FirewallSignal<T>;
+export interface Owner {
+    id?: string;
+    _transparent?: boolean;
+    _snapshotScope?: boolean;
+    _disposal: Disposable | Disposable[] | null;
+    _parent: Owner | null;
+    _context: Record<symbol | string, unknown>;
+    _childCount: number;
+    _queue: IQueue;
+    _firstChild: Owner | null;
+    _nextSibling: Owner | null;
+    _pendingDisposal: Disposable | Disposable[] | null;
+    _pendingFirstChild: Owner | null;
+}
+export interface Computed<T> extends RawSignal<T>, Owner {
+    _deps: Link | null;
+    _depsTail: Link | null;
+    _flags: number;
+    _inSnapshotScope?: boolean;
+    _error?: unknown;
+    _statusFlags: number;
+    _height: number;
+    _nextHeap: Computed<any> | undefined;
+    _prevHeap: Computed<any>;
+    _fn: (prev?: T) => T;
+    _inFlight: PromiseLike<T> | AsyncIterable<T> | null;
+    _child: FirewallSignal<any> | null;
+    _notifyStatus?: (status?: number, error?: any) => void;
+}
+export interface Root extends Owner {
+    _root: true;
+    _parentComputed: Computed<any> | null;
+    dispose(self?: boolean): void;
+}
+`,Nt=`export { ContextNotFoundError, NoOwnerError, NotReadyError, action, createContext, createOwner, createRoot, runWithOwner, flush, getNextChildId, peekNextChildId, getContext, setContext, getOwner, onCleanup, isDisposed, getObserver, isEqual, untrack, isPending, pending, isRefreshing, refresh, SUPPORTS_PROXY, setSnapshotCapture, markSnapshotScope, releaseSnapshotScope, clearSnapshots, setStrictRead } from "./core/index.js";
+export type { Owner, Context, ContextRecord, IQueue } from "./core/index.js";
+export * from "./signals.js";
+export { mapArray, repeat, type Maybe } from "./map.js";
+export * from "./store/index.js";
+export { createLoadBoundary, createErrorBoundary, flatten } from "./boundaries.js";
+`,Pt=`import { type Accessor } from "./signals.js";
+export type Maybe<T> = T | void | null | undefined | false;
+/**
+ * Reactively transforms an array with a callback function - underlying helper for the \`<For>\` control flow
+ *
+ * similar to \`Array.prototype.map\`, but gets the value and index as accessors, transforms only values that changed and returns an accessor and reactively tracks changes to the list.
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/map-array
+ */
+export declare function mapArray<Item, MappedItem>(list: Accessor<Maybe<readonly Item[]>>, map: (value: Accessor<Item>, index: Accessor<number>) => MappedItem, options?: {
+    keyed?: boolean | ((item: Item) => any);
+    fallback?: Accessor<any>;
+    name?: string;
+}): Accessor<MappedItem[]>;
+/**
+ * Reactively repeats a callback function the count provided - underlying helper for the \`<Repeat>\` control flow
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/repeat
+ */
+export declare function repeat(count: Accessor<number>, map: (index: number) => any, options?: {
+    from?: Accessor<number | undefined>;
+    fallback?: Accessor<any>;
+    name?: string;
+}): Accessor<any[]>;
+`,xt=`export type Accessor<T> = () => T;
+export type Setter<in out T> = {
+    <U extends T>(...args: undefined extends T ? [] : [value: Exclude<U, Function> | ((prev: T) => U)]): undefined extends T ? undefined : U;
+    <U extends T>(value: (prev: T) => U): U;
+    <U extends T>(value: Exclude<U, Function>): U;
+    <U extends T>(value: Exclude<U, Function> | ((prev: T) => U)): U;
+};
+export type Signal<T> = [get: Accessor<T>, set: Setter<T>];
+export type ComputeFunction<Prev, Next extends Prev = Prev> = (v: Prev) => PromiseLike<Next> | AsyncIterable<Next> | Next;
+export type EffectFunction<Prev, Next extends Prev = Prev> = (v: Next, p?: Prev) => (() => void) | void;
+export type EffectBundle<Prev, Next extends Prev = Prev> = {
+    effect: EffectFunction<Prev, Next>;
+    error: (err: unknown, cleanup: () => void) => void;
+};
+/** Options for effect primitives (\`createEffect\`, \`createRenderEffect\`, \`createTrackedEffect\`, \`createReaction\`). */
+export interface EffectOptions {
+    /** Debug name (dev mode only) */
+    name?: string;
+    /** When true, defers the initial effect execution until the next change */
+    defer?: boolean;
+}
+/** Options for plain signals created with \`createSignal(value)\` or \`createOptimistic(value)\`. */
+export interface SignalOptions<T> {
+    /** Debug name (dev mode only) */
+    name?: string;
+    /** Custom equality function, or \`false\` to always notify subscribers */
+    equals?: false | ((prev: T, next: T) => boolean);
+    /** Suppress dev-mode warnings when writing inside an owned scope */
+    pureWrite?: boolean;
+    /** Callback invoked when the signal loses all subscribers */
+    unobserved?: () => void;
+}
+/**
+ * Options for read-only memos created with \`createMemo\`.
+ * Also used in combination with \`SignalOptions\` for writable memos
+ * (\`createSignal(fn)\` / \`createOptimistic(fn)\`).
+ */
+export interface MemoOptions<T> {
+    /** Stable identifier for the owner hierarchy */
+    id?: string;
+    /** Debug name (dev mode only) */
+    name?: string;
+    /** When true, the owner is invisible to the ID scheme -- inherits parent ID and doesn't consume a childCount slot */
+    transparent?: boolean;
+    /** Custom equality function, or \`false\` to always notify subscribers */
+    equals?: false | ((prev: T, next: T) => boolean);
+    /** Callback invoked when the computed loses all subscribers */
+    unobserved?: () => void;
+    /** When true, defers the initial computation until the value is first read */
+    lazy?: boolean;
+}
+export type NoInfer<T extends any> = [T][T extends any ? 0 : never];
+/**
+ * Creates a simple reactive state with a getter and setter.
+ *
+ * When called with a plain value, creates a signal with \`SignalOptions\` (name, equals, pureWrite, unobserved).
+ * When called with a function, creates a writable memo with \`SignalOptions & MemoOptions\` (adds id, lazy).
+ *
+ * \`\`\`typescript
+ * // Plain signal
+ * const [state, setState] = createSignal<T>(value, options?: SignalOptions<T>);
+ * // Writable memo (function overload)
+ * const [state, setState] = createSignal<T>(fn, initialValue?, options?: SignalOptions<T> & MemoOptions<T>);
+ * \`\`\`
+ * @param value initial value of the state; if empty, the state's type will automatically extended with undefined
+ * @param options optional object with a name for debugging purposes and equals, a comparator function for the previous and next value to allow fine-grained control over the reactivity
+ *
+ * @returns \`[state: Accessor<T>, setState: Setter<T>]\`
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-signal
+ */
+export declare function createSignal<T>(): Signal<T | undefined>;
+export declare function createSignal<T>(value: Exclude<T, Function>, options?: SignalOptions<T>): Signal<T>;
+export declare function createSignal<T>(fn: ComputeFunction<T>, initialValue?: T, options?: SignalOptions<T> & MemoOptions<T>): Signal<T>;
+/**
+ * Creates a readonly derived reactive memoized signal.
+ *
+ * \`\`\`typescript
+ * const value = createMemo<T>(compute, initialValue?, options?: MemoOptions<T>);
+ * \`\`\`
+ * @param compute a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param value an optional initial value for the computation; if set, fn will never receive undefined as first argument
+ * @param options \`MemoOptions\` -- id, name, equals, unobserved, lazy
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-memo
+ */
+export declare function createMemo<Next extends Prev, Prev = Next>(compute: ComputeFunction<undefined | NoInfer<Prev>, Next>): Accessor<Next>;
+export declare function createMemo<Next extends Prev, Init = Next, Prev = Next>(compute: ComputeFunction<Init | Prev, Next>, value: Init, options?: MemoOptions<Next>): Accessor<Next>;
+/**
+ * Creates a reactive effect that runs after the render phase.
+ *
+ * \`\`\`typescript
+ * createEffect<T>(compute, effectFn | { effect, error }, initialValue?, options?: EffectOptions);
+ * \`\`\`
+ * @param compute a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param effectFn a function that receives the new value and is used to perform side effects (return a cleanup function), or an \`EffectBundle\` with \`effect\` and \`error\` handlers
+ * @param value an optional initial value for the computation; if set, fn will never receive undefined as first argument
+ * @param options \`EffectOptions\` -- name, defer
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-effect
+ */
+export declare function createEffect<Next>(compute: ComputeFunction<undefined | NoInfer<Next>, Next>, effectFn: EffectFunction<NoInfer<Next>, Next> | EffectBundle<NoInfer<Next>, Next>): void;
+export declare function createEffect<Next, Init = Next>(compute: ComputeFunction<Init | Next, Next>, effect: EffectFunction<Next, Next> | EffectBundle<Next, Next>, value: Init, options?: EffectOptions): void;
+/**
+ * Creates a reactive computation that runs during the render phase as DOM elements
+ * are created and updated but not necessarily connected.
+ *
+ * \`\`\`typescript
+ * createRenderEffect<T>(compute, effectFn, initialValue?, options?: EffectOptions);
+ * \`\`\`
+ * @param compute a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param effectFn a function that receives the new value and is used to perform side effects
+ * @param value an optional initial value for the computation; if set, fn will never receive undefined as first argument
+ * @param options \`EffectOptions\` -- name, defer
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-render-effect
+ */
+export declare function createRenderEffect<Next>(compute: ComputeFunction<undefined | NoInfer<Next>, Next>, effectFn: EffectFunction<NoInfer<Next>, Next>): void;
+export declare function createRenderEffect<Next, Init = Next>(compute: ComputeFunction<Init | Next, Next>, effectFn: EffectFunction<Next, Next>, value: Init, options?: EffectOptions): void;
+/**
+ * Creates a tracked reactive effect where dependency tracking and side effects happen
+ * in the same scope.
+ *
+ * WARNING: Because tracking and effects happen in the same scope, this primitive
+ * may run multiple times for a single change or show tearing (reading inconsistent
+ * state). Use only when dynamic subscription patterns require same-scope tracking.
+ *
+ * \`\`\`typescript
+ * createTrackedEffect(compute, options?: EffectOptions);
+ * \`\`\`
+ * @param compute a function that contains reactive reads to track and returns an optional cleanup function to run on disposal or before next execution
+ * @param options \`EffectOptions\` -- name, defer
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-tracked-effect
+ */
+export declare function createTrackedEffect(compute: () => void | (() => void), options?: EffectOptions): void;
+/**
+ * Creates a reactive computation that runs after the render phase with flexible tracking.
+ *
+ * \`\`\`typescript
+ * const track = createReaction(effectFn, options?: EffectOptions);
+ * track(() => { // reactive reads });
+ * \`\`\`
+ * @param effectFn a function (or \`EffectBundle\`) that is called when tracked function is invalidated
+ * @param options \`EffectOptions\` -- name, defer
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-reaction
+ */
+export declare function createReaction(effectFn: EffectFunction<undefined> | EffectBundle<undefined>, options?: EffectOptions): (tracking: () => void) => void;
+/**
+ * Returns a promise of the resolved value of a reactive expression
+ * @param fn a reactive expression to resolve
+ */
+export declare function resolve<T>(fn: () => T): Promise<T>;
+/**
+ * Creates an optimistic signal that can be used to optimistically update a value
+ * and then revert it back to the previous value at end of transition.
+ *
+ * When called with a plain value, creates an optimistic signal with \`SignalOptions\` (name, equals, pureWrite, unobserved).
+ * When called with a function, creates a writable optimistic memo with \`SignalOptions & MemoOptions\` (adds id, lazy).
+ *
+ * \`\`\`typescript
+ * // Plain optimistic signal
+ * const [state, setState] = createOptimistic<T>(value, options?: SignalOptions<T>);
+ * // Writable optimistic memo (function overload)
+ * const [state, setState] = createOptimistic<T>(fn, initialValue?, options?: SignalOptions<T> & MemoOptions<T>);
+ * \`\`\`
+ * @param value initial value of the signal; if empty, the signal's type will automatically extended with undefined
+ * @param options optional object with a name for debugging purposes and equals, a comparator function for the previous and next value to allow fine-grained control over the reactivity
+ *
+ * @returns \`[state: Accessor<T>, setState: Setter<T>]\`
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-optimistic-signal
+ */
+export declare function createOptimistic<T>(): Signal<T | undefined>;
+export declare function createOptimistic<T>(value: Exclude<T, Function>, options?: SignalOptions<T>): Signal<T>;
+export declare function createOptimistic<T>(fn: ComputeFunction<T>, initialValue?: T, options?: SignalOptions<T> & MemoOptions<T>): Signal<T>;
+/**
+ * Runs a callback after the current flush cycle completes.
+ *
+ * When called within a reactive context (owner), uses a tracked effect with untracked
+ * reads - this means normal signal reads won't create subscriptions, but uninitialized
+ * async values will throw NotReadyError, causing the callback to re-run when they settle.
+ *
+ * When called without an owner, runs once and immediately calls any returned cleanup.
+ *
+ * @param callback Function to run, may return a cleanup function
+ */
+export declare function onSettled(callback: () => void | (() => void)): void;
+`,Ct=`export type { Store, StoreSetter, StoreNode, StoreOptions, ProjectionOptions, NotWrappable, SolidStore } from "./store.js";
+export type { Merge, Omit } from "./utils.js";
+export { isWrappable, createStore, deep, $TRACK, $PROXY, $TARGET } from "./store.js";
+export { createProjection } from "./projection.js";
+export { createOptimisticStore } from "./optimistic.js";
+export { reconcile } from "./reconcile.js";
+export { snapshot, merge, omit } from "./utils.js";
+`,Wt=`import { $REFRESH } from "../core/index.js";
+import { type NoFn, type ProjectionOptions, type Store, type StoreSetter } from "./store.js";
+/**
+ * Creates an optimistic store that can be used to optimistically update a value
+ * and then revert it back to the previous value at end of transition.
+ *
+ * When called with a plain value, creates an optimistic store.
+ * When called with a function, creates a derived optimistic store with \`ProjectionOptions\` (name, key, all).
+ *
+ * @param fn a function that receives the current store and can be used to mutate it directly inside a transition
+ * @param initial The initial value of the store.
+ * @param options Optional projection options for reconciliation.
+ *
+ * @returns A tuple containing a store accessor and a setter function to apply changes.
+ */
+export declare function createOptimisticStore<T extends object = {}>(store: NoFn<T> | Store<NoFn<T>>): [get: Store<T>, set: StoreSetter<T>];
+export declare function createOptimisticStore<T extends object = {}>(fn: (store: T) => void | T | Promise<void | T> | AsyncIterable<void | T>, store?: NoFn<T> | Store<NoFn<T>>, options?: ProjectionOptions): [get: Store<T> & {
+    [$REFRESH]: any;
+}, set: StoreSetter<T>];
+`,Ot=`import { $REFRESH, type Computed } from "../core/index.js";
+import { type ProjectionOptions, type Store } from "./store.js";
+export declare function createProjectionInternal<T extends object = {}>(fn: (draft: T) => void | T | Promise<void | T> | AsyncIterable<void | T>, initialValue?: T, options?: ProjectionOptions): {
+    store: Store<T> & {
+        [$REFRESH]: any;
+    };
+    node: Computed<void | T>;
+};
+/**
+ * Creates a mutable derived store (projection). The derive function receives a mutable
+ * draft and can mutate it directly or return a new value for reconciliation.
+ *
+ * \`\`\`typescript
+ * const store = createProjection<T>(fn, initialValue?, options?: ProjectionOptions);
+ * \`\`\`
+ * @param fn a function that receives the current draft and mutates it or returns new data
+ * @param initialValue the initial store value (defaults to \`{}\`)
+ * @param options \`ProjectionOptions\` -- name, key, all
+ *
+ * @see {@link https://github.com/solidjs/x-reactivity#createprojection}
+ */
+export declare function createProjection<T extends object = {}>(fn: (draft: T) => void | T | Promise<void | T> | AsyncIterable<void | T>, initialValue?: T, options?: ProjectionOptions): Store<T> & {
+    [$REFRESH]: any;
+};
+export declare const writeTraps: ProxyHandler<any>;
+`,wt=`export declare function reconcile<T extends U, U>(value: T, key: string | ((item: NonNullable<any>) => any), all?: boolean): (state: U) => void;
+`,_t=`import { $REFRESH, STORE_SNAPSHOT_PROPS, type Computed, type Signal } from "../core/index.js";
+export type Store<T> = Readonly<T>;
+export type StoreSetter<T> = (fn: (state: T) => T | void) => void;
+/** Base options for store primitives. */
+export interface StoreOptions {
+    /** Debug name (dev mode only) */
+    name?: string;
+}
+/** Options for derived/projected stores created with \`createStore(fn)\`, \`createProjection\`, or \`createOptimisticStore(fn)\`. */
+export interface ProjectionOptions extends StoreOptions {
+    /** Key property name or function for reconciliation identity */
+    key?: string | ((item: NonNullable<any>) => any);
+    /** When true, reconciles all properties (not just tracked ones) */
+    all?: boolean;
+}
+export type NoFn<T> = T extends Function ? never : T;
+type DataNode = Signal<any>;
+type DataNodes = Record<PropertyKey, DataNode>;
+export declare const $TRACK: unique symbol, $DEEP: unique symbol, $TARGET: unique symbol, $PROXY: unique symbol, $DELETED: unique symbol;
+export declare const STORE_VALUE = "v", STORE_OVERRIDE = "o", STORE_OPTIMISTIC_OVERRIDE = "x", STORE_NODE = "n", STORE_HAS = "h", STORE_WRAP = "w", STORE_LOOKUP = "l", STORE_FIREWALL = "f", STORE_OPTIMISTIC = "p";
+export type StoreNode = {
+    [$PROXY]: any;
+    [STORE_VALUE]: Record<PropertyKey, any>;
+    [STORE_OVERRIDE]?: Record<PropertyKey, any>;
+    [STORE_OPTIMISTIC_OVERRIDE]?: Record<PropertyKey, any>;
+    [STORE_NODE]?: DataNodes;
+    [STORE_HAS]?: DataNodes;
+    [STORE_WRAP]?: (value: any, target?: StoreNode) => any;
+    [STORE_LOOKUP]?: WeakMap<any, any>;
+    [STORE_FIREWALL]?: Computed<any>;
+    [STORE_OPTIMISTIC]?: boolean;
+    [STORE_SNAPSHOT_PROPS]?: Record<PropertyKey, any>;
+};
+export declare namespace SolidStore {
+    interface Unwrappable {
+    }
+}
+export type NotWrappable = string | number | bigint | symbol | boolean | Function | null | undefined | SolidStore.Unwrappable[keyof SolidStore.Unwrappable];
+export declare function createStoreProxy<T extends object>(value: T, traps?: ProxyHandler<StoreNode>, extend?: (target: StoreNode) => void): any;
+export declare const storeLookup: WeakMap<WeakKey, any>;
+export declare function wrap<T extends Record<PropertyKey, any>>(value: T, target?: StoreNode): T;
+export declare function isWrappable<T>(obj: T | NotWrappable): obj is T;
+export declare function setWriteOverride(value: boolean): void;
+export declare function getKeys(source: Record<PropertyKey, any>, override: Record<PropertyKey, any> | undefined, enumerable?: boolean): PropertyKey[];
+export declare function getPropertyDescriptor(source: Record<PropertyKey, any>, override: Record<PropertyKey, any> | undefined, property: PropertyKey): PropertyDescriptor | undefined;
+export declare const storeTraps: ProxyHandler<StoreNode>;
+export declare function storeSetter<T extends object>(store: Store<T>, fn: (draft: T) => T | void): void;
+/**
+ * Creates a deeply reactive store with proxy-based tracking.
+ *
+ * When called with a plain value, wraps it in a reactive proxy.
+ * When called with a function, creates a derived projection store with \`ProjectionOptions\` (name, key, all).
+ *
+ * \`\`\`typescript
+ * // Plain store
+ * const [store, setStore] = createStore<T>(initialValue);
+ * // Derived store (projection)
+ * const [store, setStore] = createStore<T>(fn, initialValue?, options?: ProjectionOptions);
+ * \`\`\`
+ * @param store initial value to wrap in a reactive proxy, or a derive function
+ * @param options \`ProjectionOptions\` -- name, key, all (only for derived stores)
+ *
+ * @returns \`[store: Store<T>, setStore: StoreSetter<T>]\`
+ */
+export declare function createStore<T extends object = {}>(store: NoFn<T> | Store<NoFn<T>>): [get: Store<T>, set: StoreSetter<T>];
+export declare function createStore<T extends object = {}>(fn: (store: T) => void | T | Promise<void | T> | AsyncIterable<void | T>, store?: NoFn<T> | Store<NoFn<T>>, options?: ProjectionOptions): [get: Store<T> & {
+    [$REFRESH]: any;
+}, set: StoreSetter<T>];
+export declare function deep<T extends object>(store: Store<T>): Store<T>;
+export {};
+`,Gt=`/**
+ * Returns a non reactive copy of the store object.
+ * It will attempt to preserver the original reference unless the value has been modified.
+ * @param item store proxy object
+ */
+export declare function snapshot<T>(item: T): T;
+export declare function snapshot<T>(item: T, map?: Map<unknown, unknown>, lookup?: WeakMap<any, any>): T;
+type DistributeOverride<T, F> = T extends undefined ? F : T;
+type Override<T, U> = T extends any ? U extends any ? {
+    [K in keyof T]: K extends keyof U ? DistributeOverride<U[K], T[K]> : T[K];
+} & {
+    [K in keyof U]: K extends keyof T ? DistributeOverride<U[K], T[K]> : U[K];
+} : T & U : T & U;
+type OverrideSpread<T, U> = T extends any ? {
+    [K in keyof ({
+        [K in keyof T]: any;
+    } & {
+        [K in keyof U]?: any;
+    } & {
+        [K in U extends any ? keyof U : keyof U]?: any;
+    })]: K extends keyof T ? Exclude<U extends any ? U[K & keyof U] : never, undefined> | T[K] : U extends any ? U[K & keyof U] : never;
+} : T & U;
+type Simplify<T> = T extends any ? {
+    [K in keyof T]: T[K];
+} : T;
+type _Merge<T extends unknown[], Curr = {}> = T extends [
+    infer Next | (() => infer Next),
+    ...infer Rest
+] ? _Merge<Rest, Override<Curr, Next>> : T extends [...infer Rest, infer Next | (() => infer Next)] ? Override<_Merge<Rest, Curr>, Next> : T extends [] ? Curr : T extends (infer I | (() => infer I))[] ? OverrideSpread<Curr, I> : Curr;
+export type Merge<T extends unknown[]> = Simplify<_Merge<T>>;
+export declare function merge<T extends unknown[]>(...sources: T): Merge<T>;
+export type Omit<T, K extends readonly (keyof T)[]> = {
+    [P in keyof T as Exclude<P, K[number]>]: T[P];
+};
+export declare function omit<T extends Record<any, any>, K extends readonly (keyof T)[]>(props: T, ...keys: K): Omit<T, K>;
+export {};
+`,zt={};function y(){return y=Object.assign?Object.assign.bind():function(e){for(var n=1;n<arguments.length;n++){var t=arguments[n];for(var r in t)({}).hasOwnProperty.call(t,r)&&(e[r]=t[r])}return e},y.apply(null,arguments)}var _=!1;try{_=typeof localStorage<"u"}catch{}var kt=typeof process<"u",Bt=_&&typeof localStorage.getItem=="function"&&localStorage.getItem("DEBUG")||kt&&zt.DEBUG,G=Bt?console.log:function(e){return""};function Vt(e,n,t,r,o){r===void 0&&(r={});var a=y({},z(t),r),i=Ht(e,n,a,t,o),s=i.languageServiceHost,c=i.updateFile,l=i.deleteFile,d=t.createLanguageService(s),p=d.getCompilerOptionsDiagnostics();if(p.length){var m=B(e,r,t);throw new Error(t.formatDiagnostics(p,m.compilerHost))}return{name:"vfs",sys:e,languageService:d,getSourceFile:function(u){var h;return(h=d.getProgram())==null?void 0:h.getSourceFile(u)},createFile:function(u,h){c(t.createSourceFile(u,h,a.target,!1))},updateFile:function(u,h,g){var O=d.getProgram().getSourceFile(u);if(!O)throw new Error("Did not find a source file for "+u);var w=O.text,N=g??t.createTextSpan(0,w.length),Tr=w.slice(0,N.start)+h+w.slice(N.start+N.length),Ar=t.updateSourceFile(O,Tr,{span:N,newLength:h.length});c(Ar)},deleteFile:function(u){var h=d.getProgram().getSourceFile(u);h&&l(h)}}}function T(e){throw new Error("Method '"+e+"' is not implemented.")}function A(e,n){return function(){for(var t=arguments.length,r=new Array(t),o=0;o<t;o++)r[o]=arguments[o];var a=n.apply(void 0,r),i=typeof a=="string"?a.slice(0,80)+"...":a;return G.apply(void 0,["> "+e].concat(r)),G("< "+i),a}}var z=function(n){return y({},n.getDefaultCompilerOptions(),{jsx:n.JsxEmit.React,strict:!0,esModuleInterop:!0,module:n.ModuleKind.ESNext,suppressOutputPathCheck:!0,skipLibCheck:!0,skipDefaultLibCheck:!0},n.versionMajorMinor&&Number(n.versionMajorMinor.split(".")[0])>=6?{ignoreDeprecations:"6.0"}:{moduleResolution:n.ModuleResolutionKind.NodeJs})},k=function(n){return n.replace("/","/lib.").toLowerCase()};function Ft(e){return{args:[],createDirectory:function(){return T("createDirectory")},directoryExists:A("directoryExists",function(n){return Array.from(e.keys()).some(function(t){return t.startsWith(n)})}),exit:function(){return T("exit")},fileExists:A("fileExists",function(n){return e.has(n)||e.has(k(n))}),getCurrentDirectory:function(){return"/"},getDirectories:function(){return[]},getExecutingFilePath:function(){return T("getExecutingFilePath")},readDirectory:A("readDirectory",function(n){return n==="/"?Array.from(e.keys()):[]}),readFile:A("readFile",function(n){var t;return(t=e.get(n))!=null?t:e.get(k(n))}),resolvePath:function(t){return t},newLine:`
+`,useCaseSensitiveFileNames:!0,write:function(){return T("write")},writeFile:function(t,r){e.set(t,r)},deleteFile:function(t){e.delete(t)}}}function B(e,n,t){var r=new Map,o=function(s){return r.set(s.fileName,s),s},a={compilerHost:y({},e,{getCanonicalFileName:function(s){return s},getDefaultLibFileName:function(){return"/"+t.getDefaultLibFileName(n)},getNewLine:function(){return e.newLine},getSourceFile:function(s,c){var l;return r.get(s)||o(t.createSourceFile(s,e.readFile(s),(l=c??n.target)!=null?l:z(t).target,!1))},useCaseSensitiveFileNames:function(){return e.useCaseSensitiveFileNames}}),updateFile:function(s){var c=r.has(s.fileName);return e.writeFile(s.fileName,s.text),r.set(s.fileName,s),c},deleteFile:function(s){var c=r.has(s.fileName);return r.delete(s.fileName),e.deleteFile(s.fileName),c}};return a}function Ht(e,n,t,r,o){var a=[].concat(n),i=B(e,t,r),s=i.compilerHost,c=i.updateFile,l=i.deleteFile,d=new Map,p=0,m=y({},s,{getProjectVersion:function(){return p.toString()},getCompilationSettings:function(){return t},getCustomTransformers:function(){return o},getScriptFileNames:function(){return a.slice()},getScriptSnapshot:function(h){var g=e.readFile(h);if(g&&typeof g=="string")return r.ScriptSnapshot.fromString(g)},getScriptVersion:function(h){return d.get(h)||"0"},writeFile:e.writeFile}),b={languageServiceHost:m,updateFile:function(h){p++,d.set(h.fileName,p.toString()),a.includes(h.fileName)||a.push(h.fileName),c(h)},deleteFile:function(h){p++,d.set(h.fileName,p.toString());var g=a.indexOf(h.fileName);g!==-1&&a.splice(g,1),l(h)}};return b}/**
  * @license
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: Apache-2.0
- */const V=Symbol("Comlink.proxy"),Et=Symbol("Comlink.endpoint"),Tt=Symbol("Comlink.releaseProxy"),P=Symbol("Comlink.finalizer"),R=Symbol("Comlink.thrown"),F=e=>typeof e=="object"&&e!==null||typeof e=="function",At={canHandle:e=>F(e)&&e[V],serialize(e){const{port1:n,port2:t}=new MessageChannel;return C(e,n),[t,[t]]},deserialize(e){return e.start(),It(e)}},Rt={canHandle:e=>F(e)&&R in e,serialize({value:e}){let n;return e instanceof Error?n={isError:!0,value:{message:e.message,name:e.name,stack:e.stack}}:n={isError:!1,value:e},[n,[]]},deserialize(e){throw e.isError?Object.assign(new Error(e.value.message),e.value):e.value}},H=new Map([["proxy",At],["throw",Rt]]);function St(e,n){for(const t of e)if(n===t||t==="*"||t instanceof RegExp&&t.test(n))return!0;return!1}function C(e,n=globalThis,t=["*"]){n.addEventListener("message",function r(o){if(!o||!o.data)return;if(!St(t,o.origin)){console.warn(`Invalid origin '${o.origin}' for comlink proxy`);return}const{id:a,type:i,path:s}=Object.assign({path:[]},o.data),c=(o.data.argumentList||[]).map(v);let l;try{const d=s.slice(0,-1).reduce((m,f)=>m[f],e),p=s.reduce((m,f)=>m[f],e);switch(i){case"GET":l=p;break;case"SET":d[s.slice(-1)[0]]=v(o.data.value),l=!0;break;case"APPLY":l=p.apply(d,c);break;case"CONSTRUCT":{const m=new p(...c);l=Ct(m)}break;case"ENDPOINT":{const{port1:m,port2:f}=new MessageChannel;C(e,f),l=Pt(m,[m])}break;case"RELEASE":l=void 0;break;default:return}}catch(d){l={value:d,[R]:0}}Promise.resolve(l).catch(d=>({value:d,[R]:0})).then(d=>{const[p,m]=L(d);n.postMessage(Object.assign(Object.assign({},p),{id:a}),m),i==="RELEASE"&&(n.removeEventListener("message",r),U(n),P in e&&typeof e[P]=="function"&&e[P]())}).catch(d=>{const[p,m]=L({value:new TypeError("Unserializable return value"),[R]:0});n.postMessage(Object.assign(Object.assign({},p),{id:a}),m)})}),n.start&&n.start()}function Mt(e){return e.constructor.name==="MessagePort"}function U(e){Mt(e)&&e.close()}function It(e,n){const t=new Map;return e.addEventListener("message",function(o){const{data:a}=o;if(!a||!a.id)return;const i=t.get(a.id);if(i)try{i(a)}finally{t.delete(a.id)}}),x(e,t,[],n)}function S(e){if(e)throw new Error("Proxy has been released and is not useable")}function K(e){return E(e,new Map,{type:"RELEASE"}).then(()=>{U(e)})}const M=new WeakMap,I="FinalizationRegistry"in globalThis&&new FinalizationRegistry(e=>{const n=(M.get(e)||0)-1;M.set(e,n),n===0&&K(e)});function Lt(e,n){const t=(M.get(n)||0)+1;M.set(n,t),I&&I.register(e,n,e)}function Dt(e){I&&I.unregister(e)}function x(e,n,t=[],r=function(){}){let o=!1;const a=new Proxy(r,{get(i,s){if(S(o),s===Tt)return()=>{Dt(a),K(e),n.clear(),o=!0};if(s==="then"){if(t.length===0)return{then:()=>a};const c=E(e,n,{type:"GET",path:t.map(l=>l.toString())}).then(v);return c.then.bind(c)}return x(e,n,[...t,s])},set(i,s,c){S(o);const[l,d]=L(c);return E(e,n,{type:"SET",path:[...t,s].map(p=>p.toString()),value:l},d).then(v)},apply(i,s,c){S(o);const l=t[t.length-1];if(l===Et)return E(e,n,{type:"ENDPOINT"}).then(v);if(l==="bind")return x(e,n,t.slice(0,-1));const[d,p]=j(c);return E(e,n,{type:"APPLY",path:t.map(m=>m.toString()),argumentList:d},p).then(v)},construct(i,s){S(o);const[c,l]=j(s);return E(e,n,{type:"CONSTRUCT",path:t.map(d=>d.toString()),argumentList:c},l).then(v)}});return Lt(a,e),a}function Nt(e){return Array.prototype.concat.apply([],e)}function j(e){const n=e.map(L);return[n.map(t=>t[0]),Nt(n.map(t=>t[1]))]}const X=new WeakMap;function Pt(e,n){return X.set(e,n),e}function Ct(e){return Object.assign(e,{[V]:!0})}function L(e){for(const[n,t]of H)if(t.canHandle(e)){const[r,o]=t.serialize(e);return[{type:"HANDLER",name:n,value:r},o]}return[{type:"RAW",value:e},X.get(e)||[]]}function v(e){switch(e.type){case"HANDLER":return H.get(e.name).deserialize(e.value);case"RAW":return e.value}}function E(e,n,t,r){return new Promise(o=>{const a=xt();n.set(a,o),e.start&&e.start(),e.postMessage(Object.assign({id:a},t),r)})}function xt(){return new Array(4).fill(0).map(()=>Math.floor(Math.random()*Number.MAX_SAFE_INTEGER).toString(16)).join("-")}function Wt({env:e,path:n,pos:t}){const r=t;if(r===null)return null;try{const o=e.languageService.getQuickInfoAtPosition(n,r);if(!o)return null;const a=o.textSpan.start,i=e.languageService.getTypeDefinitionAtPosition(n,r)??e.languageService.getDefinitionAtPosition(n,r);return{start:a,end:a+o.textSpan.length,typeDef:i,quickInfo:o}}catch(o){return console.error(o),null}}const Ot=new Set(["class","constant","enum","function","interface","keyword","method","namespace","property","text","type","variable"]);function wt(e,n){const{source:t}=e,r=t[t.length-1]!="$";return r?new RegExp(`(?:${t})${r?"$":""}`,e.flags??(e.ignoreCase?"i":"")):e}function Gt(e,n){const t=e.lastIndexOf(`
+ */const V=Symbol("Comlink.proxy"),Ut=Symbol("Comlink.endpoint"),Kt=Symbol("Comlink.releaseProxy"),P=Symbol("Comlink.finalizer"),R=Symbol("Comlink.thrown"),F=e=>typeof e=="object"&&e!==null||typeof e=="function",jt={canHandle:e=>F(e)&&e[V],serialize(e){const{port1:n,port2:t}=new MessageChannel;return x(e,n),[t,[t]]},deserialize(e){return e.start(),Jt(e)}},Xt={canHandle:e=>F(e)&&R in e,serialize({value:e}){let n;return e instanceof Error?n={isError:!0,value:{message:e.message,name:e.name,stack:e.stack}}:n={isError:!1,value:e},[n,[]]},deserialize(e){throw e.isError?Object.assign(new Error(e.value.message),e.value):e.value}},H=new Map([["proxy",jt],["throw",Xt]]);function qt(e,n){for(const t of e)if(n===t||t==="*"||t instanceof RegExp&&t.test(n))return!0;return!1}function x(e,n=globalThis,t=["*"]){n.addEventListener("message",function r(o){if(!o||!o.data)return;if(!qt(t,o.origin)){console.warn(`Invalid origin '${o.origin}' for comlink proxy`);return}const{id:a,type:i,path:s}=Object.assign({path:[]},o.data),c=(o.data.argumentList||[]).map(v);let l;try{const d=s.slice(0,-1).reduce((m,b)=>m[b],e),p=s.reduce((m,b)=>m[b],e);switch(i){case"GET":l=p;break;case"SET":d[s.slice(-1)[0]]=v(o.data.value),l=!0;break;case"APPLY":l=p.apply(d,c);break;case"CONSTRUCT":{const m=new p(...c);l=nr(m)}break;case"ENDPOINT":{const{port1:m,port2:b}=new MessageChannel;x(e,b),l=er(m,[m])}break;case"RELEASE":l=void 0;break;default:return}}catch(d){l={value:d,[R]:0}}Promise.resolve(l).catch(d=>({value:d,[R]:0})).then(d=>{const[p,m]=L(d);n.postMessage(Object.assign(Object.assign({},p),{id:a}),m),i==="RELEASE"&&(n.removeEventListener("message",r),U(n),P in e&&typeof e[P]=="function"&&e[P]())}).catch(d=>{const[p,m]=L({value:new TypeError("Unserializable return value"),[R]:0});n.postMessage(Object.assign(Object.assign({},p),{id:a}),m)})}),n.start&&n.start()}function Yt(e){return e.constructor.name==="MessagePort"}function U(e){Yt(e)&&e.close()}function Jt(e,n){const t=new Map;return e.addEventListener("message",function(o){const{data:a}=o;if(!a||!a.id)return;const i=t.get(a.id);if(i)try{i(a)}finally{t.delete(a.id)}}),C(e,t,[],n)}function S(e){if(e)throw new Error("Proxy has been released and is not useable")}function K(e){return E(e,new Map,{type:"RELEASE"}).then(()=>{U(e)})}const M=new WeakMap,I="FinalizationRegistry"in globalThis&&new FinalizationRegistry(e=>{const n=(M.get(e)||0)-1;M.set(e,n),n===0&&K(e)});function Qt(e,n){const t=(M.get(n)||0)+1;M.set(n,t),I&&I.register(e,n,e)}function Zt(e){I&&I.unregister(e)}function C(e,n,t=[],r=function(){}){let o=!1;const a=new Proxy(r,{get(i,s){if(S(o),s===Kt)return()=>{Zt(a),K(e),n.clear(),o=!0};if(s==="then"){if(t.length===0)return{then:()=>a};const c=E(e,n,{type:"GET",path:t.map(l=>l.toString())}).then(v);return c.then.bind(c)}return C(e,n,[...t,s])},set(i,s,c){S(o);const[l,d]=L(c);return E(e,n,{type:"SET",path:[...t,s].map(p=>p.toString()),value:l},d).then(v)},apply(i,s,c){S(o);const l=t[t.length-1];if(l===Ut)return E(e,n,{type:"ENDPOINT"}).then(v);if(l==="bind")return C(e,n,t.slice(0,-1));const[d,p]=j(c);return E(e,n,{type:"APPLY",path:t.map(m=>m.toString()),argumentList:d},p).then(v)},construct(i,s){S(o);const[c,l]=j(s);return E(e,n,{type:"CONSTRUCT",path:t.map(d=>d.toString()),argumentList:c},l).then(v)}});return Qt(a,e),a}function $t(e){return Array.prototype.concat.apply([],e)}function j(e){const n=e.map(L);return[n.map(t=>t[0]),$t(n.map(t=>t[1]))]}const X=new WeakMap;function er(e,n){return X.set(e,n),e}function nr(e){return Object.assign(e,{[V]:!0})}function L(e){for(const[n,t]of H)if(t.canHandle(e)){const[r,o]=t.serialize(e);return[{type:"HANDLER",name:n,value:r},o]}return[{type:"RAW",value:e},X.get(e)||[]]}function v(e){switch(e.type){case"HANDLER":return H.get(e.name).deserialize(e.value);case"RAW":return e.value}}function E(e,n,t,r){return new Promise(o=>{const a=tr();n.set(a,o),e.start&&e.start(),e.postMessage(Object.assign({id:a},t),r)})}function tr(){return new Array(4).fill(0).map(()=>Math.floor(Math.random()*Number.MAX_SAFE_INTEGER).toString(16)).join("-")}function rr({env:e,path:n,pos:t}){const r=t;if(r===null)return null;try{const o=e.languageService.getQuickInfoAtPosition(n,r);if(!o)return null;const a=o.textSpan.start,i=e.languageService.getTypeDefinitionAtPosition(n,r)??e.languageService.getDefinitionAtPosition(n,r);return{start:a,end:a+o.textSpan.length,typeDef:i,quickInfo:o}}catch(o){return console.error(o),null}}const or=new Set(["class","constant","enum","function","interface","keyword","method","namespace","property","text","type","variable"]);function ar(e,n){const{source:t}=e,r=t[t.length-1]!="$";return r?new RegExp(`(?:${t})${r?"$":""}`,e.flags??(e.ignoreCase?"i":"")):e}function ir(e,n){const t=e.lastIndexOf(`
 `,n-1)+1;let r=e.indexOf(`
-`,n);r===-1&&(r=e.length);const o=e.slice(t,r);return{from:t,to:r,text:o}}function q(e,n,t){const r=Gt(e,n),o=Math.max(r.from,n-250),a=r.text.slice(o-r.from,n-r.from),i=a.search(wt(t));return i<0?null:{from:o+i,to:n,text:a.slice(i)}}const _t=["warning"];async function zt({env:e,path:n,context:t}){const{pos:r,explicit:o}=t,a=e.getSourceFile(n)?.getFullText();if(!a)return null;let i=q(a,r,/\w*/);if(i?.text||(i=q(a,r,/\./)),!i?.text&&!o)return null;const s=e.languageService.getCompletionsAtPosition(n,r,{includeCompletionsForModuleExports:!0,includeCompletionsForImportStatements:!0},{});if(!s)return null;const c=s.entries.filter(l=>!_t.includes(l.kind)).map(l=>{let d=l.kind?String(l.kind):void 0;d==="member"&&(d="property"),d&&!Ot.has(d)&&(d=void 0);const p=e.languageService.getCompletionEntryDetails(n,r,l.name,{},l.source,{},l.data);return{label:l.name,codeActions:p?.codeActions,displayParts:p?.displayParts??[],documentation:p?.documentation,tags:p?.tags,type:d}});return{from:i?i.text==="."?i.to:i.from:r,options:c}}function kt(e){if(e.code===7027)return"warning";switch(e.category){case 1:return"error";case 3:return"info";case 0:return"warning";case 2:return"info";default:return"info"}}function Bt(e){return!!(e.file&&typeof e.start=="number"&&typeof e.length=="number")}function Vt(e){return typeof e.messageText=="string"?e.messageText:e.messageText.messageText}function Ft(e){const n=e.start,t=Vt(e);return{from:n,to:n+e.length,message:t,severity:kt(e)}}function Ht({env:e,path:n,diagnosticCodesToIgnore:t}){if(!e.getSourceFile(n))return[];const o=e.languageService.getSyntacticDiagnostics(n),a=e.languageService.getSemanticDiagnostics(n);return[...o,...a].filter(s=>Bt(s)&&!t.includes(s.code)).map(Ft)}function Ut(e,n,t){const r=e.getSourceFile(n);return r?t===r.getFullText()?!1:(e.updateFile(n,t),!0):(e.createFile(n,t),!0)}function Kt(e){let n=!1,t,r;return{async initialize(){n||(r=await e,t=await r.env,n=!0)},updateFile({path:o,code:a}){t&&Ut(t,o,a)&&r.onFileUpdated?.(t,o,a)},getLints({path:o,diagnosticCodesToIgnore:a}){return t?Ht({env:t,path:o,diagnosticCodesToIgnore:a}):[]},getAutocompletion({path:o,context:a}){return t?zt({env:t,path:o,context:a}):null},getHover({path:o,pos:a}){return t?Wt({env:t,path:o,pos:a}):null},getEnv(){return t}}}const jt=Object.assign({"../../node_modules/typescript/lib/lib.d.ts":J,"../../node_modules/typescript/lib/lib.decorators.d.ts":Q,"../../node_modules/typescript/lib/lib.decorators.legacy.d.ts":Z,"../../node_modules/typescript/lib/lib.dom.asynciterable.d.ts":$,"../../node_modules/typescript/lib/lib.dom.d.ts":ee,"../../node_modules/typescript/lib/lib.dom.iterable.d.ts":ne,"../../node_modules/typescript/lib/lib.es2015.collection.d.ts":te,"../../node_modules/typescript/lib/lib.es2015.core.d.ts":re,"../../node_modules/typescript/lib/lib.es2015.d.ts":oe,"../../node_modules/typescript/lib/lib.es2015.generator.d.ts":ae,"../../node_modules/typescript/lib/lib.es2015.iterable.d.ts":ie,"../../node_modules/typescript/lib/lib.es2015.promise.d.ts":se,"../../node_modules/typescript/lib/lib.es2015.proxy.d.ts":le,"../../node_modules/typescript/lib/lib.es2015.reflect.d.ts":de,"../../node_modules/typescript/lib/lib.es2015.symbol.d.ts":ce,"../../node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts":pe,"../../node_modules/typescript/lib/lib.es2016.array.include.d.ts":he,"../../node_modules/typescript/lib/lib.es2016.d.ts":me,"../../node_modules/typescript/lib/lib.es2016.full.d.ts":ue,"../../node_modules/typescript/lib/lib.es2016.intl.d.ts":fe,"../../node_modules/typescript/lib/lib.es2017.arraybuffer.d.ts":be,"../../node_modules/typescript/lib/lib.es2017.d.ts":ge,"../../node_modules/typescript/lib/lib.es2017.date.d.ts":ve,"../../node_modules/typescript/lib/lib.es2017.full.d.ts":ye,"../../node_modules/typescript/lib/lib.es2017.intl.d.ts":Ee,"../../node_modules/typescript/lib/lib.es2017.object.d.ts":Te,"../../node_modules/typescript/lib/lib.es2017.sharedmemory.d.ts":Ae,"../../node_modules/typescript/lib/lib.es2017.string.d.ts":Re,"../../node_modules/typescript/lib/lib.es2017.typedarrays.d.ts":Se,"../../node_modules/typescript/lib/lib.es2018.asyncgenerator.d.ts":Me,"../../node_modules/typescript/lib/lib.es2018.asynciterable.d.ts":Ie,"../../node_modules/typescript/lib/lib.es2018.d.ts":Le,"../../node_modules/typescript/lib/lib.es2018.full.d.ts":De,"../../node_modules/typescript/lib/lib.es2018.intl.d.ts":Ne,"../../node_modules/typescript/lib/lib.es2018.promise.d.ts":Pe,"../../node_modules/typescript/lib/lib.es2018.regexp.d.ts":Ce,"../../node_modules/typescript/lib/lib.es2019.array.d.ts":xe,"../../node_modules/typescript/lib/lib.es2019.d.ts":We,"../../node_modules/typescript/lib/lib.es2019.full.d.ts":Oe,"../../node_modules/typescript/lib/lib.es2019.intl.d.ts":we,"../../node_modules/typescript/lib/lib.es2019.object.d.ts":Ge,"../../node_modules/typescript/lib/lib.es2019.string.d.ts":_e,"../../node_modules/typescript/lib/lib.es2019.symbol.d.ts":ze,"../../node_modules/typescript/lib/lib.es2020.bigint.d.ts":ke,"../../node_modules/typescript/lib/lib.es2020.d.ts":Be,"../../node_modules/typescript/lib/lib.es2020.date.d.ts":Ve,"../../node_modules/typescript/lib/lib.es2020.full.d.ts":Fe,"../../node_modules/typescript/lib/lib.es2020.intl.d.ts":He,"../../node_modules/typescript/lib/lib.es2020.number.d.ts":Ue,"../../node_modules/typescript/lib/lib.es2020.promise.d.ts":Ke,"../../node_modules/typescript/lib/lib.es2020.sharedmemory.d.ts":je,"../../node_modules/typescript/lib/lib.es2020.string.d.ts":Xe,"../../node_modules/typescript/lib/lib.es2020.symbol.wellknown.d.ts":qe,"../../node_modules/typescript/lib/lib.es2021.d.ts":Ye,"../../node_modules/typescript/lib/lib.es2021.full.d.ts":Je,"../../node_modules/typescript/lib/lib.es2021.intl.d.ts":Qe,"../../node_modules/typescript/lib/lib.es2021.promise.d.ts":Ze,"../../node_modules/typescript/lib/lib.es2021.string.d.ts":$e,"../../node_modules/typescript/lib/lib.es2021.weakref.d.ts":en,"../../node_modules/typescript/lib/lib.es2022.array.d.ts":nn,"../../node_modules/typescript/lib/lib.es2022.d.ts":tn,"../../node_modules/typescript/lib/lib.es2022.error.d.ts":rn,"../../node_modules/typescript/lib/lib.es2022.full.d.ts":on,"../../node_modules/typescript/lib/lib.es2022.intl.d.ts":an,"../../node_modules/typescript/lib/lib.es2022.object.d.ts":sn,"../../node_modules/typescript/lib/lib.es2022.regexp.d.ts":ln,"../../node_modules/typescript/lib/lib.es2022.string.d.ts":dn,"../../node_modules/typescript/lib/lib.es2023.array.d.ts":cn,"../../node_modules/typescript/lib/lib.es2023.collection.d.ts":pn,"../../node_modules/typescript/lib/lib.es2023.d.ts":hn,"../../node_modules/typescript/lib/lib.es2023.full.d.ts":mn,"../../node_modules/typescript/lib/lib.es2023.intl.d.ts":un,"../../node_modules/typescript/lib/lib.es2024.arraybuffer.d.ts":fn,"../../node_modules/typescript/lib/lib.es2024.collection.d.ts":bn,"../../node_modules/typescript/lib/lib.es2024.d.ts":gn,"../../node_modules/typescript/lib/lib.es2024.full.d.ts":vn,"../../node_modules/typescript/lib/lib.es2024.object.d.ts":yn,"../../node_modules/typescript/lib/lib.es2024.promise.d.ts":En,"../../node_modules/typescript/lib/lib.es2024.regexp.d.ts":Tn,"../../node_modules/typescript/lib/lib.es2024.sharedmemory.d.ts":An,"../../node_modules/typescript/lib/lib.es2024.string.d.ts":Rn,"../../node_modules/typescript/lib/lib.es5.d.ts":Sn,"../../node_modules/typescript/lib/lib.es6.d.ts":Mn,"../../node_modules/typescript/lib/lib.esnext.array.d.ts":In,"../../node_modules/typescript/lib/lib.esnext.collection.d.ts":Ln,"../../node_modules/typescript/lib/lib.esnext.d.ts":Dn,"../../node_modules/typescript/lib/lib.esnext.decorators.d.ts":Nn,"../../node_modules/typescript/lib/lib.esnext.disposable.d.ts":Pn,"../../node_modules/typescript/lib/lib.esnext.error.d.ts":Cn,"../../node_modules/typescript/lib/lib.esnext.float16.d.ts":xn,"../../node_modules/typescript/lib/lib.esnext.full.d.ts":Wn,"../../node_modules/typescript/lib/lib.esnext.intl.d.ts":On,"../../node_modules/typescript/lib/lib.esnext.iterator.d.ts":wn,"../../node_modules/typescript/lib/lib.esnext.promise.d.ts":Gn,"../../node_modules/typescript/lib/lib.esnext.sharedmemory.d.ts":_n,"../../node_modules/typescript/lib/lib.scripthost.d.ts":zn,"../../node_modules/typescript/lib/lib.webworker.asynciterable.d.ts":kn,"../../node_modules/typescript/lib/lib.webworker.d.ts":Bn,"../../node_modules/typescript/lib/lib.webworker.importscripts.d.ts":Vn,"../../node_modules/typescript/lib/lib.webworker.iterable.d.ts":Fn}),Xt=Object.assign({"../../node_modules/solid-js-2/jsx-runtime.d.ts":Hn,"../../node_modules/solid-js-2/types/client/component.d.ts":Un,"../../node_modules/solid-js-2/types/client/core.d.ts":Kn,"../../node_modules/solid-js-2/types/client/flow.d.ts":jn,"../../node_modules/solid-js-2/types/client/hydration.d.ts":Xn,"../../node_modules/solid-js-2/types/index.d.ts":qn,"../../node_modules/solid-js-2/types/jsx.d.ts":Yn,"../../node_modules/solid-js-2/types/server/component.d.ts":Jn,"../../node_modules/solid-js-2/types/server/core.d.ts":Qn,"../../node_modules/solid-js-2/types/server/flow.d.ts":Zn,"../../node_modules/solid-js-2/types/server/hydration.d.ts":$n,"../../node_modules/solid-js-2/types/server/index.d.ts":et,"../../node_modules/solid-js-2/types/server/shared.d.ts":nt,"../../node_modules/solid-js-2/types/server/signals.d.ts":tt}),qt=Object.assign({"../../node_modules/@solidjs/web-2/storage/types/index.d.ts":rt,"../../node_modules/@solidjs/web-2/storage/types/src/client.d.ts":ot,"../../node_modules/@solidjs/web-2/storage/types/src/index.d.ts":at,"../../node_modules/@solidjs/web-2/storage/types/src/server-mock.d.ts":it,"../../node_modules/@solidjs/web-2/storage/types/storage/src/index.d.ts":st,"../../node_modules/@solidjs/web-2/types/client.d.ts":lt,"../../node_modules/@solidjs/web-2/types/core.d.ts":dt,"../../node_modules/@solidjs/web-2/types/index.d.ts":ct,"../../node_modules/@solidjs/web-2/types/jsx.d.ts":pt,"../../node_modules/@solidjs/web-2/types/server-mock.d.ts":ht,"../../node_modules/@solidjs/web-2/types/server.d.ts":mt}),g=new Map,Y=[];for(const[e,n]of Object.entries(jt)){const t=e.split("/").pop(),r=`/node_modules/typescript/lib/${t}`;g.set(r,n),g.set(`/lib/${t}`,n),g.set(`/${t}`,n),Y.push(r)}for(const[e,n]of Object.entries(Xt)){const t=e.replace("../../node_modules/solid-js-2/","/node_modules/solid-js/");g.set(t,n)}g.set("/node_modules/solid-js/package.json",JSON.stringify({name:"solid-js",version:"2.0.0-experimental.15",types:"./types/index.d.ts"}));for(const[e,n]of Object.entries(qt)){const t=e.replace("../../node_modules/@solidjs/web-2/","/node_modules/@solidjs/web/");g.set(t,n)}g.set("/node_modules/@solidjs/web/package.json",JSON.stringify({name:"@solidjs/web",version:"2.0.0-experimental.15",types:"./types/index.d.ts"}));let D=null;async function W(){return D||(D=await import("https://esm.sh/typescript@5.7.2")),D}function Yt(e){let n,t;return{async initialize(){await W();const r=e();t=Kt((async()=>(n=await r,{env:n}))()),await t.initialize()},async updateFile(r){if(t)return t.updateFile(r)},async getLints(r){return t?t.getLints(r):[]},async getAutocompletion(r){return t?t.getAutocompletion(r):null},async getHover(r){return t?t.getHover(r):null},async deleteFile(r){return n?.deleteFile(r)},async getVersion(){return await W(),D.version}}}C(Yt(async function(){const e=await W(),n=vt(g),t={target:e.ScriptTarget.ESNext,module:e.ModuleKind.ESNext,moduleResolution:e.ModuleResolutionKind.Bundler,jsx:e.JsxEmit.Preserve,jsxImportSource:"solid-js",lib:["esnext","dom"],allowNonTsExtensions:!0,baseUrl:"/",paths:{"solid-js":["/node_modules/solid-js/types/index.d.ts"],"solid-js/web":["/node_modules/@solidjs/web/types/index.d.ts"]}};return gt(n,Y,e,t)}))})();
+`,n);r===-1&&(r=e.length);const o=e.slice(t,r);return{from:t,to:r,text:o}}function q(e,n,t){const r=ir(e,n),o=Math.max(r.from,n-250),a=r.text.slice(o-r.from,n-r.from),i=a.search(ar(t));return i<0?null:{from:o+i,to:n,text:a.slice(i)}}const sr=["warning"];async function lr({env:e,path:n,context:t}){const{pos:r,explicit:o}=t,a=e.getSourceFile(n)?.getFullText();if(!a)return null;let i=q(a,r,/\w*/);if(i?.text||(i=q(a,r,/\./)),!i?.text&&!o)return null;const s=e.languageService.getCompletionsAtPosition(n,r,{includeCompletionsForModuleExports:!0,includeCompletionsForImportStatements:!0},{});if(!s)return null;const c=s.entries.filter(l=>!sr.includes(l.kind)).map(l=>{let d=l.kind?String(l.kind):void 0;d==="member"&&(d="property"),d&&!or.has(d)&&(d=void 0);const p=e.languageService.getCompletionEntryDetails(n,r,l.name,{},l.source,{},l.data);return{label:l.name,codeActions:p?.codeActions,displayParts:p?.displayParts??[],documentation:p?.documentation,tags:p?.tags,type:d}});return{from:i?i.text==="."?i.to:i.from:r,options:c}}function dr(e){if(e.code===7027)return"warning";switch(e.category){case 1:return"error";case 3:return"info";case 0:return"warning";case 2:return"info";default:return"info"}}function cr(e){return!!(e.file&&typeof e.start=="number"&&typeof e.length=="number")}function pr(e){return typeof e.messageText=="string"?e.messageText:e.messageText.messageText}function hr(e){const n=e.start,t=pr(e);return{from:n,to:n+e.length,message:t,severity:dr(e)}}function mr({env:e,path:n,diagnosticCodesToIgnore:t}){if(!e.getSourceFile(n))return[];const o=e.languageService.getSyntacticDiagnostics(n),a=e.languageService.getSemanticDiagnostics(n);return[...o,...a].filter(s=>cr(s)&&!(t??[]).includes(s.code)).map(hr)}function ur(e,n,t){const r=e.getSourceFile(n);return r?t===r.getFullText()?!1:(e.updateFile(n,t),!0):(e.createFile(n,t),!0)}function fr(e){let n=!1,t,r;return{async initialize(){n||(r=await e,t=await r.env,n=!0)},updateFile({path:o,code:a}){t&&ur(t,o,a)&&r.onFileUpdated?.(t,o,a)},getLints({path:o,diagnosticCodesToIgnore:a}){return t?mr({env:t,path:o,diagnosticCodesToIgnore:a}):[]},getAutocompletion({path:o,context:a}){return t?lr({env:t,path:o,context:a}):null},getHover({path:o,pos:a}){return t?rr({env:t,path:o,pos:a}):null},getEnv(){return t}}}const br=Object.assign({"../../node_modules/typescript/lib/lib.d.ts":J,"../../node_modules/typescript/lib/lib.decorators.d.ts":Q,"../../node_modules/typescript/lib/lib.decorators.legacy.d.ts":Z,"../../node_modules/typescript/lib/lib.dom.asynciterable.d.ts":$,"../../node_modules/typescript/lib/lib.dom.d.ts":ee,"../../node_modules/typescript/lib/lib.dom.iterable.d.ts":ne,"../../node_modules/typescript/lib/lib.es2015.collection.d.ts":te,"../../node_modules/typescript/lib/lib.es2015.core.d.ts":re,"../../node_modules/typescript/lib/lib.es2015.d.ts":oe,"../../node_modules/typescript/lib/lib.es2015.generator.d.ts":ae,"../../node_modules/typescript/lib/lib.es2015.iterable.d.ts":ie,"../../node_modules/typescript/lib/lib.es2015.promise.d.ts":se,"../../node_modules/typescript/lib/lib.es2015.proxy.d.ts":le,"../../node_modules/typescript/lib/lib.es2015.reflect.d.ts":de,"../../node_modules/typescript/lib/lib.es2015.symbol.d.ts":ce,"../../node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts":pe,"../../node_modules/typescript/lib/lib.es2016.array.include.d.ts":he,"../../node_modules/typescript/lib/lib.es2016.d.ts":me,"../../node_modules/typescript/lib/lib.es2016.full.d.ts":ue,"../../node_modules/typescript/lib/lib.es2016.intl.d.ts":fe,"../../node_modules/typescript/lib/lib.es2017.arraybuffer.d.ts":be,"../../node_modules/typescript/lib/lib.es2017.d.ts":ge,"../../node_modules/typescript/lib/lib.es2017.date.d.ts":ve,"../../node_modules/typescript/lib/lib.es2017.full.d.ts":ye,"../../node_modules/typescript/lib/lib.es2017.intl.d.ts":Ee,"../../node_modules/typescript/lib/lib.es2017.object.d.ts":Te,"../../node_modules/typescript/lib/lib.es2017.sharedmemory.d.ts":Ae,"../../node_modules/typescript/lib/lib.es2017.string.d.ts":Re,"../../node_modules/typescript/lib/lib.es2017.typedarrays.d.ts":Se,"../../node_modules/typescript/lib/lib.es2018.asyncgenerator.d.ts":Me,"../../node_modules/typescript/lib/lib.es2018.asynciterable.d.ts":Ie,"../../node_modules/typescript/lib/lib.es2018.d.ts":Le,"../../node_modules/typescript/lib/lib.es2018.full.d.ts":De,"../../node_modules/typescript/lib/lib.es2018.intl.d.ts":Ne,"../../node_modules/typescript/lib/lib.es2018.promise.d.ts":Pe,"../../node_modules/typescript/lib/lib.es2018.regexp.d.ts":xe,"../../node_modules/typescript/lib/lib.es2019.array.d.ts":Ce,"../../node_modules/typescript/lib/lib.es2019.d.ts":We,"../../node_modules/typescript/lib/lib.es2019.full.d.ts":Oe,"../../node_modules/typescript/lib/lib.es2019.intl.d.ts":we,"../../node_modules/typescript/lib/lib.es2019.object.d.ts":_e,"../../node_modules/typescript/lib/lib.es2019.string.d.ts":Ge,"../../node_modules/typescript/lib/lib.es2019.symbol.d.ts":ze,"../../node_modules/typescript/lib/lib.es2020.bigint.d.ts":ke,"../../node_modules/typescript/lib/lib.es2020.d.ts":Be,"../../node_modules/typescript/lib/lib.es2020.date.d.ts":Ve,"../../node_modules/typescript/lib/lib.es2020.full.d.ts":Fe,"../../node_modules/typescript/lib/lib.es2020.intl.d.ts":He,"../../node_modules/typescript/lib/lib.es2020.number.d.ts":Ue,"../../node_modules/typescript/lib/lib.es2020.promise.d.ts":Ke,"../../node_modules/typescript/lib/lib.es2020.sharedmemory.d.ts":je,"../../node_modules/typescript/lib/lib.es2020.string.d.ts":Xe,"../../node_modules/typescript/lib/lib.es2020.symbol.wellknown.d.ts":qe,"../../node_modules/typescript/lib/lib.es2021.d.ts":Ye,"../../node_modules/typescript/lib/lib.es2021.full.d.ts":Je,"../../node_modules/typescript/lib/lib.es2021.intl.d.ts":Qe,"../../node_modules/typescript/lib/lib.es2021.promise.d.ts":Ze,"../../node_modules/typescript/lib/lib.es2021.string.d.ts":$e,"../../node_modules/typescript/lib/lib.es2021.weakref.d.ts":en,"../../node_modules/typescript/lib/lib.es2022.array.d.ts":nn,"../../node_modules/typescript/lib/lib.es2022.d.ts":tn,"../../node_modules/typescript/lib/lib.es2022.error.d.ts":rn,"../../node_modules/typescript/lib/lib.es2022.full.d.ts":on,"../../node_modules/typescript/lib/lib.es2022.intl.d.ts":an,"../../node_modules/typescript/lib/lib.es2022.object.d.ts":sn,"../../node_modules/typescript/lib/lib.es2022.regexp.d.ts":ln,"../../node_modules/typescript/lib/lib.es2022.string.d.ts":dn,"../../node_modules/typescript/lib/lib.es2023.array.d.ts":cn,"../../node_modules/typescript/lib/lib.es2023.collection.d.ts":pn,"../../node_modules/typescript/lib/lib.es2023.d.ts":hn,"../../node_modules/typescript/lib/lib.es2023.full.d.ts":mn,"../../node_modules/typescript/lib/lib.es2023.intl.d.ts":un,"../../node_modules/typescript/lib/lib.es2024.arraybuffer.d.ts":fn,"../../node_modules/typescript/lib/lib.es2024.collection.d.ts":bn,"../../node_modules/typescript/lib/lib.es2024.d.ts":gn,"../../node_modules/typescript/lib/lib.es2024.full.d.ts":vn,"../../node_modules/typescript/lib/lib.es2024.object.d.ts":yn,"../../node_modules/typescript/lib/lib.es2024.promise.d.ts":En,"../../node_modules/typescript/lib/lib.es2024.regexp.d.ts":Tn,"../../node_modules/typescript/lib/lib.es2024.sharedmemory.d.ts":An,"../../node_modules/typescript/lib/lib.es2024.string.d.ts":Rn,"../../node_modules/typescript/lib/lib.es5.d.ts":Sn,"../../node_modules/typescript/lib/lib.es6.d.ts":Mn,"../../node_modules/typescript/lib/lib.esnext.array.d.ts":In,"../../node_modules/typescript/lib/lib.esnext.collection.d.ts":Ln,"../../node_modules/typescript/lib/lib.esnext.d.ts":Dn,"../../node_modules/typescript/lib/lib.esnext.decorators.d.ts":Nn,"../../node_modules/typescript/lib/lib.esnext.disposable.d.ts":Pn,"../../node_modules/typescript/lib/lib.esnext.error.d.ts":xn,"../../node_modules/typescript/lib/lib.esnext.float16.d.ts":Cn,"../../node_modules/typescript/lib/lib.esnext.full.d.ts":Wn,"../../node_modules/typescript/lib/lib.esnext.intl.d.ts":On,"../../node_modules/typescript/lib/lib.esnext.iterator.d.ts":wn,"../../node_modules/typescript/lib/lib.esnext.promise.d.ts":_n,"../../node_modules/typescript/lib/lib.esnext.sharedmemory.d.ts":Gn,"../../node_modules/typescript/lib/lib.scripthost.d.ts":zn,"../../node_modules/typescript/lib/lib.webworker.asynciterable.d.ts":kn,"../../node_modules/typescript/lib/lib.webworker.d.ts":Bn,"../../node_modules/typescript/lib/lib.webworker.importscripts.d.ts":Vn,"../../node_modules/typescript/lib/lib.webworker.iterable.d.ts":Fn}),gr=Object.assign({"../../node_modules/solid-js-2/jsx-runtime.d.ts":Hn,"../../node_modules/solid-js-2/types/client/component.d.ts":Un,"../../node_modules/solid-js-2/types/client/core.d.ts":Kn,"../../node_modules/solid-js-2/types/client/flow.d.ts":jn,"../../node_modules/solid-js-2/types/client/hydration.d.ts":Xn,"../../node_modules/solid-js-2/types/index.d.ts":qn,"../../node_modules/solid-js-2/types/jsx.d.ts":Yn,"../../node_modules/solid-js-2/types/server/component.d.ts":Jn,"../../node_modules/solid-js-2/types/server/core.d.ts":Qn,"../../node_modules/solid-js-2/types/server/flow.d.ts":Zn,"../../node_modules/solid-js-2/types/server/hydration.d.ts":$n,"../../node_modules/solid-js-2/types/server/index.d.ts":et,"../../node_modules/solid-js-2/types/server/shared.d.ts":nt,"../../node_modules/solid-js-2/types/server/signals.d.ts":tt}),vr=Object.assign({"../../node_modules/@solidjs/web-2/storage/types/index.d.ts":rt,"../../node_modules/@solidjs/web-2/storage/types/src/client.d.ts":ot,"../../node_modules/@solidjs/web-2/storage/types/src/index.d.ts":at,"../../node_modules/@solidjs/web-2/storage/types/src/server-mock.d.ts":it,"../../node_modules/@solidjs/web-2/storage/types/storage/src/index.d.ts":st,"../../node_modules/@solidjs/web-2/types/client.d.ts":lt,"../../node_modules/@solidjs/web-2/types/core.d.ts":dt,"../../node_modules/@solidjs/web-2/types/index.d.ts":ct,"../../node_modules/@solidjs/web-2/types/jsx.d.ts":pt,"../../node_modules/@solidjs/web-2/types/server-mock.d.ts":ht,"../../node_modules/@solidjs/web-2/types/server.d.ts":mt}),yr=Object.assign({"../../node_modules/@solidjs/signals/dist/types/boundaries.d.ts":ut,"../../node_modules/@solidjs/signals/dist/types/core/action.d.ts":ft,"../../node_modules/@solidjs/signals/dist/types/core/async.d.ts":bt,"../../node_modules/@solidjs/signals/dist/types/core/constants.d.ts":gt,"../../node_modules/@solidjs/signals/dist/types/core/context.d.ts":vt,"../../node_modules/@solidjs/signals/dist/types/core/core.d.ts":yt,"../../node_modules/@solidjs/signals/dist/types/core/effect.d.ts":Et,"../../node_modules/@solidjs/signals/dist/types/core/error.d.ts":Tt,"../../node_modules/@solidjs/signals/dist/types/core/graph.d.ts":At,"../../node_modules/@solidjs/signals/dist/types/core/heap.d.ts":Rt,"../../node_modules/@solidjs/signals/dist/types/core/index.d.ts":St,"../../node_modules/@solidjs/signals/dist/types/core/lanes.d.ts":Mt,"../../node_modules/@solidjs/signals/dist/types/core/owner.d.ts":It,"../../node_modules/@solidjs/signals/dist/types/core/scheduler.d.ts":Lt,"../../node_modules/@solidjs/signals/dist/types/core/types.d.ts":Dt,"../../node_modules/@solidjs/signals/dist/types/index.d.ts":Nt,"../../node_modules/@solidjs/signals/dist/types/map.d.ts":Pt,"../../node_modules/@solidjs/signals/dist/types/signals.d.ts":xt,"../../node_modules/@solidjs/signals/dist/types/store/index.d.ts":Ct,"../../node_modules/@solidjs/signals/dist/types/store/optimistic.d.ts":Wt,"../../node_modules/@solidjs/signals/dist/types/store/projection.d.ts":Ot,"../../node_modules/@solidjs/signals/dist/types/store/reconcile.d.ts":wt,"../../node_modules/@solidjs/signals/dist/types/store/store.d.ts":_t,"../../node_modules/@solidjs/signals/dist/types/store/utils.d.ts":Gt}),f=new Map,Y=[];for(const[e,n]of Object.entries(br)){const t=e.split("/").pop(),r=`/node_modules/typescript/lib/${t}`;f.set(r,n),f.set(`/lib/${t}`,n),f.set(`/${t}`,n),Y.push(r)}for(const[e,n]of Object.entries(gr)){const t=e.replace("../../node_modules/solid-js-2/","/node_modules/solid-js/");f.set(t,n)}f.set("/node_modules/solid-js/package.json",JSON.stringify({name:"solid-js",version:"2.0.0-experimental.15",types:"./types/index.d.ts"}));for(const[e,n]of Object.entries(vr)){const t=e.replace("../../node_modules/@solidjs/web-2/","/node_modules/@solidjs/web/");f.set(t,n)}f.set("/node_modules/@solidjs/web/package.json",JSON.stringify({name:"@solidjs/web",version:"2.0.0-experimental.15",types:"./types/index.d.ts"}));for(const[e,n]of Object.entries(yr)){const t=e.replace("../../node_modules/","/node_modules/");f.set(t,n)}f.set("/node_modules/@solidjs/signals/package.json",JSON.stringify({name:"@solidjs/signals",version:"0.10.8",types:"./types/index.d.ts"}));let D=null;async function W(){return D||(D=await import("https://esm.sh/typescript@5.7.2")),D}function Er(e){let n,t;return{async initialize(){await W();const r=e();t=fr((async()=>(n=await r,{env:n}))()),await t.initialize()},async updateFile(r){if(t)return t.updateFile(r)},async getLints(r){return t?t.getLints(r):[]},async getAutocompletion(r){return t?t.getAutocompletion(r):null},async getHover(r){return t?t.getHover(r):null},async deleteFile(r){return n?.deleteFile(r)},async getVersion(){return await W(),D.version},async getFsMap(){return Array.from(f.entries())}}}x(Er(async function(){const e=await W(),n=Ft(f),t={target:e.ScriptTarget.ESNext,module:e.ModuleKind.ESNext,moduleResolution:e.ModuleResolutionKind.Bundler,jsx:e.JsxEmit.Preserve,jsxImportSource:"solid-js",lib:["esnext","dom"],allowNonTsExtensions:!0,baseUrl:"/",paths:{"solid-js":["/node_modules/solid-js/types/index.d.ts"],"solid-js/web":["/node_modules/@solidjs/web/types/index.d.ts"],"@solidjs/signals":["/node_modules/@solidjs/signals/dist/types/index.d.ts"]},strict:!0};return Vt(n,Y,e,t)}))})();
