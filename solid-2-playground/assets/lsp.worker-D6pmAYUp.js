@@ -1,4 +1,4 @@
-(function(){"use strict";var J=`/*! *****************************************************************************
+(function(){"use strict";var fe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -20,7 +20,7 @@ and limitations under the License.
 /// <reference lib="dom" />
 /// <reference lib="webworker.importscripts" />
 /// <reference lib="scripthost" />
-`,Q=`/*! *****************************************************************************
+`,be=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -404,7 +404,7 @@ interface ClassFieldDecoratorContext<
 
     readonly metadata: DecoratorMetadata;
 }
-`,Z=`/*! *****************************************************************************
+`,ge=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -426,7 +426,7 @@ declare type ClassDecorator = <TFunction extends Function>(target: TFunction) =>
 declare type PropertyDecorator = (target: Object, propertyKey: string | symbol) => void;
 declare type MethodDecorator = <T>(target: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<T>) => TypedPropertyDescriptor<T> | void;
 declare type ParameterDecorator = (target: Object, propertyKey: string | symbol | undefined, parameterIndex: number) => void;
-`,$=`/*! *****************************************************************************
+`,ve=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -467,7 +467,7 @@ interface ReadableStream<R = any> {
     [Symbol.asyncIterator](options?: ReadableStreamIteratorOptions): ReadableStreamAsyncIterator<R>;
     values(options?: ReadableStreamIteratorOptions): ReadableStreamAsyncIterator<R>;
 }
-`,ee=`/*! *****************************************************************************
+`,ye=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -39896,7 +39896,7 @@ type WebTransportErrorSource = "session" | "stream";
 type WorkerType = "classic" | "module";
 type WriteCommandType = "seek" | "truncate" | "write";
 type XMLHttpRequestResponseType = "" | "arraybuffer" | "blob" | "document" | "json" | "text";
-`,ne=`/*! *****************************************************************************
+`,Ee=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -40467,7 +40467,7 @@ interface WebGLRenderingContextOverloads {
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix) */
     uniformMatrix4fv(location: WebGLUniformLocation | null, transpose: GLboolean, value: Iterable<GLfloat>): void;
 }
-`,te=`/*! *****************************************************************************
+`,Te=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -40614,7 +40614,7 @@ interface WeakSetConstructor {
     readonly prototype: WeakSet<WeakKey>;
 }
 declare var WeakSet: WeakSetConstructor;
-`,re=`/*! *****************************************************************************
+`,Ae=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -41211,7 +41211,7 @@ interface Float32Array<TArrayBuffer extends ArrayBufferLike> {
 interface Float64Array<TArrayBuffer extends ArrayBufferLike> {
     toLocaleString(locales: string | string[], options?: Intl.NumberFormatOptions): string;
 }
-`,oe=`/*! *****************************************************************************
+`,Re=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -41239,7 +41239,7 @@ and limitations under the License.
 /// <reference lib="es2015.reflect" />
 /// <reference lib="es2015.symbol" />
 /// <reference lib="es2015.symbol.wellknown" />
-`,ae=`/*! *****************************************************************************
+`,Se=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -41316,7 +41316,7 @@ interface GeneratorFunctionConstructor {
      */
     readonly prototype: GeneratorFunction;
 }
-`,ie=`/*! *****************************************************************************
+`,Me=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -41921,7 +41921,7 @@ interface Float64ArrayConstructor {
      */
     from<T>(elements: Iterable<T>, mapfn?: (v: T, k: number) => number, thisArg?: any): Float64Array<ArrayBuffer>;
 }
-`,se=`/*! *****************************************************************************
+`,Ie=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42002,7 +42002,7 @@ interface PromiseConstructor {
 }
 
 declare var Promise: PromiseConstructor;
-`,le=`/*! *****************************************************************************
+`,Le=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42130,7 +42130,7 @@ interface ProxyConstructor {
     new <T extends object>(target: T, handler: ProxyHandler<T>): T;
 }
 declare var Proxy: ProxyConstructor;
-`,de=`/*! *****************************************************************************
+`,De=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42274,7 +42274,7 @@ declare namespace Reflect {
      */
     function setPrototypeOf(target: object, proto: object | null): boolean;
 }
-`,ce=`/*! *****************************************************************************
+`,Ne=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42320,7 +42320,7 @@ interface SymbolConstructor {
 }
 
 declare var Symbol: SymbolConstructor;
-`,pe=`/*! *****************************************************************************
+`,Pe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42646,7 +42646,7 @@ interface SetConstructor {
 interface ArrayBufferConstructor {
     readonly [Symbol.species]: ArrayBufferConstructor;
 }
-`,he=`/*! *****************************************************************************
+`,xe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42762,7 +42762,7 @@ interface Float64Array<TArrayBuffer extends ArrayBufferLike> {
      */
     includes(searchElement: number, fromIndex?: number): boolean;
 }
-`,me=`/*! *****************************************************************************
+`,Ce=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42783,7 +42783,7 @@ and limitations under the License.
 /// <reference lib="es2015" />
 /// <reference lib="es2016.array.include" />
 /// <reference lib="es2016.intl" />
-`,ue=`/*! *****************************************************************************
+`,We=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42806,7 +42806,7 @@ and limitations under the License.
 /// <reference lib="webworker.importscripts" />
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
-`,fe=`/*! *****************************************************************************
+`,Oe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42837,7 +42837,7 @@ declare namespace Intl {
      */
     function getCanonicalLocales(locale?: string | readonly string[]): string[];
 }
-`,be=`/*! *****************************************************************************
+`,we=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42858,7 +42858,7 @@ and limitations under the License.
 interface ArrayBufferConstructor {
     new (): ArrayBuffer;
 }
-`,ge=`/*! *****************************************************************************
+`,_e=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42884,7 +42884,7 @@ and limitations under the License.
 /// <reference lib="es2017.sharedmemory" />
 /// <reference lib="es2017.string" />
 /// <reference lib="es2017.typedarrays" />
-`,ve=`/*! *****************************************************************************
+`,Ge=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42915,7 +42915,7 @@ interface DateConstructor {
      */
     UTC(year: number, monthIndex?: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): number;
 }
-`,ye=`/*! *****************************************************************************
+`,ze=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42938,7 +42938,7 @@ and limitations under the License.
 /// <reference lib="webworker.importscripts" />
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
-`,Ee=`/*! *****************************************************************************
+`,ke=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -42982,7 +42982,7 @@ declare namespace Intl {
         formatToParts(date?: Date | number): DateTimeFormatPart[];
     }
 }
-`,Te=`/*! *****************************************************************************
+`,Be=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43031,7 +43031,7 @@ interface ObjectConstructor {
      */
     getOwnPropertyDescriptors<T>(o: T): { [P in keyof T]: TypedPropertyDescriptor<T[P]>; } & { [x: string]: PropertyDescriptor; };
 }
-`,Ae=`/*! *****************************************************************************
+`,Fe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43166,7 +43166,7 @@ interface Atomics {
 }
 
 declare var Atomics: Atomics;
-`,Re=`/*! *****************************************************************************
+`,Ve=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43211,7 +43211,7 @@ interface String {
      */
     padEnd(maxLength: number, fillString?: string): string;
 }
-`,Se=`/*! *****************************************************************************
+`,He=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43264,7 +43264,7 @@ interface Float32ArrayConstructor {
 interface Float64ArrayConstructor {
     new (): Float64Array<ArrayBuffer>;
 }
-`,Me=`/*! *****************************************************************************
+`,Ue=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43341,7 +43341,7 @@ interface AsyncGeneratorFunctionConstructor {
      */
     readonly prototype: AsyncGeneratorFunction;
 }
-`,Ie=`/*! *****************************************************************************
+`,Ke=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43394,7 +43394,7 @@ interface AsyncIterableIterator<T, TReturn = any, TNext = any> extends AsyncIter
 interface AsyncIteratorObject<T, TReturn = unknown, TNext = unknown> extends AsyncIterator<T, TReturn, TNext> {
     [Symbol.asyncIterator](): AsyncIteratorObject<T, TReturn, TNext>;
 }
-`,Le=`/*! *****************************************************************************
+`,je=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43418,7 +43418,7 @@ and limitations under the License.
 /// <reference lib="es2018.promise" />
 /// <reference lib="es2018.regexp" />
 /// <reference lib="es2018.intl" />
-`,De=`/*! *****************************************************************************
+`,Xe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43442,7 +43442,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,Ne=`/*! *****************************************************************************
+`,qe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43525,7 +43525,7 @@ declare namespace Intl {
         formatToParts(number?: number | bigint): NumberFormatPart[];
     }
 }
-`,Pe=`/*! *****************************************************************************
+`,Ye=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43555,7 +43555,7 @@ interface Promise<T> {
      */
     finally(onfinally?: (() => void) | undefined | null): Promise<T>;
 }
-`,xe=`/*! *****************************************************************************
+`,Je=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43592,7 +43592,7 @@ interface RegExp {
      */
     readonly dotAll: boolean;
 }
-`,Ce=`/*! *****************************************************************************
+`,Qe=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43671,7 +43671,7 @@ interface Array<T> {
         depth?: D,
     ): FlatArray<A, D>[];
 }
-`,We=`/*! *****************************************************************************
+`,Ze=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43695,7 +43695,7 @@ and limitations under the License.
 /// <reference lib="es2019.string" />
 /// <reference lib="es2019.symbol" />
 /// <reference lib="es2019.intl" />
-`,Oe=`/*! *****************************************************************************
+`,$e=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43719,7 +43719,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,we=`/*! *****************************************************************************
+`,en=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43742,7 +43742,7 @@ declare namespace Intl {
         unknown: never;
     }
 }
-`,_e=`/*! *****************************************************************************
+`,nn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43775,7 +43775,7 @@ interface ObjectConstructor {
      */
     fromEntries(entries: Iterable<readonly any[]>): any;
 }
-`,Ge=`/*! *****************************************************************************
+`,tn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43812,7 +43812,7 @@ interface String {
      */
     trimRight(): string;
 }
-`,ze=`/*! *****************************************************************************
+`,rn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -43836,7 +43836,7 @@ interface Symbol {
      */
     readonly description: string | undefined;
 }
-`,ke=`/*! *****************************************************************************
+`,on=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -44601,7 +44601,7 @@ declare namespace Intl {
         format(value: number | bigint): string;
     }
 }
-`,Be=`/*! *****************************************************************************
+`,an=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -44628,7 +44628,7 @@ and limitations under the License.
 /// <reference lib="es2020.string" />
 /// <reference lib="es2020.symbol.wellknown" />
 /// <reference lib="es2020.intl" />
-`,Fe=`/*! *****************************************************************************
+`,sn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -44670,7 +44670,7 @@ interface Date {
      */
     toLocaleTimeString(locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions): string;
 }
-`,Ve=`/*! *****************************************************************************
+`,ln=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -44694,7 +44694,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,He=`/*! *****************************************************************************
+`,dn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45168,7 +45168,7 @@ declare namespace Intl {
         supportedLocalesOf(locales: LocalesArgument, options?: { localeMatcher?: "lookup" | "best fit"; }): string[];
     }
 }
-`,Ue=`/*! *****************************************************************************
+`,cn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45196,7 +45196,7 @@ interface Number {
      */
     toLocaleString(locales?: Intl.LocalesArgument, options?: Intl.NumberFormatOptions): string;
 }
-`,Ke=`/*! *****************************************************************************
+`,pn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45243,7 +45243,7 @@ interface PromiseConstructor {
      */
     allSettled<T>(values: Iterable<T | PromiseLike<T>>): Promise<PromiseSettledResult<Awaited<T>>[]>;
 }
-`,je=`/*! *****************************************************************************
+`,hn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45342,7 +45342,7 @@ interface Atomics {
      */
     xor(typedArray: BigInt64Array<ArrayBufferLike> | BigUint64Array<ArrayBufferLike>, index: number, value: bigint): bigint;
 }
-`,Xe=`/*! *****************************************************************************
+`,mn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45386,7 +45386,7 @@ interface String {
      */
     localeCompare(that: string, locales?: Intl.LocalesArgument, options?: Intl.CollatorOptions): number;
 }
-`,qe=`/*! *****************************************************************************
+`,un=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45427,7 +45427,7 @@ interface RegExp {
      */
     [Symbol.matchAll](str: string): RegExpStringIterator<RegExpMatchArray>;
 }
-`,Ye=`/*! *****************************************************************************
+`,fn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45450,7 +45450,7 @@ and limitations under the License.
 /// <reference lib="es2021.string" />
 /// <reference lib="es2021.weakref" />
 /// <reference lib="es2021.intl" />
-`,Je=`/*! *****************************************************************************
+`,bn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45474,7 +45474,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,Qe=`/*! *****************************************************************************
+`,gn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45640,7 +45640,7 @@ declare namespace Intl {
         supportedLocalesOf(locales: LocalesArgument, options?: Pick<ListFormatOptions, "localeMatcher">): UnicodeBCP47LocaleIdentifier[];
     };
 }
-`,Ze=`/*! *****************************************************************************
+`,vn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45688,7 +45688,7 @@ interface PromiseConstructor {
      */
     any<T>(values: Iterable<T | PromiseLike<T>>): Promise<Awaited<T>>;
 }
-`,$e=`/*! *****************************************************************************
+`,yn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45721,7 +45721,7 @@ interface String {
      */
     replaceAll(searchValue: string | RegExp, replacer: (substring: string, ...args: any[]) => string): string;
 }
-`,en=`/*! *****************************************************************************
+`,En=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45799,7 +45799,7 @@ interface FinalizationRegistryConstructor {
 }
 
 declare var FinalizationRegistry: FinalizationRegistryConstructor;
-`,nn=`/*! *****************************************************************************
+`,Tn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45920,7 +45920,7 @@ interface BigUint64Array<TArrayBuffer extends ArrayBufferLike> {
      */
     at(index: number): bigint | undefined;
 }
-`,tn=`/*! *****************************************************************************
+`,An=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -45945,7 +45945,7 @@ and limitations under the License.
 /// <reference lib="es2022.object" />
 /// <reference lib="es2022.regexp" />
 /// <reference lib="es2022.string" />
-`,rn=`/*! *****************************************************************************
+`,Rn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -46020,7 +46020,7 @@ interface AggregateErrorConstructor {
         options?: ErrorOptions,
     ): AggregateError;
 }
-`,on=`/*! *****************************************************************************
+`,Sn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -46044,7 +46044,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,an=`/*! *****************************************************************************
+`,Mn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -46189,7 +46189,7 @@ declare namespace Intl {
      */
     function supportedValuesOf(key: "calendar" | "collation" | "currency" | "numberingSystem" | "timeZone" | "unit"): string[];
 }
-`,sn=`/*! *****************************************************************************
+`,In=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -46215,7 +46215,7 @@ interface ObjectConstructor {
      */
     hasOwn(o: object, v: PropertyKey): boolean;
 }
-`,ln=`/*! *****************************************************************************
+`,Ln=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -46254,7 +46254,7 @@ interface RegExp {
      */
     readonly hasIndices: boolean;
 }
-`,dn=`/*! *****************************************************************************
+`,Dn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -46279,7 +46279,7 @@ interface String {
      */
     at(index: number): string | undefined;
 }
-`,cn=`/*! *****************************************************************************
+`,Nn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47203,7 +47203,7 @@ interface BigUint64Array<TArrayBuffer extends ArrayBufferLike> {
      */
     with(index: number, value: bigint): BigUint64Array<ArrayBuffer>;
 }
-`,pn=`/*! *****************************************************************************
+`,Pn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47224,7 +47224,7 @@ and limitations under the License.
 interface WeakKeyTypes {
     symbol: symbol;
 }
-`,hn=`/*! *****************************************************************************
+`,xn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47246,7 +47246,7 @@ and limitations under the License.
 /// <reference lib="es2023.array" />
 /// <reference lib="es2023.collection" />
 /// <reference lib="es2023.intl" />
-`,mn=`/*! *****************************************************************************
+`,Cn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47270,7 +47270,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,un=`/*! *****************************************************************************
+`,Wn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47326,7 +47326,7 @@ declare namespace Intl {
         formatRangeToParts(start: number | bigint | StringNumericLiteral, end: number | bigint | StringNumericLiteral): NumberRangeFormatPart[];
     }
 }
-`,fn=`/*! *****************************************************************************
+`,On=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47391,7 +47391,7 @@ interface ArrayBuffer {
 interface ArrayBufferConstructor {
     new (byteLength: number, options?: { maxByteLength?: number; }): ArrayBuffer;
 }
-`,bn=`/*! *****************************************************************************
+`,wn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47420,7 +47420,7 @@ interface MapConstructor {
         keySelector: (item: T, index: number) => K,
     ): Map<K, T[]>;
 }
-`,gn=`/*! *****************************************************************************
+`,_n=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47446,7 +47446,7 @@ and limitations under the License.
 /// <reference lib="es2024.regexp" />
 /// <reference lib="es2024.sharedmemory" />
 /// <reference lib="es2024.string" />
-`,vn=`/*! *****************************************************************************
+`,Gn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47470,7 +47470,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,yn=`/*! *****************************************************************************
+`,zn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47499,7 +47499,7 @@ interface ObjectConstructor {
         keySelector: (item: T, index: number) => K,
     ): Partial<Record<K, T[]>>;
 }
-`,En=`/*! *****************************************************************************
+`,kn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47534,7 +47534,7 @@ interface PromiseConstructor {
      */
     withResolvers<T>(): PromiseWithResolvers<T>;
 }
-`,Tn=`/*! *****************************************************************************
+`,Bn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47559,7 +47559,7 @@ interface RegExp {
      */
     readonly unicodeSets: boolean;
 }
-`,An=`/*! *****************************************************************************
+`,Fn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47627,7 +47627,7 @@ interface SharedArrayBuffer {
 interface SharedArrayBufferConstructor {
     new (byteLength: number, options?: { maxByteLength?: number; }): SharedArrayBuffer;
 }
-`,Rn=`/*! *****************************************************************************
+`,Vn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -47656,7 +47656,7 @@ interface String {
      */
     toWellFormed(): string;
 }
-`,Sn=`/*! *****************************************************************************
+`,Hn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52257,7 +52257,7 @@ interface Date {
      */
     toLocaleTimeString(locales?: string | string[], options?: Intl.DateTimeFormatOptions): string;
 }
-`,Mn=`/*! *****************************************************************************
+`,Un=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52280,7 +52280,7 @@ and limitations under the License.
 /// <reference lib="dom.iterable" />
 /// <reference lib="webworker.importscripts" />
 /// <reference lib="scripthost" />
-`,In=`/*! *****************************************************************************
+`,Kn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52315,7 +52315,7 @@ interface ArrayConstructor {
      */
     fromAsync<T, U>(iterableOrArrayLike: AsyncIterable<T> | Iterable<T> | ArrayLike<T>, mapFn: (value: Awaited<T>, index: number) => U, thisArg?: any): Promise<Awaited<U>[]>;
 }
-`,Ln=`/*! *****************************************************************************
+`,jn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52411,7 +52411,7 @@ interface ReadonlySet<T> {
      */
     isDisjointFrom(other: ReadonlySetLike<unknown>): boolean;
 }
-`,Dn=`/*! *****************************************************************************
+`,Xn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52440,7 +52440,7 @@ and limitations under the License.
 /// <reference lib="esnext.float16" />
 /// <reference lib="esnext.error" />
 /// <reference lib="esnext.sharedmemory" />
-`,Nn=`/*! *****************************************************************************
+`,qn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52468,7 +52468,7 @@ interface SymbolConstructor {
 interface Function {
     [Symbol.metadata]: DecoratorMetadata | null;
 }
-`,Pn=`/*! *****************************************************************************
+`,Yn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52661,7 +52661,7 @@ interface IteratorObject<T, TReturn, TNext> extends Disposable {
 
 interface AsyncIteratorObject<T, TReturn, TNext> extends AsyncDisposable {
 }
-`,xn=`/*! *****************************************************************************
+`,Jn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -52685,7 +52685,7 @@ interface ErrorConstructor {
      */
     isError(error: unknown): error is Error;
 }
-`,Cn=`/*! *****************************************************************************
+`,Qn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53130,7 +53130,7 @@ interface DataView<TArrayBuffer extends ArrayBufferLike> {
      */
     setFloat16(byteOffset: number, value: number, littleEndian?: boolean): void;
 }
-`,Wn=`/*! *****************************************************************************
+`,Zn=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53154,7 +53154,7 @@ and limitations under the License.
 /// <reference lib="scripthost" />
 /// <reference lib="dom.iterable" />
 /// <reference lib="dom.asynciterable" />
-`,On=`/*! *****************************************************************************
+`,$n=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53175,7 +53175,7 @@ and limitations under the License.
 declare namespace Intl {
     // Empty
 }
-`,wn=`/*! *****************************************************************************
+`,et=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53323,7 +53323,7 @@ declare global {
 
     var Iterator: IteratorConstructor;
 }
-`,_n=`/*! *****************************************************************************
+`,nt=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53357,7 +53357,7 @@ interface PromiseConstructor {
      */
     try<T, U extends unknown[]>(callbackFn: (...args: U) => T | PromiseLike<T>, ...args: U): Promise<Awaited<T>>;
 }
-`,Gn=`/*! *****************************************************************************
+`,tt=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53382,7 +53382,7 @@ interface Atomics {
      */
     pause(n?: number): void;
 }
-`,zn=`/*! *****************************************************************************
+`,rt=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53704,7 +53704,7 @@ interface DateConstructor {
 interface Date {
     getVarDate: () => VarDate;
 }
-`,kn=`/*! *****************************************************************************
+`,ot=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -53745,7 +53745,7 @@ interface ReadableStream<R = any> {
     [Symbol.asyncIterator](options?: ReadableStreamIteratorOptions): ReadableStreamAsyncIterator<R>;
     values(options?: ReadableStreamIteratorOptions): ReadableStreamAsyncIterator<R>;
 }
-`,Bn=`/*! *****************************************************************************
+`,at=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -66895,7 +66895,7 @@ type WebTransportErrorSource = "session" | "stream";
 type WorkerType = "classic" | "module";
 type WriteCommandType = "seek" | "truncate" | "write";
 type XMLHttpRequestResponseType = "" | "arraybuffer" | "blob" | "document" | "json" | "text";
-`,Fn=`/*! *****************************************************************************
+`,it=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -66918,7 +66918,7 @@ and limitations under the License.
 /////////////////////////////
 // These are only available in a Web Worker
 declare function importScripts(...urls: string[]): void;
-`,Vn=`/*! *****************************************************************************
+`,st=`/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -67258,8 +67258,8 @@ interface WebGLRenderingContextOverloads {
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix) */
     uniformMatrix4fv(location: WebGLUniformLocation | null, transpose: GLboolean, value: Iterable<GLfloat>): void;
 }
-`,Hn=`export * from "./types/jsx";
-`,Un=`import type { JSX } from "../jsx.js";
+`,lt=`export * from "./types/jsx";
+`,dt=`import type { JSX } from "../jsx.js";
 /**
  * A general \`Component\` has no implicit \`children\` prop.  If desired, you can
  * specify one as in \`Component<{name: String, children: JSX.Element}>\`.
@@ -67334,7 +67334,7 @@ export declare function lazy<T extends Component<any>>(fn: () => Promise<{
     moduleUrl?: string;
 };
 export declare function createUniqueId(): string;
-`,Kn=`import type { Accessor, Owner, EffectOptions } from "@solidjs/signals";
+`,ct=`import type { Accessor, Owner, EffectOptions } from "@solidjs/signals";
 import type { JSX } from "../jsx.js";
 import { FlowComponent } from "./component.js";
 export declare const IS_DEV: string | boolean;
@@ -67399,7 +67399,7 @@ interface SourceMapValue {
 }
 export declare function registerGraph(value: SourceMapValue): void;
 export {};
-`,jn=`import type { Accessor } from "@solidjs/signals";
+`,pt=`import type { Accessor } from "@solidjs/signals";
 import type { JSX } from "../jsx.js";
 /**
  * Creates a list of elements from a list
@@ -67499,7 +67499,7 @@ export declare function Errored(props: {
     fallback: JSX.Element | ((err: any, reset: () => void) => JSX.Element);
     children: JSX.Element;
 }): JSX.Element;
-`,Xn=`import { createErrorBoundary as coreErrorBoundary, createMemo as coreMemo, createSignal as coreSignal, createOptimistic as coreOptimistic, createRenderEffect as coreRenderEffect, createEffect as coreEffect, $REFRESH, type ProjectionOptions, type Store, type StoreSetter, type Context } from "@solidjs/signals";
+`,ht=`import { createErrorBoundary as coreErrorBoundary, createMemo as coreMemo, createSignal as coreSignal, createOptimistic as coreOptimistic, createRenderEffect as coreRenderEffect, createEffect as coreEffect, $REFRESH, type ProjectionOptions, type Store, type StoreSetter, type Context } from "@solidjs/signals";
 import { JSX } from "../jsx.js";
 declare module "@solidjs/signals" {
     interface MemoOptions<T> {
@@ -67597,7 +67597,7 @@ export declare function Hydration(props: {
     children: JSX.Element;
 }): JSX.Element;
 export {};
-`,qn=`export { $PROXY, $REFRESH, $TRACK, action, createOwner, createReaction, createRoot, createTrackedEffect, deep, flatten, flush, getNextChildId, getObserver, getOwner, isEqual, isRefreshing, isPending, isWrappable, mapArray, merge, omit, onCleanup, onSettled, latest, reconcile, refresh, repeat, resolve, NotReadyError, runWithOwner, setOnUnhandledAsync, snapshot, storePath, untrack } from "@solidjs/signals";
+`,mt=`export { $PROXY, $REFRESH, $TRACK, action, createOwner, createReaction, createRoot, createTrackedEffect, deep, flatten, flush, getNextChildId, getObserver, getOwner, isEqual, isRefreshing, isPending, isWrappable, mapArray, merge, omit, onCleanup, onSettled, latest, reconcile, refresh, repeat, resolve, NotReadyError, runWithOwner, setOnUnhandledAsync, snapshot, storePath, untrack } from "@solidjs/signals";
 export type { Accessor, ComputeFunction, EffectFunction, EffectOptions, Merge, NoInfer, NotWrappable, Omit, Owner, Signal, SignalOptions, Setter, Store, SolidStore, StoreNode, StoreSetter, StorePathRange, ArrayFilterFn, CustomPartial, Part, PathSetter } from "@solidjs/signals";
 export { $DEVCOMP, children, createContext, useContext } from "./client/core.js";
 export type { ChildrenReturn, Context, ContextProviderComponent, ResolvedChildren, ResolvedJSXElement } from "./client/core.js";
@@ -67617,7 +67617,7 @@ export declare const DEV: {
 declare global {
     var Solid$$: boolean;
 }
-`,Yn=`/**
+`,ut=`/**
 	THIS FILE IS GENERATED BY \`./jsx-update.mjs\`.
 	PLEASE UPDATE \`jsx-h.d.ts\` INSTEAD AND RUN \`pnpm jsx-sync-types\`.
 */
@@ -71746,7 +71746,7 @@ export namespace JSX {
       SVGElementTags,
       MathMLElementTags {}
 }
-`,Jn=`import type { JSX } from "../jsx.js";
+`,ft=`import type { JSX } from "../jsx.js";
 export declare function enableHydration(): void;
 /**
  * A general \`Component\` has no implicit \`children\` prop.  If desired, you can
@@ -71813,7 +71813,7 @@ export declare function lazy<T extends Component<any>>(fn: () => Promise<{
     moduleUrl?: string;
 };
 export declare function createUniqueId(): string;
-`,Qn=`import type { Accessor, EffectOptions } from "./signals.js";
+`,bt=`import type { Accessor, EffectOptions } from "./signals.js";
 import type { JSX } from "../jsx.js";
 import type { FlowComponent } from "./component.js";
 export declare const $DEVCOMP: unique symbol;
@@ -71857,7 +71857,7 @@ export declare function children(fn: Accessor<JSX.Element>): ChildrenReturn;
  */
 export declare function ssrRunInScope(fn: () => any): () => any;
 export declare function ssrRunInScope(array: (() => any)[]): (() => any)[];
-`,Zn=`import type { Accessor } from "./signals.js";
+`,gt=`import type { Accessor } from "./signals.js";
 import type { JSX } from "../jsx.js";
 /**
  * Creates a list of elements from a list
@@ -71917,7 +71917,7 @@ export declare function Errored(props: {
     fallback: JSX.Element | ((err: any, reset: () => void) => JSX.Element);
     children: JSX.Element;
 }): JSX.Element;
-`,$n=`import type { JSX } from "../jsx.js";
+`,vt=`import type { JSX } from "../jsx.js";
 export { sharedConfig, NoHydrateContext } from "./shared.js";
 export type { HydrationContext, SSRTemplateObject } from "./shared.js";
 /**
@@ -71955,7 +71955,7 @@ export declare function Hydration(props: {
     id?: string;
     children: JSX.Element;
 }): JSX.Element;
-`,et=`export { $PROXY, $REFRESH, $TRACK, action, createEffect, createMemo, createOptimistic, createOptimisticStore, createOwner, createProjection, createReaction, createRenderEffect, createRoot, createSignal, createStore, createTrackedEffect, deep, flatten, flush, getNextChildId, getObserver, getOwner, isEqual, isRefreshing, isPending, isWrappable, mapArray, merge, omit, onCleanup, onSettled, latest, reconcile, refresh, repeat, resolve, NotReadyError, runWithOwner, snapshot, storePath, createDeepProxy, setOnUnhandledAsync, untrack } from "./signals.js";
+`,yt=`export { $PROXY, $REFRESH, $TRACK, action, createEffect, createMemo, createOptimistic, createOptimisticStore, createOwner, createProjection, createReaction, createRenderEffect, createRoot, createSignal, createStore, createTrackedEffect, deep, flatten, flush, getNextChildId, getObserver, getOwner, isEqual, isRefreshing, isPending, isWrappable, mapArray, merge, omit, onCleanup, onSettled, latest, reconcile, refresh, repeat, resolve, NotReadyError, runWithOwner, snapshot, storePath, createDeepProxy, setOnUnhandledAsync, untrack } from "./signals.js";
 export type { Accessor, ComputeFunction, EffectFunction, EffectOptions, Merge, NoInfer, NotWrappable, Omit, Owner, Signal, SignalOptions, Setter, Store, SolidStore, StoreNode, StoreSetter, StorePathRange, ArrayFilterFn, CustomPartial, Part, PathSetter, PatchOp } from "./signals.js";
 export { $DEVCOMP, children, createContext, useContext, ssrRunInScope } from "./core.js";
 export type { ChildrenReturn, Context, ContextProviderComponent, ResolvedChildren, ResolvedJSXElement } from "./core.js";
@@ -71967,7 +71967,7 @@ import type { JSX } from "../jsx.js";
 type JSXElement = JSX.Element;
 export type { JSXElement, JSX };
 export declare const DEV: undefined;
-`,nt=`import type { Context } from "@solidjs/signals";
+`,Et=`import type { Context } from "@solidjs/signals";
 export type SSRTemplateObject = {
     t: string[];
     h: Function[];
@@ -72013,7 +72013,7 @@ type SharedConfig = {
 };
 export declare const sharedConfig: SharedConfig;
 export {};
-`,tt=`export { createRoot, createOwner, runWithOwner, getOwner, onCleanup, getNextChildId, createContext, setContext, getContext, NotReadyError, NoOwnerError, ContextNotFoundError, isEqual, isWrappable, SUPPORTS_PROXY, setOnUnhandledAsync } from "@solidjs/signals";
+`,Tt=`export { createRoot, createOwner, runWithOwner, getOwner, onCleanup, getNextChildId, createContext, setContext, getContext, NotReadyError, NoOwnerError, ContextNotFoundError, isEqual, isWrappable, SUPPORTS_PROXY, setOnUnhandledAsync } from "@solidjs/signals";
 export { flatten } from "@solidjs/signals";
 export { snapshot, merge, omit, storePath, $PROXY, $REFRESH, $TRACK } from "@solidjs/signals";
 export type { Accessor, ComputeFunction, EffectFunction, EffectBundle, EffectOptions, MemoOptions, NoInfer, SignalOptions, Setter, Signal, Owner, Maybe, Store, StoreSetter, StoreNode, NotWrappable, SolidStore, Merge, Omit, Context, ContextRecord, IQueue, StorePathRange, ArrayFilterFn, CustomPartial, Part, PathSetter } from "@solidjs/signals";
@@ -72075,10 +72075,10 @@ export declare function refresh<T>(fn: () => T): T;
 export declare function action<T extends (...args: any[]) => any>(fn: T): T;
 export declare function onSettled(callback: () => void | (() => void)): void;
 type NoInfer<T extends any> = [T][T extends any ? 0 : never];
-`,rt=`import type { RequestEvent } from "@solidjs/web";
+`,At=`import type { RequestEvent } from "@solidjs/web";
 export declare function provideRequestEvent<T extends RequestEvent, U>(init: T, cb: () => U): U;
-`,ot=`export * from "dom-expressions/src/client.js";
-`,at=`import { hydrate as hydrateCore, render as renderCore } from "./client.js";
+`,Rt=`export * from "dom-expressions/src/client.js";
+`,St=`import { hydrate as hydrateCore, render as renderCore } from "./client.js";
 import { JSX, ComponentProps, ValidComponent } from "solid-js";
 export * from "./client.js";
 export declare function render(...args: Parameters<typeof renderCore>): ReturnType<typeof renderCore>;
@@ -72124,7 +72124,7 @@ export declare function createDynamic<T extends ValidComponent>(component: () =>
  * @description https://docs.solidjs.com/reference/components/dynamic
  */
 export declare function Dynamic<T extends ValidComponent>(props: DynamicProps<T>): JSX.Element;
-`,it=`export declare function renderToString<T>(fn: () => T, options?: {
+`,Mt=`export declare function renderToString<T>(fn: () => T, options?: {
     nonce?: string;
     renderId?: string;
     noScripts?: boolean;
@@ -72196,9 +72196,9 @@ export declare function ssrAttribute(key: string, value: boolean): string;
 export declare function ssrHydrationKey(): string;
 export declare function resolveSSRNode(node: any): string;
 export declare function escape(html: string): string;
-`,st=`import type { RequestEvent } from "@solidjs/web";
+`,It=`import type { RequestEvent } from "@solidjs/web";
 export declare function provideRequestEvent<T extends RequestEvent, U>(init: T, cb: () => U): U;
-`,lt=`import { JSX } from "./jsx.js";
+`,Lt=`import { JSX } from "./jsx.js";
 export const Properties: Set<string>;
 export const ChildProperties: Set<string>;
 export const DelegatedEvents: Set<string>;
@@ -72286,10 +72286,10 @@ export interface RequestEvent {
 export declare const RequestContext: unique symbol;
 export function getRequestEvent(): RequestEvent | undefined;
 export function runHydrationEvents(): void;
-`,dt=`export { getOwner, runWithOwner, createComponent, createRoot as root, sharedConfig, untrack, merge as mergeProps, flatten, ssrHandleError, ssrRunInScope } from "solid-js";
+`,Dt=`export { getOwner, runWithOwner, createComponent, createRoot as root, sharedConfig, untrack, merge as mergeProps, flatten, ssrHandleError, ssrRunInScope } from "solid-js";
 export declare const effect: (fn: any, effectFn: any, initial: any) => void;
 export declare const memo: (fn: any, transparent: any) => any;
-`,ct=`import { hydrate as hydrateCore, render as renderCore } from "./client.js";
+`,Nt=`import { hydrate as hydrateCore, render as renderCore } from "./client.js";
 import { JSX, ComponentProps, ValidComponent } from "solid-js";
 export * from "./client.js";
 export declare function render(...args: Parameters<typeof renderCore>): ReturnType<typeof renderCore>;
@@ -72335,8 +72335,8 @@ export declare function createDynamic<T extends ValidComponent>(component: () =>
  * @description https://docs.solidjs.com/reference/components/dynamic
  */
 export declare function Dynamic<T extends ValidComponent>(props: DynamicProps<T>): JSX.Element;
-`,pt=`export type { JSX } from "solid-js";
-`,ht=`export declare function renderToString<T>(fn: () => T, options?: {
+`,Pt=`export type { JSX } from "solid-js";
+`,xt=`export declare function renderToString<T>(fn: () => T, options?: {
     nonce?: string;
     renderId?: string;
     noScripts?: boolean;
@@ -72408,7 +72408,7 @@ export declare function ssrAttribute(key: string, value: boolean): string;
 export declare function ssrHydrationKey(): string;
 export declare function resolveSSRNode(node: any): string;
 export declare function escape(html: string): string;
-`,mt=`import { JSX } from "./jsx.js";
+`,Ct=`import { JSX } from "./jsx.js";
 export const Properties: Set<string>;
 export const ChildProperties: Set<string>;
 export const DelegatedEvents: Set<string>;
@@ -72564,7 +72564,7 @@ export function getNextMatch(start: Node, elementName: string): Element;
 export function getNextMarker(start: Node): [Node, Array<Node>];
 /** @deprecated not supported on the server side */
 export function runHydrationEvents(): void;
-`,ut=`import { Queue, type Computed, type Effect } from "./core/index.js";
+`,Wt=`import { Queue, type Computed, type Effect } from "./core/index.js";
 import type { Signal } from "./core/index.js";
 export interface BoundaryComputed<T> extends Computed<T> {
     _propagationMask: number;
@@ -72585,13 +72585,13 @@ export declare function flatten(children: any, options?: {
     skipNonRendered?: boolean;
     doNotUnwrap?: boolean;
 }): any;
-`,ft=`export declare function action<Args extends any[], Y, R>(genFn: (...args: Args) => Generator<Y, R, any> | AsyncGenerator<Y, R, any>): (...args: Args) => Promise<R>;
-`,bt=`import { type OptimisticLane } from "./lanes.js";
+`,Ot=`export declare function action<Args extends any[], Y, R>(genFn: (...args: Args) => Generator<Y, R, any> | AsyncGenerator<Y, R, any>): (...args: Args) => Promise<R>;
+`,wt=`import { type OptimisticLane } from "./lanes.js";
 import type { Computed } from "./types.js";
 export declare function handleAsync<T>(el: Computed<T>, result: T | PromiseLike<T> | AsyncIterable<T>, setter?: (value: T) => void): T;
 export declare function clearStatus(el: Computed<any>): void;
 export declare function notifyStatus(el: Computed<any>, status: number, error: any, blockStatus?: boolean, lane?: OptimisticLane): void;
-`,gt=`export declare const REACTIVE_NONE = 0;
+`,_t=`export declare const REACTIVE_NONE = 0;
 export declare const REACTIVE_CHECK: number;
 export declare const REACTIVE_DIRTY: number;
 export declare const REACTIVE_RECOMPUTING_DEPS: number;
@@ -72616,7 +72616,7 @@ export declare const STORE_SNAPSHOT_PROPS = "sp";
 export declare const SUPPORTS_PROXY: boolean;
 export declare const defaultContext: {};
 export declare const $REFRESH: unique symbol;
-`,vt=`import type { Owner } from "./types.js";
+`,Gt=`import type { Owner } from "./types.js";
 export interface Context<T> {
     readonly id: symbol;
     readonly defaultValue: T | undefined;
@@ -72644,7 +72644,7 @@ export declare function getContext<T>(context: Context<T>, owner?: Owner | null)
  * @throws \`NoOwnerError\` if there's no owner at the time of call.
  */
 export declare function setContext<T>(context: Context<T>, value?: T, owner?: Owner | null): void;
-`,yt=`import { $REFRESH } from "./constants.js";
+`,zt=`import { $REFRESH } from "./constants.js";
 import { type OptimisticLane } from "./lanes.js";
 import type { Computed, FirewallSignal, NodeOptions, Owner, Signal } from "./types.js";
 export declare let tracking: boolean;
@@ -72698,7 +72698,7 @@ export declare function refresh<T>(fn: (() => T) | (T & {
     [$REFRESH]: any;
 })): T;
 export declare function isRefreshing(): boolean;
-`,Et=`import type { Computed, NodeOptions, Owner } from "./types.js";
+`,kt=`import type { Computed, NodeOptions, Owner } from "./types.js";
 export declare let leafEffectActive: boolean;
 export interface Effect<T> extends Computed<T>, Owner {
     _effectFn: (val: T, prev: T | undefined) => void | (() => void);
@@ -72728,7 +72728,7 @@ export interface TrackedEffect extends Computed<void> {
  * Children forbidden (__DEV__ throws). Uses stale reads.
  */
 export declare function trackedEffect(fn: () => void | (() => void), options?: NodeOptions<any>): void;
-`,Tt=`export declare class NotReadyError extends Error {
+`,Bt=`export declare class NotReadyError extends Error {
     source: any;
     constructor(source: any);
 }
@@ -72742,10 +72742,10 @@ export declare class NoOwnerError extends Error {
 export declare class ContextNotFoundError extends Error {
     constructor();
 }
-`,At=`import type { Computed, Link, Signal } from "./types.js";
+`,Ft=`import type { Computed, Link, Signal } from "./types.js";
 export declare function unlinkSubs(link: Link): Link | null;
 export declare function link(dep: Signal<any> | Computed<any>, sub: Computed<any>): void;
-`,Rt=`import type { Computed } from "./types.js";
+`,Vt=`import type { Computed } from "./types.js";
 export interface Heap {
     _heap: (Computed<unknown> | undefined)[];
     _marked: boolean;
@@ -72759,7 +72759,7 @@ export declare function deleteFromHeap(n: Computed<unknown>, heap: Heap): void;
 export declare function markHeap(heap: Heap): void;
 export declare function markNode(el: Computed<unknown>, newState?: number): void;
 export declare function runHeap(heap: Heap, recompute: (el: Computed<unknown>) => void): void;
-`,St=`export { ContextNotFoundError, NoOwnerError, NotReadyError } from "./error.js";
+`,Ht=`export { ContextNotFoundError, NoOwnerError, NotReadyError } from "./error.js";
 export { isEqual, untrack, runWithOwner, computed, signal, read, setSignal, optimisticSignal, optimisticComputed, isPending, latest, refresh, isRefreshing, staleValues, setSnapshotCapture, markSnapshotScope, releaseSnapshotScope, clearSnapshots, } from "./core.js";
 export { createOwner, createRoot, dispose, getNextChildId, getObserver, getOwner, isDisposed, onCleanup, peekNextChildId } from "./owner.js";
 export { createContext, getContext, setContext, type Context, type ContextRecord } from "./context.js";
@@ -72769,7 +72769,7 @@ export { effect, trackedEffect, type Effect, type TrackedEffect } from "./effect
 export { action } from "./action.js";
 export { flush, Queue, GlobalQueue, trackOptimisticStore, setOnUnhandledAsync, type IQueue, type QueueCallback } from "./scheduler.js";
 export * from "./constants.js";
-`,Mt=`import { type QueueCallback, type Transition } from "./scheduler.js";
+`,Ut=`import { type QueueCallback, type Transition } from "./scheduler.js";
 import type { Computed, Signal } from "./types.js";
 /**
  * OptimisticLane represents the context for a single optimistic write.
@@ -72821,7 +72821,7 @@ export declare function assignOrMergeLane(el: {
     _optimistic?: boolean;
     _pendingValue?: any;
 }, sourceLane: OptimisticLane): void;
-`,It=`import type { Computed, Disposable, Owner, Root } from "./types.js";
+`,Kt=`import type { Computed, Disposable, Owner, Root } from "./types.js";
 export declare function markDisposal(el: Owner): void;
 export declare function dispose(node: Computed<unknown>): void;
 export declare function disposeChildren(node: Owner, self?: boolean, zombie?: boolean): void;
@@ -72847,7 +72847,7 @@ export declare function createRoot<T>(init: ((dispose: () => void) => T) | (() =
     id?: string;
     transparent?: boolean;
 }): T;
-`,Lt=`import { type Heap } from "./heap.js";
+`,jt=`import { type Heap } from "./heap.js";
 import { activeLanes, assignOrMergeLane, findLane } from "./lanes.js";
 import type { Computed, Signal } from "./types.js";
 export { activeLanes, assignOrMergeLane, findLane };
@@ -72923,7 +72923,7 @@ export declare function flush(): void;
 export declare function currentTransition(transition: Transition): Transition;
 export declare function setActiveTransition(transition: Transition | null): void;
 export declare function runInTransition<T>(transition: Transition, fn: () => T): T;
-`,Dt=`import type { NOT_PENDING } from "./constants.js";
+`,Xt=`import type { NOT_PENDING } from "./constants.js";
 import type { OptimisticLane } from "./lanes.js";
 import type { IQueue, Transition } from "./scheduler.js";
 export interface Disposable {
@@ -73002,13 +73002,13 @@ export interface Root extends Owner {
     _parentComputed: Computed<any> | null;
     dispose(self?: boolean): void;
 }
-`,Nt=`export { $REFRESH, ContextNotFoundError, NoOwnerError, NotReadyError, action, createContext, createOwner, createRoot, runWithOwner, flush, getNextChildId, peekNextChildId, getContext, setContext, getOwner, onCleanup, isDisposed, getObserver, isEqual, untrack, isPending, latest, isRefreshing, refresh, SUPPORTS_PROXY, setSnapshotCapture, markSnapshotScope, releaseSnapshotScope, clearSnapshots, setOnUnhandledAsync, } from "./core/index.js";
+`,qt=`export { $REFRESH, ContextNotFoundError, NoOwnerError, NotReadyError, action, createContext, createOwner, createRoot, runWithOwner, flush, getNextChildId, peekNextChildId, getContext, setContext, getOwner, onCleanup, isDisposed, getObserver, isEqual, untrack, isPending, latest, isRefreshing, refresh, SUPPORTS_PROXY, setSnapshotCapture, markSnapshotScope, releaseSnapshotScope, clearSnapshots, setOnUnhandledAsync, } from "./core/index.js";
 export type { Owner, Context, ContextRecord, IQueue } from "./core/index.js";
 export * from "./signals.js";
 export { mapArray, repeat, type Maybe } from "./map.js";
 export * from "./store/index.js";
 export { createLoadBoundary, createErrorBoundary, flatten } from "./boundaries.js";
-`,Pt=`import { type Accessor } from "./signals.js";
+`,Yt=`import { type Accessor } from "./signals.js";
 export type Maybe<T> = T | void | null | undefined | false;
 /**
  * Reactively transforms an array with a callback function - underlying helper for the \`<For>\` control flow
@@ -73032,7 +73032,7 @@ export declare function repeat(count: Accessor<number>, map: (index: number) => 
     fallback?: Accessor<any>;
     name?: string;
 }): Accessor<any[]>;
-`,xt=`export type Accessor<T> = () => T;
+`,Jt=`export type Accessor<T> = () => T;
 export type Setter<in out T> = {
     <U extends T>(...args: undefined extends T ? [] : [value: Exclude<U, Function> | ((prev: T) => U)]): undefined extends T ? undefined : U;
     <U extends T>(value: (prev: T) => U): U;
@@ -73221,7 +73221,7 @@ export declare function createOptimistic<T>(fn: ComputeFunction<T>, initialValue
  * @param callback Function to run, may return a cleanup function
  */
 export declare function onSettled(callback: () => void | (() => void)): void;
-`,Ct=`export type { Store, StoreSetter, StoreNode, StoreOptions, ProjectionOptions, NotWrappable, SolidStore } from "./store.js";
+`,Qt=`export type { Store, StoreSetter, StoreNode, StoreOptions, ProjectionOptions, NotWrappable, SolidStore } from "./store.js";
 export type { Merge, Omit } from "./utils.js";
 export { isWrappable, createStore, deep, $TRACK, $PROXY, $TARGET } from "./store.js";
 export { createProjection } from "./projection.js";
@@ -73230,7 +73230,7 @@ export { reconcile } from "./reconcile.js";
 export { storePath } from "./storePath.js";
 export type { PathSetter, Part, StorePathRange, ArrayFilterFn, CustomPartial } from "./storePath.js";
 export { snapshot, merge, omit } from "./utils.js";
-`,Wt=`import { $REFRESH } from "../core/index.js";
+`,Zt=`import { $REFRESH } from "../core/index.js";
 import { type NoFn, type ProjectionOptions, type Store, type StoreSetter } from "./store.js";
 /**
  * Creates an optimistic store that can be used to optimistically update a value
@@ -73249,7 +73249,7 @@ export declare function createOptimisticStore<T extends object = {}>(store: NoFn
 export declare function createOptimisticStore<T extends object = {}>(fn: (store: T) => void | T | Promise<void | T> | AsyncIterable<void | T>, store?: NoFn<T> | Store<NoFn<T>>, options?: ProjectionOptions): [get: Store<T> & {
     [$REFRESH]: any;
 }, set: StoreSetter<T>];
-`,Ot=`import { $REFRESH, type Computed } from "../core/index.js";
+`,$t=`import { $REFRESH, type Computed } from "../core/index.js";
 import { type ProjectionOptions, type Store } from "./store.js";
 export declare function createProjectionInternal<T extends object = {}>(fn: (draft: T) => void | T | Promise<void | T> | AsyncIterable<void | T>, initialValue?: T, options?: ProjectionOptions): {
     store: Store<T> & {
@@ -73274,8 +73274,8 @@ export declare function createProjection<T extends object = {}>(fn: (draft: T) =
     [$REFRESH]: any;
 };
 export declare const writeTraps: ProxyHandler<any>;
-`,wt=`export declare function reconcile<T extends U, U>(value: T, key: string | ((item: NonNullable<any>) => any), all?: boolean): (state: U) => void;
-`,_t=`import { $REFRESH, STORE_SNAPSHOT_PROPS, type Computed, type Signal } from "../core/index.js";
+`,er=`export declare function reconcile<T extends U, U>(value: T, key: string | ((item: NonNullable<any>) => any), all?: boolean): (state: U) => void;
+`,nr=`import { $REFRESH, STORE_SNAPSHOT_PROPS, type Computed, type Signal } from "../core/index.js";
 export type Store<T> = Readonly<T>;
 export type StoreSetter<T> = (fn: (state: T) => T | void) => void;
 /** Base options for store primitives. */
@@ -73345,7 +73345,7 @@ export declare function createStore<T extends object = {}>(fn: (store: T) => voi
 }, set: StoreSetter<T>];
 export declare function deep<T extends object>(store: Store<T>): Store<T>;
 export {};
-`,Gt=`import { type NotWrappable } from "./store.js";
+`,tr=`import { type NotWrappable } from "./store.js";
 type W<T> = Exclude<T, NotWrappable>;
 type KeyOf<T> = number extends keyof T ? 0 extends 1 & T ? keyof T : [T] extends [never] ? never : [T] extends [readonly unknown[]] ? number : keyof T : keyof T;
 export type CustomPartial<T> = T extends readonly unknown[] ? "0" extends keyof T ? {
@@ -73375,7 +73375,7 @@ export interface storePath {
 }
 export declare const storePath: storePath;
 export {};
-`,zt=`/**
+`,rr=`/**
  * Returns a non reactive copy of the store object.
  * It will attempt to preserver the original reference unless the value has been modified.
  * @param item store proxy object
@@ -73411,11 +73411,12 @@ export type Omit<T, K extends readonly (keyof T)[]> = {
 };
 export declare function omit<T extends Record<any, any>, K extends readonly (keyof T)[]>(props: T, ...keys: K): Omit<T, K>;
 export {};
-`,kt={};function y(){return y=Object.assign?Object.assign.bind():function(e){for(var n=1;n<arguments.length;n++){var t=arguments[n];for(var r in t)({}).hasOwnProperty.call(t,r)&&(e[r]=t[r])}return e},y.apply(null,arguments)}var _=!1;try{_=typeof localStorage<"u"}catch{}var Bt=typeof process<"u",Ft=_&&typeof localStorage.getItem=="function"&&localStorage.getItem("DEBUG")||Bt&&kt.DEBUG,G=Ft?console.log:function(e){return""};function Vt(e,n,t,r,o){r===void 0&&(r={});var a=y({},z(t),r),i=Ut(e,n,a,t,o),s=i.languageServiceHost,c=i.updateFile,l=i.deleteFile,d=t.createLanguageService(s),p=d.getCompilerOptionsDiagnostics();if(p.length){var m=B(e,r,t);throw new Error(t.formatDiagnostics(p,m.compilerHost))}return{name:"vfs",sys:e,languageService:d,getSourceFile:function(u){var h;return(h=d.getProgram())==null?void 0:h.getSourceFile(u)},createFile:function(u,h){c(t.createSourceFile(u,h,a.target,!1))},updateFile:function(u,h,g){var O=d.getProgram().getSourceFile(u);if(!O)throw new Error("Did not find a source file for "+u);var w=O.text,N=g??t.createTextSpan(0,w.length),Ar=w.slice(0,N.start)+h+w.slice(N.start+N.length),Rr=t.updateSourceFile(O,Ar,{span:N,newLength:h.length});c(Rr)},deleteFile:function(u){var h=d.getProgram().getSourceFile(u);h&&l(h)}}}function T(e){throw new Error("Method '"+e+"' is not implemented.")}function A(e,n){return function(){for(var t=arguments.length,r=new Array(t),o=0;o<t;o++)r[o]=arguments[o];var a=n.apply(void 0,r),i=typeof a=="string"?a.slice(0,80)+"...":a;return G.apply(void 0,["> "+e].concat(r)),G("< "+i),a}}var z=function(n){return y({},n.getDefaultCompilerOptions(),{jsx:n.JsxEmit.React,strict:!0,esModuleInterop:!0,module:n.ModuleKind.ESNext,suppressOutputPathCheck:!0,skipLibCheck:!0,skipDefaultLibCheck:!0},n.versionMajorMinor&&Number(n.versionMajorMinor.split(".")[0])>=6?{ignoreDeprecations:"6.0"}:{moduleResolution:n.ModuleResolutionKind.NodeJs})},k=function(n){return n.replace("/","/lib.").toLowerCase()};function Ht(e){return{args:[],createDirectory:function(){return T("createDirectory")},directoryExists:A("directoryExists",function(n){return Array.from(e.keys()).some(function(t){return t.startsWith(n)})}),exit:function(){return T("exit")},fileExists:A("fileExists",function(n){return e.has(n)||e.has(k(n))}),getCurrentDirectory:function(){return"/"},getDirectories:function(){return[]},getExecutingFilePath:function(){return T("getExecutingFilePath")},readDirectory:A("readDirectory",function(n){return n==="/"?Array.from(e.keys()):[]}),readFile:A("readFile",function(n){var t;return(t=e.get(n))!=null?t:e.get(k(n))}),resolvePath:function(t){return t},newLine:`
-`,useCaseSensitiveFileNames:!0,write:function(){return T("write")},writeFile:function(t,r){e.set(t,r)},deleteFile:function(t){e.delete(t)}}}function B(e,n,t){var r=new Map,o=function(s){return r.set(s.fileName,s),s},a={compilerHost:y({},e,{getCanonicalFileName:function(s){return s},getDefaultLibFileName:function(){return"/"+t.getDefaultLibFileName(n)},getNewLine:function(){return e.newLine},getSourceFile:function(s,c){var l;return r.get(s)||o(t.createSourceFile(s,e.readFile(s),(l=c??n.target)!=null?l:z(t).target,!1))},useCaseSensitiveFileNames:function(){return e.useCaseSensitiveFileNames}}),updateFile:function(s){var c=r.has(s.fileName);return e.writeFile(s.fileName,s.text),r.set(s.fileName,s),c},deleteFile:function(s){var c=r.has(s.fileName);return r.delete(s.fileName),e.deleteFile(s.fileName),c}};return a}function Ut(e,n,t,r,o){var a=[].concat(n),i=B(e,t,r),s=i.compilerHost,c=i.updateFile,l=i.deleteFile,d=new Map,p=0,m=y({},s,{getProjectVersion:function(){return p.toString()},getCompilationSettings:function(){return t},getCustomTransformers:function(){return o},getScriptFileNames:function(){return a.slice()},getScriptSnapshot:function(h){var g=e.readFile(h);if(g&&typeof g=="string")return r.ScriptSnapshot.fromString(g)},getScriptVersion:function(h){return d.get(h)||"0"},writeFile:e.writeFile}),b={languageServiceHost:m,updateFile:function(h){p++,d.set(h.fileName,p.toString()),a.includes(h.fileName)||a.push(h.fileName),c(h)},deleteFile:function(h){p++,d.set(h.fileName,p.toString());var g=a.indexOf(h.fileName);g!==-1&&a.splice(g,1),l(h)}};return b}/**
+`,or={};function T(){return T=Object.assign?Object.assign.bind():function(e){for(var n=1;n<arguments.length;n++){var t=arguments[n];for(var o in t)({}).hasOwnProperty.call(t,o)&&(e[o]=t[o])}return e},T.apply(null,arguments)}var q=!1;try{q=typeof localStorage<"u"}catch{}var ar=typeof process<"u",ir=q&&typeof localStorage.getItem=="function"&&localStorage.getItem("DEBUG")||ar&&or.DEBUG,Y=ir?console.log:function(e){return""};function sr(e,n,t,o,a){o===void 0&&(o={});var r=T({},J(t),o),s=dr(e,n,r,t,a),i=s.languageServiceHost,l=s.updateFile,d=s.deleteFile,c=t.createLanguageService(i),h=c.getCompilerOptionsDiagnostics();if(h.length){var u=Z(e,o,t);throw new Error(t.formatDiagnostics(h,u.compilerHost))}return{name:"vfs",sys:e,languageService:c,getSourceFile:function(f){var m;return(m=c.getProgram())==null?void 0:m.getSourceFile(f)},createFile:function(f,m){l(t.createSourceFile(f,m,r.target,!1))},updateFile:function(f,m,v){var M=c.getProgram().getSourceFile(f);if(!M)throw new Error("Did not find a source file for "+f);var I=M.text,L=v??t.createTextSpan(0,I.length),G=I.slice(0,L.start)+m+I.slice(L.start+L.length),j=t.updateSourceFile(M,G,{span:L,newLength:m.length});l(j)},deleteFile:function(f){var m=c.getProgram().getSourceFile(f);m&&d(m)}}}function N(e){throw new Error("Method '"+e+"' is not implemented.")}function P(e,n){return function(){for(var t=arguments.length,o=new Array(t),a=0;a<t;a++)o[a]=arguments[a];var r=n.apply(void 0,o),s=typeof r=="string"?r.slice(0,80)+"...":r;return Y.apply(void 0,["> "+e].concat(o)),Y("< "+s),r}}var J=function(n){return T({},n.getDefaultCompilerOptions(),{jsx:n.JsxEmit.React,strict:!0,esModuleInterop:!0,module:n.ModuleKind.ESNext,suppressOutputPathCheck:!0,skipLibCheck:!0,skipDefaultLibCheck:!0},n.versionMajorMinor&&Number(n.versionMajorMinor.split(".")[0])>=6?{ignoreDeprecations:"6.0"}:{moduleResolution:n.ModuleResolutionKind.NodeJs})},Q=function(n){return n.replace("/","/lib.").toLowerCase()};function lr(e){return{args:[],createDirectory:function(){return N("createDirectory")},directoryExists:P("directoryExists",function(n){return Array.from(e.keys()).some(function(t){return t.startsWith(n)})}),exit:function(){return N("exit")},fileExists:P("fileExists",function(n){return e.has(n)||e.has(Q(n))}),getCurrentDirectory:function(){return"/"},getDirectories:function(){return[]},getExecutingFilePath:function(){return N("getExecutingFilePath")},readDirectory:P("readDirectory",function(n){return n==="/"?Array.from(e.keys()):[]}),readFile:P("readFile",function(n){var t;return(t=e.get(n))!=null?t:e.get(Q(n))}),resolvePath:function(t){return t},newLine:`
+`,useCaseSensitiveFileNames:!0,write:function(){return N("write")},writeFile:function(t,o){e.set(t,o)},deleteFile:function(t){e.delete(t)}}}function Z(e,n,t){var o=new Map,a=function(i){return o.set(i.fileName,i),i},r={compilerHost:T({},e,{getCanonicalFileName:function(i){return i},getDefaultLibFileName:function(){return"/"+t.getDefaultLibFileName(n)},getNewLine:function(){return e.newLine},getSourceFile:function(i,l){var d;return o.get(i)||a(t.createSourceFile(i,e.readFile(i),(d=l??n.target)!=null?d:J(t).target,!1))},useCaseSensitiveFileNames:function(){return e.useCaseSensitiveFileNames}}),updateFile:function(i){var l=o.has(i.fileName);return e.writeFile(i.fileName,i.text),o.set(i.fileName,i),l},deleteFile:function(i){var l=o.has(i.fileName);return o.delete(i.fileName),e.deleteFile(i.fileName),l}};return r}function dr(e,n,t,o,a){var r=[].concat(n),s=Z(e,t,o),i=s.compilerHost,l=s.updateFile,d=s.deleteFile,c=new Map,h=0,u=T({},i,{getProjectVersion:function(){return h.toString()},getCompilationSettings:function(){return t},getCustomTransformers:function(){return a},getScriptFileNames:function(){return r.slice()},getScriptSnapshot:function(m){var v=e.readFile(m);if(v&&typeof v=="string")return o.ScriptSnapshot.fromString(v)},getScriptVersion:function(m){return c.get(m)||"0"},writeFile:e.writeFile}),b={languageServiceHost:u,updateFile:function(m){h++,c.set(m.fileName,h.toString()),r.includes(m.fileName)||r.push(m.fileName),l(m)},deleteFile:function(m){h++,c.set(m.fileName,h.toString());var v=r.indexOf(m.fileName);v!==-1&&r.splice(v,1),d(m)}};return b}var cr=Object.defineProperty,pr=Object.defineProperties,hr=Object.getOwnPropertyDescriptors,$=Object.getOwnPropertySymbols,mr=Object.prototype.hasOwnProperty,ur=Object.prototype.propertyIsEnumerable,ee=(e,n,t)=>n in e?cr(e,n,{enumerable:!0,configurable:!0,writable:!0,value:t}):e[n]=t,ne=(e,n)=>{for(var t in n||(n={}))mr.call(n,t)&&ee(e,t,n[t]);if($)for(var t of $(n))ur.call(n,t)&&ee(e,t,n[t]);return e},te=(e,n)=>pr(e,hr(n)),S=(e,n,t)=>new Promise((o,a)=>{var r=l=>{try{i(t.next(l))}catch(d){a(d)}},s=l=>{try{i(t.throw(l))}catch(d){a(d)}},i=l=>l.done?o(l.value):Promise.resolve(l.value).then(r,s);i((t=t.apply(e,n)).next())}),fr=(e,n)=>{const t=`https://data.jsdelivr.com/v1/package/npm/${n}`;return k(e,t,{cache:"no-store"})},br=(e,n,t)=>{const o=`https://data.jsdelivr.com/v1/package/resolve/npm/${n}@${t}`;return k(e,o)},gr=(e,n,t)=>S(void 0,null,function*(){const o=`https://data.jsdelivr.com/v1/package/npm/${n}@${t}/flat`,a=yield k(e,o);return a instanceof Error?a:te(ne({},a),{moduleName:n,version:t})}),re=(e,n,t,o)=>S(void 0,null,function*(){const a=`https://cdn.jsdelivr.net/npm/${n}@${t}${o}`,s=yield(e.fetcher||fetch)(a);return s.ok?s.text():new Error("OK")});function k(e,n,t){return(e.fetcher||fetch)(n,t).then(a=>a.ok?a.json().then(r=>r):new Error("OK"))}var vr=e=>{const n=["assert","assert/strict","async_hooks","buffer","child_process","cluster","console","constants","crypto","dgram","diagnostics_channel","dns","dns/promises","domain","events","fs","fs/promises","http","http2","https","inspector","inspector/promises","module","net","os","path","path/posix","path/win32","perf_hooks","process","punycode","querystring","readline","repl","stream","stream/promises","stream/consumers","stream/web","string_decoder","sys","timers","timers/promises","tls","trace_events","tty","url","util","util/types","v8","vm","wasi","worker_threads","zlib"];if(e.indexOf("node:")===0||n.includes(e))return"node";const[t="",o=""]=e.split("/");return t.startsWith("@")?`${t}/${o}`:t},yr=e=>{const n=new Map,t=new Map;let o=0,a=0;return s=>(o=0,a=0,r(s,0).then(i=>{var l,d;a>0&&((d=(l=e.delegate).finished)==null||d.call(l,t))}));function r(s,i){return S(this,null,function*(){var l,d,c,h,u;const b=Tr(e,n,s);b.forEach(p=>n.set(p.module,{state:"loading"}));const m=(yield Promise.all(b.map(p=>ae(e,p.module,p.version)))).filter(p=>!("error"in p)),v=m.filter(p=>p.files.find(y=>F(y.name))),M=v.map(p=>oe(p,`/node_modules/${p.moduleName}`)),I=m.filter(p=>!v.includes(p)),G=(yield Promise.all(I.map(p=>ae(e,`@types/${B(p.moduleName)}`,"latest")))).filter(p=>!("error"in p)),j=G.map(p=>oe(p,`/node_modules/@types/${B(p.moduleName).replace("types__","")}`)),X=M.concat(j).reduce((p,y)=>p.concat(y),[]);o+=X.length,X.length&&i===0&&((d=(l=e.delegate).started)==null||d.call(l));for(const p of m){let y=`/node_modules/${p.moduleName}`;G.includes(p)&&(y=`/node_modules/@types/${B(p.moduleName).replace("types__","")}`);const D=y+"/package.json",R=yield re(e,p.moduleName,p.version,"/package.json");typeof R=="string"?(t.set(D,R),(h=(c=e.delegate).receivedFile)==null||h.call(c,R,D)):(u=e.logger)==null||u.error(`Could not download package.json for ${p.moduleName}`)}yield Promise.all(X.map(p=>S(this,null,function*(){var y,D,R;const z=yield re(e,p.moduleName,p.moduleVersion,p.path);a++,z instanceof Error?(y=e.logger)==null||y.error(`Had an issue getting ${p.path} for ${p.moduleName}`):(t.set(p.vfsPath,z),(R=(D=e.delegate).receivedFile)==null||R.call(D,z,p.vfsPath),e.delegate.progress&&a%5===0&&e.delegate.progress(a,o),yield r(z,i+1))})))})}};function oe(e,n){const t=[];for(const o of e.files)F(o.name)&&t.push({moduleName:e.moduleName,moduleVersion:e.version,vfsPath:`${n}${o.name}`,path:o.name});return t}var Er=(e,n)=>{const t=e.preProcessFile(n),o=e.libMap||new Map;return t.referencedFiles.concat(t.importedFiles).concat(t.libReferenceDirectives).filter(r=>!F(r.fileName)).filter(r=>!o.has(r.fileName)).map(r=>{let s;if(!r.fileName.startsWith(".")){s="latest";const i=n.slice(r.end).split(`
+`)[0];i.includes("// types:")&&(s=i.split("// types: ")[1].trim())}return{module:r.fileName,version:s}}).filter((r,s,i)=>i.findIndex(l=>l.module===r.module&&l.version===r.version)===s)};function Tr(e,n,t){return Er(e.typescript,t).map(r=>te(ne({},r),{module:vr(r.module)})).filter(r=>!r.module.startsWith(".")).filter(r=>!n.has(r.module))}var ae=(e,n,t)=>S(void 0,null,function*(){let o=t||"latest";if(o.split(".").length<2){const r=yield br(e,n,o);if(r instanceof Error)return{error:r,userFacingMessage:`Could not go from a tag to version on npm for ${n} - possible typo?`};const s=r.version;if(!s){const i=yield fr(e,n);if(i instanceof Error)return{error:r,userFacingMessage:`Could not get versions on npm for ${n} - possible typo?`};const l=Object.entries(i.tags).join(", ");return{error:new Error("Could not find tag for module"),userFacingMessage:`Could not find a tag for ${n} called ${t}. Did find ${l}`}}o=s}const a=yield gr(e,n,o);return a instanceof Error?{error:a,userFacingMessage:`Could not get the files for ${n}@${o}. Is it possibly a typo?`}:a});function B(e){return e.indexOf("@")===0&&e.indexOf("/")!==-1&&(e=e.substr(1).replace("/","__")),e}function F(e){return/\.d\.([^\.]+\.)?[cm]?ts$/i.test(e)}/**
  * @license
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: Apache-2.0
- */const F=Symbol("Comlink.proxy"),Kt=Symbol("Comlink.endpoint"),jt=Symbol("Comlink.releaseProxy"),P=Symbol("Comlink.finalizer"),R=Symbol("Comlink.thrown"),V=e=>typeof e=="object"&&e!==null||typeof e=="function",Xt={canHandle:e=>V(e)&&e[F],serialize(e){const{port1:n,port2:t}=new MessageChannel;return x(e,n),[t,[t]]},deserialize(e){return e.start(),Qt(e)}},qt={canHandle:e=>V(e)&&R in e,serialize({value:e}){let n;return e instanceof Error?n={isError:!0,value:{message:e.message,name:e.name,stack:e.stack}}:n={isError:!1,value:e},[n,[]]},deserialize(e){throw e.isError?Object.assign(new Error(e.value.message),e.value):e.value}},H=new Map([["proxy",Xt],["throw",qt]]);function Yt(e,n){for(const t of e)if(n===t||t==="*"||t instanceof RegExp&&t.test(n))return!0;return!1}function x(e,n=globalThis,t=["*"]){n.addEventListener("message",function r(o){if(!o||!o.data)return;if(!Yt(t,o.origin)){console.warn(`Invalid origin '${o.origin}' for comlink proxy`);return}const{id:a,type:i,path:s}=Object.assign({path:[]},o.data),c=(o.data.argumentList||[]).map(v);let l;try{const d=s.slice(0,-1).reduce((m,b)=>m[b],e),p=s.reduce((m,b)=>m[b],e);switch(i){case"GET":l=p;break;case"SET":d[s.slice(-1)[0]]=v(o.data.value),l=!0;break;case"APPLY":l=p.apply(d,c);break;case"CONSTRUCT":{const m=new p(...c);l=tr(m)}break;case"ENDPOINT":{const{port1:m,port2:b}=new MessageChannel;x(e,b),l=nr(m,[m])}break;case"RELEASE":l=void 0;break;default:return}}catch(d){l={value:d,[R]:0}}Promise.resolve(l).catch(d=>({value:d,[R]:0})).then(d=>{const[p,m]=L(d);n.postMessage(Object.assign(Object.assign({},p),{id:a}),m),i==="RELEASE"&&(n.removeEventListener("message",r),U(n),P in e&&typeof e[P]=="function"&&e[P]())}).catch(d=>{const[p,m]=L({value:new TypeError("Unserializable return value"),[R]:0});n.postMessage(Object.assign(Object.assign({},p),{id:a}),m)})}),n.start&&n.start()}function Jt(e){return e.constructor.name==="MessagePort"}function U(e){Jt(e)&&e.close()}function Qt(e,n){const t=new Map;return e.addEventListener("message",function(o){const{data:a}=o;if(!a||!a.id)return;const i=t.get(a.id);if(i)try{i(a)}finally{t.delete(a.id)}}),C(e,t,[],n)}function S(e){if(e)throw new Error("Proxy has been released and is not useable")}function K(e){return E(e,new Map,{type:"RELEASE"}).then(()=>{U(e)})}const M=new WeakMap,I="FinalizationRegistry"in globalThis&&new FinalizationRegistry(e=>{const n=(M.get(e)||0)-1;M.set(e,n),n===0&&K(e)});function Zt(e,n){const t=(M.get(n)||0)+1;M.set(n,t),I&&I.register(e,n,e)}function $t(e){I&&I.unregister(e)}function C(e,n,t=[],r=function(){}){let o=!1;const a=new Proxy(r,{get(i,s){if(S(o),s===jt)return()=>{$t(a),K(e),n.clear(),o=!0};if(s==="then"){if(t.length===0)return{then:()=>a};const c=E(e,n,{type:"GET",path:t.map(l=>l.toString())}).then(v);return c.then.bind(c)}return C(e,n,[...t,s])},set(i,s,c){S(o);const[l,d]=L(c);return E(e,n,{type:"SET",path:[...t,s].map(p=>p.toString()),value:l},d).then(v)},apply(i,s,c){S(o);const l=t[t.length-1];if(l===Kt)return E(e,n,{type:"ENDPOINT"}).then(v);if(l==="bind")return C(e,n,t.slice(0,-1));const[d,p]=j(c);return E(e,n,{type:"APPLY",path:t.map(m=>m.toString()),argumentList:d},p).then(v)},construct(i,s){S(o);const[c,l]=j(s);return E(e,n,{type:"CONSTRUCT",path:t.map(d=>d.toString()),argumentList:c},l).then(v)}});return Zt(a,e),a}function er(e){return Array.prototype.concat.apply([],e)}function j(e){const n=e.map(L);return[n.map(t=>t[0]),er(n.map(t=>t[1]))]}const X=new WeakMap;function nr(e,n){return X.set(e,n),e}function tr(e){return Object.assign(e,{[F]:!0})}function L(e){for(const[n,t]of H)if(t.canHandle(e)){const[r,o]=t.serialize(e);return[{type:"HANDLER",name:n,value:r},o]}return[{type:"RAW",value:e},X.get(e)||[]]}function v(e){switch(e.type){case"HANDLER":return H.get(e.name).deserialize(e.value);case"RAW":return e.value}}function E(e,n,t,r){return new Promise(o=>{const a=rr();n.set(a,o),e.start&&e.start(),e.postMessage(Object.assign({id:a},t),r)})}function rr(){return new Array(4).fill(0).map(()=>Math.floor(Math.random()*Number.MAX_SAFE_INTEGER).toString(16)).join("-")}function or({env:e,path:n,pos:t}){const r=t;if(r===null)return null;try{const o=e.languageService.getQuickInfoAtPosition(n,r);if(!o)return null;const a=o.textSpan.start,i=e.languageService.getTypeDefinitionAtPosition(n,r)??e.languageService.getDefinitionAtPosition(n,r);return{start:a,end:a+o.textSpan.length,typeDef:i,quickInfo:o}}catch(o){return console.error(o),null}}const ar=new Set(["class","constant","enum","function","interface","keyword","method","namespace","property","text","type","variable"]);function ir(e,n){const{source:t}=e,r=t[t.length-1]!="$";return r?new RegExp(`(?:${t})${r?"$":""}`,e.flags??(e.ignoreCase?"i":"")):e}function sr(e,n){const t=e.lastIndexOf(`
-`,n-1)+1;let r=e.indexOf(`
-`,n);r===-1&&(r=e.length);const o=e.slice(t,r);return{from:t,to:r,text:o}}function q(e,n,t){const r=sr(e,n),o=Math.max(r.from,n-250),a=r.text.slice(o-r.from,n-r.from),i=a.search(ir(t));return i<0?null:{from:o+i,to:n,text:a.slice(i)}}const lr=["warning"];async function dr({env:e,path:n,context:t}){const{pos:r,explicit:o}=t,a=e.getSourceFile(n)?.getFullText();if(!a)return null;let i=q(a,r,/\w*/);if(i?.text||(i=q(a,r,/\./)),!i?.text&&!o)return null;const s=e.languageService.getCompletionsAtPosition(n,r,{includeCompletionsForModuleExports:!0,includeCompletionsForImportStatements:!0},{});if(!s)return null;const c=s.entries.filter(l=>!lr.includes(l.kind)).map(l=>{let d=l.kind?String(l.kind):void 0;d==="member"&&(d="property"),d&&!ar.has(d)&&(d=void 0);const p=e.languageService.getCompletionEntryDetails(n,r,l.name,{},l.source,{},l.data);return{label:l.name,codeActions:p?.codeActions,displayParts:p?.displayParts??[],documentation:p?.documentation,tags:p?.tags,type:d}});return{from:i?i.text==="."?i.to:i.from:r,options:c}}function cr(e){if(e.code===7027)return"warning";switch(e.category){case 1:return"error";case 3:return"info";case 0:return"warning";case 2:return"info";default:return"info"}}function pr(e){return!!(e.file&&typeof e.start=="number"&&typeof e.length=="number")}function hr(e){return typeof e.messageText=="string"?e.messageText:e.messageText.messageText}function mr(e){const n=e.start,t=hr(e);return{from:n,to:n+e.length,message:t,severity:cr(e)}}function ur({env:e,path:n,diagnosticCodesToIgnore:t}){if(!e.getSourceFile(n))return[];const o=e.languageService.getSyntacticDiagnostics(n),a=e.languageService.getSemanticDiagnostics(n);return[...o,...a].filter(s=>pr(s)&&!(t??[]).includes(s.code)).map(mr)}function fr(e,n,t){const r=e.getSourceFile(n);return r?t===r.getFullText()?!1:(e.updateFile(n,t),!0):(e.createFile(n,t),!0)}function br(e){let n=!1,t,r;return{async initialize(){n||(r=await e,t=await r.env,n=!0)},updateFile({path:o,code:a}){t&&fr(t,o,a)&&r.onFileUpdated?.(t,o,a)},getLints({path:o,diagnosticCodesToIgnore:a}){return t?ur({env:t,path:o,diagnosticCodesToIgnore:a}):[]},getAutocompletion({path:o,context:a}){return t?dr({env:t,path:o,context:a}):null},getHover({path:o,pos:a}){return t?or({env:t,path:o,pos:a}):null},getEnv(){return t}}}const gr=Object.assign({"../../node_modules/typescript/lib/lib.d.ts":J,"../../node_modules/typescript/lib/lib.decorators.d.ts":Q,"../../node_modules/typescript/lib/lib.decorators.legacy.d.ts":Z,"../../node_modules/typescript/lib/lib.dom.asynciterable.d.ts":$,"../../node_modules/typescript/lib/lib.dom.d.ts":ee,"../../node_modules/typescript/lib/lib.dom.iterable.d.ts":ne,"../../node_modules/typescript/lib/lib.es2015.collection.d.ts":te,"../../node_modules/typescript/lib/lib.es2015.core.d.ts":re,"../../node_modules/typescript/lib/lib.es2015.d.ts":oe,"../../node_modules/typescript/lib/lib.es2015.generator.d.ts":ae,"../../node_modules/typescript/lib/lib.es2015.iterable.d.ts":ie,"../../node_modules/typescript/lib/lib.es2015.promise.d.ts":se,"../../node_modules/typescript/lib/lib.es2015.proxy.d.ts":le,"../../node_modules/typescript/lib/lib.es2015.reflect.d.ts":de,"../../node_modules/typescript/lib/lib.es2015.symbol.d.ts":ce,"../../node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts":pe,"../../node_modules/typescript/lib/lib.es2016.array.include.d.ts":he,"../../node_modules/typescript/lib/lib.es2016.d.ts":me,"../../node_modules/typescript/lib/lib.es2016.full.d.ts":ue,"../../node_modules/typescript/lib/lib.es2016.intl.d.ts":fe,"../../node_modules/typescript/lib/lib.es2017.arraybuffer.d.ts":be,"../../node_modules/typescript/lib/lib.es2017.d.ts":ge,"../../node_modules/typescript/lib/lib.es2017.date.d.ts":ve,"../../node_modules/typescript/lib/lib.es2017.full.d.ts":ye,"../../node_modules/typescript/lib/lib.es2017.intl.d.ts":Ee,"../../node_modules/typescript/lib/lib.es2017.object.d.ts":Te,"../../node_modules/typescript/lib/lib.es2017.sharedmemory.d.ts":Ae,"../../node_modules/typescript/lib/lib.es2017.string.d.ts":Re,"../../node_modules/typescript/lib/lib.es2017.typedarrays.d.ts":Se,"../../node_modules/typescript/lib/lib.es2018.asyncgenerator.d.ts":Me,"../../node_modules/typescript/lib/lib.es2018.asynciterable.d.ts":Ie,"../../node_modules/typescript/lib/lib.es2018.d.ts":Le,"../../node_modules/typescript/lib/lib.es2018.full.d.ts":De,"../../node_modules/typescript/lib/lib.es2018.intl.d.ts":Ne,"../../node_modules/typescript/lib/lib.es2018.promise.d.ts":Pe,"../../node_modules/typescript/lib/lib.es2018.regexp.d.ts":xe,"../../node_modules/typescript/lib/lib.es2019.array.d.ts":Ce,"../../node_modules/typescript/lib/lib.es2019.d.ts":We,"../../node_modules/typescript/lib/lib.es2019.full.d.ts":Oe,"../../node_modules/typescript/lib/lib.es2019.intl.d.ts":we,"../../node_modules/typescript/lib/lib.es2019.object.d.ts":_e,"../../node_modules/typescript/lib/lib.es2019.string.d.ts":Ge,"../../node_modules/typescript/lib/lib.es2019.symbol.d.ts":ze,"../../node_modules/typescript/lib/lib.es2020.bigint.d.ts":ke,"../../node_modules/typescript/lib/lib.es2020.d.ts":Be,"../../node_modules/typescript/lib/lib.es2020.date.d.ts":Fe,"../../node_modules/typescript/lib/lib.es2020.full.d.ts":Ve,"../../node_modules/typescript/lib/lib.es2020.intl.d.ts":He,"../../node_modules/typescript/lib/lib.es2020.number.d.ts":Ue,"../../node_modules/typescript/lib/lib.es2020.promise.d.ts":Ke,"../../node_modules/typescript/lib/lib.es2020.sharedmemory.d.ts":je,"../../node_modules/typescript/lib/lib.es2020.string.d.ts":Xe,"../../node_modules/typescript/lib/lib.es2020.symbol.wellknown.d.ts":qe,"../../node_modules/typescript/lib/lib.es2021.d.ts":Ye,"../../node_modules/typescript/lib/lib.es2021.full.d.ts":Je,"../../node_modules/typescript/lib/lib.es2021.intl.d.ts":Qe,"../../node_modules/typescript/lib/lib.es2021.promise.d.ts":Ze,"../../node_modules/typescript/lib/lib.es2021.string.d.ts":$e,"../../node_modules/typescript/lib/lib.es2021.weakref.d.ts":en,"../../node_modules/typescript/lib/lib.es2022.array.d.ts":nn,"../../node_modules/typescript/lib/lib.es2022.d.ts":tn,"../../node_modules/typescript/lib/lib.es2022.error.d.ts":rn,"../../node_modules/typescript/lib/lib.es2022.full.d.ts":on,"../../node_modules/typescript/lib/lib.es2022.intl.d.ts":an,"../../node_modules/typescript/lib/lib.es2022.object.d.ts":sn,"../../node_modules/typescript/lib/lib.es2022.regexp.d.ts":ln,"../../node_modules/typescript/lib/lib.es2022.string.d.ts":dn,"../../node_modules/typescript/lib/lib.es2023.array.d.ts":cn,"../../node_modules/typescript/lib/lib.es2023.collection.d.ts":pn,"../../node_modules/typescript/lib/lib.es2023.d.ts":hn,"../../node_modules/typescript/lib/lib.es2023.full.d.ts":mn,"../../node_modules/typescript/lib/lib.es2023.intl.d.ts":un,"../../node_modules/typescript/lib/lib.es2024.arraybuffer.d.ts":fn,"../../node_modules/typescript/lib/lib.es2024.collection.d.ts":bn,"../../node_modules/typescript/lib/lib.es2024.d.ts":gn,"../../node_modules/typescript/lib/lib.es2024.full.d.ts":vn,"../../node_modules/typescript/lib/lib.es2024.object.d.ts":yn,"../../node_modules/typescript/lib/lib.es2024.promise.d.ts":En,"../../node_modules/typescript/lib/lib.es2024.regexp.d.ts":Tn,"../../node_modules/typescript/lib/lib.es2024.sharedmemory.d.ts":An,"../../node_modules/typescript/lib/lib.es2024.string.d.ts":Rn,"../../node_modules/typescript/lib/lib.es5.d.ts":Sn,"../../node_modules/typescript/lib/lib.es6.d.ts":Mn,"../../node_modules/typescript/lib/lib.esnext.array.d.ts":In,"../../node_modules/typescript/lib/lib.esnext.collection.d.ts":Ln,"../../node_modules/typescript/lib/lib.esnext.d.ts":Dn,"../../node_modules/typescript/lib/lib.esnext.decorators.d.ts":Nn,"../../node_modules/typescript/lib/lib.esnext.disposable.d.ts":Pn,"../../node_modules/typescript/lib/lib.esnext.error.d.ts":xn,"../../node_modules/typescript/lib/lib.esnext.float16.d.ts":Cn,"../../node_modules/typescript/lib/lib.esnext.full.d.ts":Wn,"../../node_modules/typescript/lib/lib.esnext.intl.d.ts":On,"../../node_modules/typescript/lib/lib.esnext.iterator.d.ts":wn,"../../node_modules/typescript/lib/lib.esnext.promise.d.ts":_n,"../../node_modules/typescript/lib/lib.esnext.sharedmemory.d.ts":Gn,"../../node_modules/typescript/lib/lib.scripthost.d.ts":zn,"../../node_modules/typescript/lib/lib.webworker.asynciterable.d.ts":kn,"../../node_modules/typescript/lib/lib.webworker.d.ts":Bn,"../../node_modules/typescript/lib/lib.webworker.importscripts.d.ts":Fn,"../../node_modules/typescript/lib/lib.webworker.iterable.d.ts":Vn}),vr=Object.assign({"../../node_modules/solid-js-2/jsx-runtime.d.ts":Hn,"../../node_modules/solid-js-2/types/client/component.d.ts":Un,"../../node_modules/solid-js-2/types/client/core.d.ts":Kn,"../../node_modules/solid-js-2/types/client/flow.d.ts":jn,"../../node_modules/solid-js-2/types/client/hydration.d.ts":Xn,"../../node_modules/solid-js-2/types/index.d.ts":qn,"../../node_modules/solid-js-2/types/jsx.d.ts":Yn,"../../node_modules/solid-js-2/types/server/component.d.ts":Jn,"../../node_modules/solid-js-2/types/server/core.d.ts":Qn,"../../node_modules/solid-js-2/types/server/flow.d.ts":Zn,"../../node_modules/solid-js-2/types/server/hydration.d.ts":$n,"../../node_modules/solid-js-2/types/server/index.d.ts":et,"../../node_modules/solid-js-2/types/server/shared.d.ts":nt,"../../node_modules/solid-js-2/types/server/signals.d.ts":tt}),yr=Object.assign({"../../node_modules/@solidjs/web-2/storage/types/index.d.ts":rt,"../../node_modules/@solidjs/web-2/storage/types/src/client.d.ts":ot,"../../node_modules/@solidjs/web-2/storage/types/src/index.d.ts":at,"../../node_modules/@solidjs/web-2/storage/types/src/server-mock.d.ts":it,"../../node_modules/@solidjs/web-2/storage/types/storage/src/index.d.ts":st,"../../node_modules/@solidjs/web-2/types/client.d.ts":lt,"../../node_modules/@solidjs/web-2/types/core.d.ts":dt,"../../node_modules/@solidjs/web-2/types/index.d.ts":ct,"../../node_modules/@solidjs/web-2/types/jsx.d.ts":pt,"../../node_modules/@solidjs/web-2/types/server-mock.d.ts":ht,"../../node_modules/@solidjs/web-2/types/server.d.ts":mt}),Er=Object.assign({"../../node_modules/@solidjs/signals/dist/types/boundaries.d.ts":ut,"../../node_modules/@solidjs/signals/dist/types/core/action.d.ts":ft,"../../node_modules/@solidjs/signals/dist/types/core/async.d.ts":bt,"../../node_modules/@solidjs/signals/dist/types/core/constants.d.ts":gt,"../../node_modules/@solidjs/signals/dist/types/core/context.d.ts":vt,"../../node_modules/@solidjs/signals/dist/types/core/core.d.ts":yt,"../../node_modules/@solidjs/signals/dist/types/core/effect.d.ts":Et,"../../node_modules/@solidjs/signals/dist/types/core/error.d.ts":Tt,"../../node_modules/@solidjs/signals/dist/types/core/graph.d.ts":At,"../../node_modules/@solidjs/signals/dist/types/core/heap.d.ts":Rt,"../../node_modules/@solidjs/signals/dist/types/core/index.d.ts":St,"../../node_modules/@solidjs/signals/dist/types/core/lanes.d.ts":Mt,"../../node_modules/@solidjs/signals/dist/types/core/owner.d.ts":It,"../../node_modules/@solidjs/signals/dist/types/core/scheduler.d.ts":Lt,"../../node_modules/@solidjs/signals/dist/types/core/types.d.ts":Dt,"../../node_modules/@solidjs/signals/dist/types/index.d.ts":Nt,"../../node_modules/@solidjs/signals/dist/types/map.d.ts":Pt,"../../node_modules/@solidjs/signals/dist/types/signals.d.ts":xt,"../../node_modules/@solidjs/signals/dist/types/store/index.d.ts":Ct,"../../node_modules/@solidjs/signals/dist/types/store/optimistic.d.ts":Wt,"../../node_modules/@solidjs/signals/dist/types/store/projection.d.ts":Ot,"../../node_modules/@solidjs/signals/dist/types/store/reconcile.d.ts":wt,"../../node_modules/@solidjs/signals/dist/types/store/store.d.ts":_t,"../../node_modules/@solidjs/signals/dist/types/store/storePath.d.ts":Gt,"../../node_modules/@solidjs/signals/dist/types/store/utils.d.ts":zt}),f=new Map,Y=[];for(const[e,n]of Object.entries(gr)){const t=e.split("/").pop(),r=`/node_modules/typescript/lib/${t}`;f.set(r,n),f.set(`/lib/${t}`,n),f.set(`/${t}`,n),Y.push(r)}for(const[e,n]of Object.entries(vr)){const t=e.replace("../../node_modules/solid-js-2/","/node_modules/solid-js/");f.set(t,n)}f.set("/node_modules/solid-js/package.json",JSON.stringify({name:"solid-js",version:"2.0.0-experimental.15",types:"./types/index.d.ts"}));for(const[e,n]of Object.entries(yr)){const t=e.replace("../../node_modules/@solidjs/web-2/","/node_modules/@solidjs/web/");f.set(t,n)}f.set("/node_modules/@solidjs/web/package.json",JSON.stringify({name:"@solidjs/web",version:"2.0.0-experimental.15",types:"./types/index.d.ts"}));for(const[e,n]of Object.entries(Er)){const t=e.replace("../../node_modules/","/node_modules/");f.set(t,n)}f.set("/node_modules/@solidjs/signals/package.json",JSON.stringify({name:"@solidjs/signals",version:"0.10.8",types:"./types/index.d.ts"}));let D=null;async function W(){return D||(D=await import("https://esm.sh/typescript@5.7.2")),D}function Tr(e){let n,t;return{async initialize(){await W();const r=e();t=br((async()=>(n=await r,{env:n}))()),await t.initialize()},async updateFile(r){if(t)return t.updateFile(r)},async getLints(r){return t?t.getLints(r):[]},async getAutocompletion(r){return t?t.getAutocompletion(r):null},async getHover(r){return t?t.getHover(r):null},async getClassifications(r,o,a){return n?{syntactic:n.languageService.getEncodedSyntacticClassifications(r,{start:o,length:a}).spans,semantic:n.languageService.getEncodedSemanticClassifications(r,{start:o,length:a}).spans}:null},async ping(){return"pong"},async deleteFile(r){return n?.deleteFile(r)},async getVersion(){return await W(),D.version},async getFsMap(){return Array.from(f.entries())}}}x(Tr(async function(){const e=await W(),n=Ht(f),t={target:e.ScriptTarget.ESNext,module:e.ModuleKind.ESNext,moduleResolution:e.ModuleResolutionKind.Bundler,jsx:e.JsxEmit.Preserve,jsxImportSource:"solid-js",lib:["esnext","dom"],allowNonTsExtensions:!0,baseUrl:"/",paths:{"solid-js":["/node_modules/solid-js/types/index.d.ts"],"@solid-js/web":["/node_modules/@solidjs/web/types/index.d.ts"],"@solidjs/signals":["/node_modules/@solidjs/signals/dist/types/index.d.ts"]},strict:!0};return Vt(n,Y,e,t)}))})();
+ */const ie=Symbol("Comlink.proxy"),Ar=Symbol("Comlink.endpoint"),Rr=Symbol("Comlink.releaseProxy"),V=Symbol("Comlink.finalizer"),x=Symbol("Comlink.thrown"),se=e=>typeof e=="object"&&e!==null||typeof e=="function",Sr={canHandle:e=>se(e)&&e[ie],serialize(e){const{port1:n,port2:t}=new MessageChannel;return H(e,n),[t,[t]]},deserialize(e){return e.start(),Dr(e)}},Mr={canHandle:e=>se(e)&&x in e,serialize({value:e}){let n;return e instanceof Error?n={isError:!0,value:{message:e.message,name:e.name,stack:e.stack}}:n={isError:!1,value:e},[n,[]]},deserialize(e){throw e.isError?Object.assign(new Error(e.value.message),e.value):e.value}},le=new Map([["proxy",Sr],["throw",Mr]]);function Ir(e,n){for(const t of e)if(n===t||t==="*"||t instanceof RegExp&&t.test(n))return!0;return!1}function H(e,n=globalThis,t=["*"]){n.addEventListener("message",function o(a){if(!a||!a.data)return;if(!Ir(t,a.origin)){console.warn(`Invalid origin '${a.origin}' for comlink proxy`);return}const{id:r,type:s,path:i}=Object.assign({path:[]},a.data),l=(a.data.argumentList||[]).map(E);let d;try{const c=i.slice(0,-1).reduce((u,b)=>u[b],e),h=i.reduce((u,b)=>u[b],e);switch(s){case"GET":d=h;break;case"SET":c[i.slice(-1)[0]]=E(a.data.value),d=!0;break;case"APPLY":d=h.apply(c,l);break;case"CONSTRUCT":{const u=new h(...l);d=Wr(u)}break;case"ENDPOINT":{const{port1:u,port2:b}=new MessageChannel;H(e,b),d=Cr(u,[u])}break;case"RELEASE":d=void 0;break;default:return}}catch(c){d={value:c,[x]:0}}Promise.resolve(d).catch(c=>({value:c,[x]:0})).then(c=>{const[h,u]=w(c);n.postMessage(Object.assign(Object.assign({},h),{id:r}),u),s==="RELEASE"&&(n.removeEventListener("message",o),de(n),V in e&&typeof e[V]=="function"&&e[V]())}).catch(c=>{const[h,u]=w({value:new TypeError("Unserializable return value"),[x]:0});n.postMessage(Object.assign(Object.assign({},h),{id:r}),u)})}),n.start&&n.start()}function Lr(e){return e.constructor.name==="MessagePort"}function de(e){Lr(e)&&e.close()}function Dr(e,n){const t=new Map;return e.addEventListener("message",function(a){const{data:r}=a;if(!r||!r.id)return;const s=t.get(r.id);if(s)try{s(r)}finally{t.delete(r.id)}}),U(e,t,[],n)}function C(e){if(e)throw new Error("Proxy has been released and is not useable")}function ce(e){return A(e,new Map,{type:"RELEASE"}).then(()=>{de(e)})}const W=new WeakMap,O="FinalizationRegistry"in globalThis&&new FinalizationRegistry(e=>{const n=(W.get(e)||0)-1;W.set(e,n),n===0&&ce(e)});function Nr(e,n){const t=(W.get(n)||0)+1;W.set(n,t),O&&O.register(e,n,e)}function Pr(e){O&&O.unregister(e)}function U(e,n,t=[],o=function(){}){let a=!1;const r=new Proxy(o,{get(s,i){if(C(a),i===Rr)return()=>{Pr(r),ce(e),n.clear(),a=!0};if(i==="then"){if(t.length===0)return{then:()=>r};const l=A(e,n,{type:"GET",path:t.map(d=>d.toString())}).then(E);return l.then.bind(l)}return U(e,n,[...t,i])},set(s,i,l){C(a);const[d,c]=w(l);return A(e,n,{type:"SET",path:[...t,i].map(h=>h.toString()),value:d},c).then(E)},apply(s,i,l){C(a);const d=t[t.length-1];if(d===Ar)return A(e,n,{type:"ENDPOINT"}).then(E);if(d==="bind")return U(e,n,t.slice(0,-1));const[c,h]=pe(l);return A(e,n,{type:"APPLY",path:t.map(u=>u.toString()),argumentList:c},h).then(E)},construct(s,i){C(a);const[l,d]=pe(i);return A(e,n,{type:"CONSTRUCT",path:t.map(c=>c.toString()),argumentList:l},d).then(E)}});return Nr(r,e),r}function xr(e){return Array.prototype.concat.apply([],e)}function pe(e){const n=e.map(w);return[n.map(t=>t[0]),xr(n.map(t=>t[1]))]}const he=new WeakMap;function Cr(e,n){return he.set(e,n),e}function Wr(e){return Object.assign(e,{[ie]:!0})}function w(e){for(const[n,t]of le)if(t.canHandle(e)){const[o,a]=t.serialize(e);return[{type:"HANDLER",name:n,value:o},a]}return[{type:"RAW",value:e},he.get(e)||[]]}function E(e){switch(e.type){case"HANDLER":return le.get(e.name).deserialize(e.value);case"RAW":return e.value}}function A(e,n,t,o){return new Promise(a=>{const r=Or();n.set(r,a),e.start&&e.start(),e.postMessage(Object.assign({id:r},t),o)})}function Or(){return new Array(4).fill(0).map(()=>Math.floor(Math.random()*Number.MAX_SAFE_INTEGER).toString(16)).join("-")}function wr({env:e,path:n,pos:t}){const o=t;if(o===null)return null;try{const a=e.languageService.getQuickInfoAtPosition(n,o);if(!a)return null;const r=a.textSpan.start,s=e.languageService.getTypeDefinitionAtPosition(n,o)??e.languageService.getDefinitionAtPosition(n,o);return{start:r,end:r+a.textSpan.length,typeDef:s,quickInfo:a}}catch(a){return console.error(a),null}}const _r=new Set(["class","constant","enum","function","interface","keyword","method","namespace","property","text","type","variable"]);function Gr(e,n){const{source:t}=e,o=t[t.length-1]!="$";return o?new RegExp(`(?:${t})${o?"$":""}`,e.flags??(e.ignoreCase?"i":"")):e}function zr(e,n){const t=e.lastIndexOf(`
+`,n-1)+1;let o=e.indexOf(`
+`,n);o===-1&&(o=e.length);const a=e.slice(t,o);return{from:t,to:o,text:a}}function me(e,n,t){const o=zr(e,n),a=Math.max(o.from,n-250),r=o.text.slice(a-o.from,n-o.from),s=r.search(Gr(t));return s<0?null:{from:a+s,to:n,text:r.slice(s)}}const kr=["warning"];async function Br({env:e,path:n,context:t}){const{pos:o,explicit:a}=t,r=e.getSourceFile(n)?.getFullText();if(!r)return null;let s=me(r,o,/\w*/);if(s?.text||(s=me(r,o,/\./)),!s?.text&&!a)return null;const i=e.languageService.getCompletionsAtPosition(n,o,{includeCompletionsForModuleExports:!0,includeCompletionsForImportStatements:!0},{});if(!i)return null;const l=i.entries.filter(d=>!kr.includes(d.kind)).map(d=>{let c=d.kind?String(d.kind):void 0;c==="member"&&(c="property"),c&&!_r.has(c)&&(c=void 0);const h=e.languageService.getCompletionEntryDetails(n,o,d.name,{},d.source,{},d.data);return{label:d.name,codeActions:h?.codeActions,displayParts:h?.displayParts??[],documentation:h?.documentation,tags:h?.tags,type:c}});return{from:s?s.text==="."?s.to:s.from:o,options:l}}function Fr(e){if(e.code===7027)return"warning";switch(e.category){case 1:return"error";case 3:return"info";case 0:return"warning";case 2:return"info";default:return"info"}}function Vr(e){return!!(e.file&&typeof e.start=="number"&&typeof e.length=="number")}function Hr(e){return typeof e.messageText=="string"?e.messageText:e.messageText.messageText}function Ur(e){const n=e.start,t=Hr(e);return{from:n,to:n+e.length,message:t,severity:Fr(e)}}function Kr({env:e,path:n,diagnosticCodesToIgnore:t}){if(!e.getSourceFile(n))return[];const a=e.languageService.getSyntacticDiagnostics(n),r=e.languageService.getSemanticDiagnostics(n);return[...a,...r].filter(i=>Vr(i)&&!(t??[]).includes(i.code)).map(Ur)}function jr(e,n,t){const o=e.getSourceFile(n);return o?t===o.getFullText()?!1:(e.updateFile(n,t),!0):(e.createFile(n,t),!0)}function Xr(e){let n=!1,t,o;return{async initialize(){n||(o=await e,t=await o.env,n=!0)},updateFile({path:a,code:r}){t&&jr(t,a,r)&&o.onFileUpdated?.(t,a,r)},getLints({path:a,diagnosticCodesToIgnore:r}){return t?Kr({env:t,path:a,diagnosticCodesToIgnore:r}):[]},getAutocompletion({path:a,context:r}){return t?Br({env:t,path:a,context:r}):null},getHover({path:a,pos:r}){return t?wr({env:t,path:a,pos:r}):null},getEnv(){return t}}}const qr=Object.assign({"../../node_modules/typescript/lib/lib.d.ts":fe,"../../node_modules/typescript/lib/lib.decorators.d.ts":be,"../../node_modules/typescript/lib/lib.decorators.legacy.d.ts":ge,"../../node_modules/typescript/lib/lib.dom.asynciterable.d.ts":ve,"../../node_modules/typescript/lib/lib.dom.d.ts":ye,"../../node_modules/typescript/lib/lib.dom.iterable.d.ts":Ee,"../../node_modules/typescript/lib/lib.es2015.collection.d.ts":Te,"../../node_modules/typescript/lib/lib.es2015.core.d.ts":Ae,"../../node_modules/typescript/lib/lib.es2015.d.ts":Re,"../../node_modules/typescript/lib/lib.es2015.generator.d.ts":Se,"../../node_modules/typescript/lib/lib.es2015.iterable.d.ts":Me,"../../node_modules/typescript/lib/lib.es2015.promise.d.ts":Ie,"../../node_modules/typescript/lib/lib.es2015.proxy.d.ts":Le,"../../node_modules/typescript/lib/lib.es2015.reflect.d.ts":De,"../../node_modules/typescript/lib/lib.es2015.symbol.d.ts":Ne,"../../node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts":Pe,"../../node_modules/typescript/lib/lib.es2016.array.include.d.ts":xe,"../../node_modules/typescript/lib/lib.es2016.d.ts":Ce,"../../node_modules/typescript/lib/lib.es2016.full.d.ts":We,"../../node_modules/typescript/lib/lib.es2016.intl.d.ts":Oe,"../../node_modules/typescript/lib/lib.es2017.arraybuffer.d.ts":we,"../../node_modules/typescript/lib/lib.es2017.d.ts":_e,"../../node_modules/typescript/lib/lib.es2017.date.d.ts":Ge,"../../node_modules/typescript/lib/lib.es2017.full.d.ts":ze,"../../node_modules/typescript/lib/lib.es2017.intl.d.ts":ke,"../../node_modules/typescript/lib/lib.es2017.object.d.ts":Be,"../../node_modules/typescript/lib/lib.es2017.sharedmemory.d.ts":Fe,"../../node_modules/typescript/lib/lib.es2017.string.d.ts":Ve,"../../node_modules/typescript/lib/lib.es2017.typedarrays.d.ts":He,"../../node_modules/typescript/lib/lib.es2018.asyncgenerator.d.ts":Ue,"../../node_modules/typescript/lib/lib.es2018.asynciterable.d.ts":Ke,"../../node_modules/typescript/lib/lib.es2018.d.ts":je,"../../node_modules/typescript/lib/lib.es2018.full.d.ts":Xe,"../../node_modules/typescript/lib/lib.es2018.intl.d.ts":qe,"../../node_modules/typescript/lib/lib.es2018.promise.d.ts":Ye,"../../node_modules/typescript/lib/lib.es2018.regexp.d.ts":Je,"../../node_modules/typescript/lib/lib.es2019.array.d.ts":Qe,"../../node_modules/typescript/lib/lib.es2019.d.ts":Ze,"../../node_modules/typescript/lib/lib.es2019.full.d.ts":$e,"../../node_modules/typescript/lib/lib.es2019.intl.d.ts":en,"../../node_modules/typescript/lib/lib.es2019.object.d.ts":nn,"../../node_modules/typescript/lib/lib.es2019.string.d.ts":tn,"../../node_modules/typescript/lib/lib.es2019.symbol.d.ts":rn,"../../node_modules/typescript/lib/lib.es2020.bigint.d.ts":on,"../../node_modules/typescript/lib/lib.es2020.d.ts":an,"../../node_modules/typescript/lib/lib.es2020.date.d.ts":sn,"../../node_modules/typescript/lib/lib.es2020.full.d.ts":ln,"../../node_modules/typescript/lib/lib.es2020.intl.d.ts":dn,"../../node_modules/typescript/lib/lib.es2020.number.d.ts":cn,"../../node_modules/typescript/lib/lib.es2020.promise.d.ts":pn,"../../node_modules/typescript/lib/lib.es2020.sharedmemory.d.ts":hn,"../../node_modules/typescript/lib/lib.es2020.string.d.ts":mn,"../../node_modules/typescript/lib/lib.es2020.symbol.wellknown.d.ts":un,"../../node_modules/typescript/lib/lib.es2021.d.ts":fn,"../../node_modules/typescript/lib/lib.es2021.full.d.ts":bn,"../../node_modules/typescript/lib/lib.es2021.intl.d.ts":gn,"../../node_modules/typescript/lib/lib.es2021.promise.d.ts":vn,"../../node_modules/typescript/lib/lib.es2021.string.d.ts":yn,"../../node_modules/typescript/lib/lib.es2021.weakref.d.ts":En,"../../node_modules/typescript/lib/lib.es2022.array.d.ts":Tn,"../../node_modules/typescript/lib/lib.es2022.d.ts":An,"../../node_modules/typescript/lib/lib.es2022.error.d.ts":Rn,"../../node_modules/typescript/lib/lib.es2022.full.d.ts":Sn,"../../node_modules/typescript/lib/lib.es2022.intl.d.ts":Mn,"../../node_modules/typescript/lib/lib.es2022.object.d.ts":In,"../../node_modules/typescript/lib/lib.es2022.regexp.d.ts":Ln,"../../node_modules/typescript/lib/lib.es2022.string.d.ts":Dn,"../../node_modules/typescript/lib/lib.es2023.array.d.ts":Nn,"../../node_modules/typescript/lib/lib.es2023.collection.d.ts":Pn,"../../node_modules/typescript/lib/lib.es2023.d.ts":xn,"../../node_modules/typescript/lib/lib.es2023.full.d.ts":Cn,"../../node_modules/typescript/lib/lib.es2023.intl.d.ts":Wn,"../../node_modules/typescript/lib/lib.es2024.arraybuffer.d.ts":On,"../../node_modules/typescript/lib/lib.es2024.collection.d.ts":wn,"../../node_modules/typescript/lib/lib.es2024.d.ts":_n,"../../node_modules/typescript/lib/lib.es2024.full.d.ts":Gn,"../../node_modules/typescript/lib/lib.es2024.object.d.ts":zn,"../../node_modules/typescript/lib/lib.es2024.promise.d.ts":kn,"../../node_modules/typescript/lib/lib.es2024.regexp.d.ts":Bn,"../../node_modules/typescript/lib/lib.es2024.sharedmemory.d.ts":Fn,"../../node_modules/typescript/lib/lib.es2024.string.d.ts":Vn,"../../node_modules/typescript/lib/lib.es5.d.ts":Hn,"../../node_modules/typescript/lib/lib.es6.d.ts":Un,"../../node_modules/typescript/lib/lib.esnext.array.d.ts":Kn,"../../node_modules/typescript/lib/lib.esnext.collection.d.ts":jn,"../../node_modules/typescript/lib/lib.esnext.d.ts":Xn,"../../node_modules/typescript/lib/lib.esnext.decorators.d.ts":qn,"../../node_modules/typescript/lib/lib.esnext.disposable.d.ts":Yn,"../../node_modules/typescript/lib/lib.esnext.error.d.ts":Jn,"../../node_modules/typescript/lib/lib.esnext.float16.d.ts":Qn,"../../node_modules/typescript/lib/lib.esnext.full.d.ts":Zn,"../../node_modules/typescript/lib/lib.esnext.intl.d.ts":$n,"../../node_modules/typescript/lib/lib.esnext.iterator.d.ts":et,"../../node_modules/typescript/lib/lib.esnext.promise.d.ts":nt,"../../node_modules/typescript/lib/lib.esnext.sharedmemory.d.ts":tt,"../../node_modules/typescript/lib/lib.scripthost.d.ts":rt,"../../node_modules/typescript/lib/lib.webworker.asynciterable.d.ts":ot,"../../node_modules/typescript/lib/lib.webworker.d.ts":at,"../../node_modules/typescript/lib/lib.webworker.importscripts.d.ts":it,"../../node_modules/typescript/lib/lib.webworker.iterable.d.ts":st}),Yr=Object.assign({"../../node_modules/solid-js-2/jsx-runtime.d.ts":lt,"../../node_modules/solid-js-2/types/client/component.d.ts":dt,"../../node_modules/solid-js-2/types/client/core.d.ts":ct,"../../node_modules/solid-js-2/types/client/flow.d.ts":pt,"../../node_modules/solid-js-2/types/client/hydration.d.ts":ht,"../../node_modules/solid-js-2/types/index.d.ts":mt,"../../node_modules/solid-js-2/types/jsx.d.ts":ut,"../../node_modules/solid-js-2/types/server/component.d.ts":ft,"../../node_modules/solid-js-2/types/server/core.d.ts":bt,"../../node_modules/solid-js-2/types/server/flow.d.ts":gt,"../../node_modules/solid-js-2/types/server/hydration.d.ts":vt,"../../node_modules/solid-js-2/types/server/index.d.ts":yt,"../../node_modules/solid-js-2/types/server/shared.d.ts":Et,"../../node_modules/solid-js-2/types/server/signals.d.ts":Tt}),Jr=Object.assign({"../../node_modules/@solidjs/web-2/storage/types/index.d.ts":At,"../../node_modules/@solidjs/web-2/storage/types/src/client.d.ts":Rt,"../../node_modules/@solidjs/web-2/storage/types/src/index.d.ts":St,"../../node_modules/@solidjs/web-2/storage/types/src/server-mock.d.ts":Mt,"../../node_modules/@solidjs/web-2/storage/types/storage/src/index.d.ts":It,"../../node_modules/@solidjs/web-2/types/client.d.ts":Lt,"../../node_modules/@solidjs/web-2/types/core.d.ts":Dt,"../../node_modules/@solidjs/web-2/types/index.d.ts":Nt,"../../node_modules/@solidjs/web-2/types/jsx.d.ts":Pt,"../../node_modules/@solidjs/web-2/types/server-mock.d.ts":xt,"../../node_modules/@solidjs/web-2/types/server.d.ts":Ct}),Qr=Object.assign({"../../node_modules/@solidjs/signals/dist/types/boundaries.d.ts":Wt,"../../node_modules/@solidjs/signals/dist/types/core/action.d.ts":Ot,"../../node_modules/@solidjs/signals/dist/types/core/async.d.ts":wt,"../../node_modules/@solidjs/signals/dist/types/core/constants.d.ts":_t,"../../node_modules/@solidjs/signals/dist/types/core/context.d.ts":Gt,"../../node_modules/@solidjs/signals/dist/types/core/core.d.ts":zt,"../../node_modules/@solidjs/signals/dist/types/core/effect.d.ts":kt,"../../node_modules/@solidjs/signals/dist/types/core/error.d.ts":Bt,"../../node_modules/@solidjs/signals/dist/types/core/graph.d.ts":Ft,"../../node_modules/@solidjs/signals/dist/types/core/heap.d.ts":Vt,"../../node_modules/@solidjs/signals/dist/types/core/index.d.ts":Ht,"../../node_modules/@solidjs/signals/dist/types/core/lanes.d.ts":Ut,"../../node_modules/@solidjs/signals/dist/types/core/owner.d.ts":Kt,"../../node_modules/@solidjs/signals/dist/types/core/scheduler.d.ts":jt,"../../node_modules/@solidjs/signals/dist/types/core/types.d.ts":Xt,"../../node_modules/@solidjs/signals/dist/types/index.d.ts":qt,"../../node_modules/@solidjs/signals/dist/types/map.d.ts":Yt,"../../node_modules/@solidjs/signals/dist/types/signals.d.ts":Jt,"../../node_modules/@solidjs/signals/dist/types/store/index.d.ts":Qt,"../../node_modules/@solidjs/signals/dist/types/store/optimistic.d.ts":Zt,"../../node_modules/@solidjs/signals/dist/types/store/projection.d.ts":$t,"../../node_modules/@solidjs/signals/dist/types/store/reconcile.d.ts":er,"../../node_modules/@solidjs/signals/dist/types/store/store.d.ts":nr,"../../node_modules/@solidjs/signals/dist/types/store/storePath.d.ts":tr,"../../node_modules/@solidjs/signals/dist/types/store/utils.d.ts":rr}),g=new Map,ue=[];for(const[e,n]of Object.entries(qr)){const o=`/node_modules/typescript/lib/${e.split("/").pop()}`;g.set(o,n),ue.push(o)}for(const[e,n]of Object.entries(Yr)){const t=e.replace("../../node_modules/solid-js-2/","/node_modules/solid-js/");g.set(t,n)}g.set("/node_modules/solid-js/package.json",JSON.stringify({name:"solid-js",version:"2.0.0-beta.2",types:"./types/index.d.ts"}));for(const[e,n]of Object.entries(Jr)){const t=e.replace("../../node_modules/@solidjs/web-2/","/node_modules/@solidjs/web/");g.set(t,n)}g.set("/node_modules/@solidjs/web/package.json",JSON.stringify({name:"@solidjs/web",version:"2.0.0-beta.2",types:"./types/index.d.ts"}));for(const[e,n]of Object.entries(Qr)){const t=e.replace("../../node_modules/","/node_modules/");g.set(t,n)}g.set("/node_modules/@solidjs/signals/package.json",JSON.stringify({name:"@solidjs/signals",version:"0.12.0",types:"./dist/types/index.d.ts"}));let _=null;async function K(){return _||(_=await import("https://esm.sh/typescript@5.7.2")),_}function Zr(e){let n,t,o;const a=["solid-js","@solid-js/web","@solidjs/web","@solidjs/signals"];return{async initialize(){const r=await K();o=yr({typescript:r,delegate:{receivedFile(i,l){a.some(d=>l.includes(d))||g.has(l)||(g.set(l,i),n?.createFile(l,i))},finished(i){i.forEach((l,d)=>{a.some(c=>d.includes(c))||g.has(d)||(g.set(d,l),n?.createFile(d,l))})}}});const s=e();t=Xr((async()=>(n=await s,{env:n}))()),await t.initialize()},async updateFile(r){if(!t)return;const s=await t.updateFile(r);if(o&&r?.code)try{await o(r.code)}catch(i){console.warn("ATA run failed",i)}return s},async getLints(r){return t?.getLints(r)||[]},async getAutocompletion(r){return t?.getAutocompletion(r)||null},async getHover(r){return t?.getHover(r)||null},async deleteFile(r){return n?.deleteFile(r)},async ping(){return"pong"},async getFsMap(){return Array.from(g.entries())},async getVersion(){return await K(),_.version},async getClassifications(r,s,i){return n?{syntactic:n.languageService.getEncodedSyntacticClassifications(r,{start:s,length:i}).spans,semantic:n.languageService.getEncodedSemanticClassifications(r,{start:s,length:i}).spans}:null}}}H(Zr(async function(){const e=await K(),n=lr(g),t={target:e.ScriptTarget.ESNext,module:e.ModuleKind.ESNext,moduleResolution:e.ModuleResolutionKind.Bundler,jsx:e.JsxEmit.Preserve,jsxImportSource:"solid-js",lib:["esnext","dom"],allowNonTsExtensions:!0,baseUrl:"/",paths:{"solid-js":["/node_modules/solid-js/types/index.d.ts"],"solid-js/*":["/node_modules/solid-js/types/*","/node_modules/solid-js/*"],"@solidjs/web":["/node_modules/@solidjs/web/types/index.d.ts"],"@solidjs/web/*":["/node_modules/@solidjs/web/types/*","/node_modules/@solidjs/web/*"],"@solidjs/signals":["/node_modules/@solidjs/signals/dist/types/index.d.ts"],"@solidjs/signals/*":["/node_modules/@solidjs/signals/dist/types/*","/node_modules/@solidjs/signals/*"]},typeRoots:["/node_modules"],strict:!0,skipLibCheck:!0};return sr(n,ue,e,t)}))})();
