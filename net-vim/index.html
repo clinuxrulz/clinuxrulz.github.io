@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Net-Vim Core Editor</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000000;
+        }
+        #editor-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #000000;
+        }
+    </style>
+</head>
+<body>
+    <div id="editor-container"></div>
+    <script type="module">
+        console.log('Attempting to load @net-vim/core...');
+        
+        import { initNetVim } from 'https://esm.sh/@net-vim/core';
+
+        async function startEditor() {
+            const container = document.getElementById('editor-container');
+            console.log('Container found:', !!container);
+            
+            try {
+                console.log('Initializing Net-Vim...');
+                const { vim, dispose } = await initNetVim(container);
+                console.log('Net-Vim instance created:', !!vim);
+
+                // Access the Vim API
+                vim.getAPI().registerCommand('hello', () => {
+                    console.log('Hello from Net-Vim');
+                    alert('Hello from Net-Vim!');
+                });
+
+                // Focus the editor
+                if (vim.focus) {
+                    vim.focus();
+                }
+                
+                console.log('Net-Vim successfully initialized');
+            } catch (error) {
+                console.error('Failed to initialize Net-Vim:', error);
+                document.body.innerHTML += `<div style="color: red; padding: 20px; font-family: sans-serif;">
+                    <h2>Initialization Error</h2>
+                    <pre>${error.message}</pre>
+                    <p>Check the browser console for more details.</p>
+                </div>`;
+            }
+        }
+
+        startEditor().catch(err => {
+            console.error('Runtime error in startEditor:', err);
+        });
+    </script>
+</body>
+</html>
