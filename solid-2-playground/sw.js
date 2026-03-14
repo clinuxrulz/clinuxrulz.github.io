@@ -90,8 +90,11 @@ define(['./workbox-61ea0d02'], (function (workbox) { 'use strict';
     "url": "pwa-192x192.png",
     "revision": "0f49a4c60e1340217a84299b3b55756b"
   }, {
+    "url": "logo.svg",
+    "revision": "8a66d423b9275303b51ab275e94e929e"
+  }, {
     "url": "index.html",
-    "revision": "ee1775e837193af78b4c2a4f75e89c88"
+    "revision": "c9edd6bc0e8848f67f32f72febebaea9"
   }, {
     "url": "favicon.ico",
     "revision": "d41d8cd98f00b204e9800998ecf8427e"
@@ -102,22 +105,22 @@ define(['./workbox-61ea0d02'], (function (workbox) { 'use strict';
     "url": "assets/workbox-window.prod.es5-BIl4cyR9.js",
     "revision": null
   }, {
-    "url": "assets/lsp.worker-D6pmAYUp.js",
+    "url": "assets/lsp.worker-nUBdddC6.js",
     "revision": null
   }, {
-    "url": "assets/index-C5sf_Eo5.js",
+    "url": "assets/index-DkTZQwW0.js",
     "revision": null
   }, {
     "url": "assets/index-BP8EoESs.css",
     "revision": null
   }, {
-    "url": "assets/compiler--e9G0tZe.js",
+    "url": "assets/compiler-D-3v_ZuM.js",
     "revision": null
   }, {
-    "url": "assets/NetVimEditor-Cr6qeYad.js",
+    "url": "assets/NetVimEditor-BOn5kGar.js",
     "revision": null
   }, {
-    "url": "assets/MonacoEditor-BwBnbHJ7.js",
+    "url": "assets/MonacoEditor-D7K6Stb9.js",
     "revision": null
   }, {
     "url": "https://esm.sh/solid-js@2.0.0-experimental.15",
@@ -132,14 +135,11 @@ define(['./workbox-61ea0d02'], (function (workbox) { 'use strict';
     "url": "favicon.ico",
     "revision": "d41d8cd98f00b204e9800998ecf8427e"
   }, {
-    "url": "pwa-192x192.png",
-    "revision": "0f49a4c60e1340217a84299b3b55756b"
-  }, {
-    "url": "pwa-512x512.png",
-    "revision": "0bf00eff2a5e75e71ea0066ce6f09895"
+    "url": "logo.svg",
+    "revision": "8a66d423b9275303b51ab275e94e929e"
   }, {
     "url": "manifest.json",
-    "revision": "c993c55ce43bf9bd07a1e542bf8b61f1"
+    "revision": "7600b9694b21f3f441cbc347ca1a01a3"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html")));
