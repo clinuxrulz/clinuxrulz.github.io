@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-61ea0d02'], (function (workbox) { 'use strict';
+define(['./workbox-10a9faf1'], (function (workbox) { 'use strict';
 
   self.addEventListener('message', event => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -143,7 +143,7 @@ define(['./workbox-61ea0d02'], (function (workbox) { 'use strict';
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html")));
-  workbox.registerRoute(/^https:\/\/cdnjs\.cloudflare\.com\/.*/i, new workbox.CacheFirst({
+  workbox.registerRoute(/^https:\/\/cdnjs\.cloudflare\.com\/.*/i, new workbox.NetworkFirst({
     "cacheName": "cloudflare-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 10,
@@ -152,7 +152,7 @@ define(['./workbox-61ea0d02'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     })]
   }), 'GET');
-  workbox.registerRoute(/^https:\/\/esm\.sh\/.*/i, new workbox.CacheFirst({
+  workbox.registerRoute(/^https:\/\/esm\.sh\/.*/i, new workbox.NetworkFirst({
     "cacheName": "esm-sh-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 20,
