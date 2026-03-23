@@ -36,7 +36,7 @@
             
             try {
                 console.log('Initializing Net-Vim...');
-                const { vim, dispose } = await initNetVim(container, { autoCreateInit: false, });
+                const { vim, dispose } = await initNetVim(container, { autoCreateInit: true, });
                 console.log('Net-Vim instance created:', !!vim);
 
                 // Access the Vim API
