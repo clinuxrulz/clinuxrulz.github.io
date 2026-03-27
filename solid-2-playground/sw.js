@@ -94,7 +94,7 @@ define(['./workbox-10a9faf1'], (function (workbox) { 'use strict';
     "revision": "8a66d423b9275303b51ab275e94e929e"
   }, {
     "url": "index.html",
-    "revision": "a9bc8631b10552490e9603163b4e989e"
+    "revision": "5e7511009c91a03185056999c68ae9f4"
   }, {
     "url": "favicon.ico",
     "revision": "d41d8cd98f00b204e9800998ecf8427e"
@@ -108,19 +108,19 @@ define(['./workbox-10a9faf1'], (function (workbox) { 'use strict';
     "url": "assets/lsp.worker-BkxesUFa.js",
     "revision": null
   }, {
-    "url": "assets/index-jhfazPeM.js",
+    "url": "assets/index-Du2Q15N_.css",
     "revision": null
   }, {
-    "url": "assets/index-Du2Q15N_.css",
+    "url": "assets/index-CFF2KGMg.js",
     "revision": null
   }, {
     "url": "assets/compiler-CJlCuMS_.js",
     "revision": null
   }, {
-    "url": "assets/NetVimEditor-DHcM4V--.js",
+    "url": "assets/NetVimEditor-CaFhAgja.js",
     "revision": null
   }, {
-    "url": "assets/MonacoEditor-C_-w_PqF.js",
+    "url": "assets/MonacoEditor-CUd5284l.js",
     "revision": null
   }, {
     "url": "https://esm.sh/solid-js@2.0.0-experimental.15",
@@ -138,8 +138,14 @@ define(['./workbox-10a9faf1'], (function (workbox) { 'use strict';
     "url": "logo.svg",
     "revision": "8a66d423b9275303b51ab275e94e929e"
   }, {
+    "url": "pwa-192x192.png",
+    "revision": "0f49a4c60e1340217a84299b3b55756b"
+  }, {
+    "url": "pwa-512x512.png",
+    "revision": "0bf00eff2a5e75e71ea0066ce6f09895"
+  }, {
     "url": "manifest.json",
-    "revision": "7600b9694b21f3f441cbc347ca1a01a3"
+    "revision": "a5adb374dc5dfd1337ace14a1189c728"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html")));
