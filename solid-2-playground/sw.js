@@ -144,8 +144,11 @@ define(['./workbox-10a9faf1'], (function (workbox) { 'use strict';
     "url": "pwa-512x512.png",
     "revision": "0bf00eff2a5e75e71ea0066ce6f09895"
   }, {
+    "url": "solid-2-playground.jpg",
+    "revision": "b34f4593017c287a0ece8c122d7849eb"
+  }, {
     "url": "manifest.json",
-    "revision": "a5adb374dc5dfd1337ace14a1189c728"
+    "revision": "0629d7844ead69f79db2cc4809b550cd"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html")));
