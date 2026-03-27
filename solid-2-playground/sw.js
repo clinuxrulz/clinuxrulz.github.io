@@ -94,7 +94,7 @@ define(['./workbox-10a9faf1'], (function (workbox) { 'use strict';
     "revision": "8a66d423b9275303b51ab275e94e929e"
   }, {
     "url": "index.html",
-    "revision": "da2d6450ffe3332bf7d9e3c9319876f1"
+    "revision": "a9bc8631b10552490e9603163b4e989e"
   }, {
     "url": "favicon.ico",
     "revision": "d41d8cd98f00b204e9800998ecf8427e"
@@ -108,19 +108,19 @@ define(['./workbox-10a9faf1'], (function (workbox) { 'use strict';
     "url": "assets/lsp.worker-BkxesUFa.js",
     "revision": null
   }, {
-    "url": "assets/index-Du2Q15N_.css",
+    "url": "assets/index-jhfazPeM.js",
     "revision": null
   }, {
-    "url": "assets/index-CFF2KGMg.js",
+    "url": "assets/index-Du2Q15N_.css",
     "revision": null
   }, {
     "url": "assets/compiler-CJlCuMS_.js",
     "revision": null
   }, {
-    "url": "assets/NetVimEditor-CaFhAgja.js",
+    "url": "assets/NetVimEditor-DHcM4V--.js",
     "revision": null
   }, {
-    "url": "assets/MonacoEditor-CUd5284l.js",
+    "url": "assets/MonacoEditor-C_-w_PqF.js",
     "revision": null
   }, {
     "url": "https://esm.sh/solid-js@2.0.0-experimental.15",
