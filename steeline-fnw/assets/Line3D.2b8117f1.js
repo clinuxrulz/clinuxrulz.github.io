@@ -1,0 +1,1 @@
+class r{get v1(){return this._v1}get v2(){return this._v2}constructor(t,e){this._v1=t,this._v2=e}static create(t,e){return new r(t,e)}length(){return this.v1.distance(this.v2)}lengthSquared(){return this.v1.distanceSquared(this.v2)}}export{r as L};

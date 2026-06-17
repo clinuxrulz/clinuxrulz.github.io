@@ -1,0 +1,9 @@
+{
+    "plugins": [
+        {
+            "displayName": "Shed Designer",
+            "moduleName": "online-quote",
+            "path": "../online-quote/online-quote.js"
+        }
+    ]
+}
