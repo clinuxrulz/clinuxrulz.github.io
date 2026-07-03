@@ -35883,7 +35883,7 @@ void main() {
         ], n = new Vi, r = new Vi;
         return function(o, a = null, c = null) {
             const l = a || c ? n : null;
-            if (this.intersectsTriangle(o, l)) return (a || c) && (a && l.getCenter(a), c && l.getCenter(c)), 0;
+            if (this.intersectsTriangle(o, l, !0)) return (a || c) && (a && l.getCenter(a), c && l.getCenter(c)), 0;
             let h = 1 / 0;
             for(let u = 0; u < 3; u++){
                 let d;
@@ -37494,10 +37494,13 @@ void main() {
         const { navigator: t } = i;
         if (t.userAgentData && t.userAgentData.brands) {
             const n = t.userAgentData.brands.find((r)=>r.brand === "Chromium");
-            if (n) return {
-                browser: "chrome",
-                version: parseInt(n.version, 10)
-            };
+            if (n) {
+                const r = parseInt(n.version, 10);
+                if (r >= 90) return {
+                    browser: "chrome",
+                    version: r
+                };
+            }
         }
         if (t.mozGetUserMedia) e.browser = "firefox", e.version = parseInt(m0(t.userAgent, /Firefox\/(\d+)\./, 1));
         else if (t.webkitGetUserMedia || i.isSecureContext === !1 && i.webkitRTCPeerConnection) e.browser = "chrome", e.version = parseInt(m0(t.userAgent, /Chrom(e|ium)\/(\d+)\./, 2)) || null;
@@ -37537,6 +37540,7 @@ void main() {
     }
     const yU = w2;
     function H$(i, e) {
+        if (e.version >= 64) return;
         const t = i && i.navigator;
         if (!t.mediaDevices) return;
         const n = function(a) {
@@ -37963,7 +37967,9 @@ void main() {
         value: "Module"
     }));
     function J$(i, e) {
-        const t = i && i.navigator, n = i && i.MediaStreamTrack;
+        const t = i && i.navigator;
+        if (!t.mediaDevices) return;
+        const n = i && i.MediaStreamTrack;
         if (t.getUserMedia = function(r, s, o) {
             b2("navigator.getUserMedia", "navigator.mediaDevices.getUserMedia"), t.mediaDevices.getUserMedia(r).then(s, o);
         }, !(e.version > 55 && "autoGainControl" in t.mediaDevices.getSupportedConstraints())) {
@@ -37990,7 +37996,7 @@ void main() {
         }
     }
     function Xae(i, e) {
-        i.navigator.mediaDevices && "getDisplayMedia" in i.navigator.mediaDevices || i.navigator.mediaDevices && (i.navigator.mediaDevices.getDisplayMedia = function(n) {
+        i.navigator.mediaDevices && (i.navigator.mediaDevices && "getDisplayMedia" in i.navigator.mediaDevices || (i.navigator.mediaDevices.getDisplayMedia = function(n) {
             if (!(n && n.video)) {
                 const r = new DOMException("getDisplayMedia without video constraints is undefined");
                 return r.name = "NotFoundError", r.code = 8, Promise.reject(r);
@@ -37998,7 +38004,7 @@ void main() {
             return n.video === !0 ? n.video = {
                 mediaSource: e
             } : n.video.mediaSource = e, i.navigator.mediaDevices.getUserMedia(n);
-        });
+        }));
     }
     function Q$(i) {
         typeof i == "object" && i.RTCTrackEvent && "receiver" in i.RTCTrackEvent.prototype && !("transceiver" in i.RTCTrackEvent.prototype) && Object.defineProperty(i.RTCTrackEvent.prototype, "transceiver", {
@@ -38088,59 +38094,59 @@ void main() {
     function i5(i) {
         i.DataChannel && !i.RTCDataChannel && (i.RTCDataChannel = i.DataChannel);
     }
-    function s5(i) {
-        if (!(typeof i == "object" && i.RTCPeerConnection)) return;
-        const e = i.RTCPeerConnection.prototype.addTransceiver;
-        e && (i.RTCPeerConnection.prototype.addTransceiver = function() {
+    function s5(i, e) {
+        if (!(typeof i == "object" && i.RTCPeerConnection) || e.version >= 110) return;
+        const t = i.RTCPeerConnection.prototype.addTransceiver;
+        t && (i.RTCPeerConnection.prototype.addTransceiver = function() {
             this.setParametersPromises = [];
-            let n = arguments[1] && arguments[1].sendEncodings;
-            n === void 0 && (n = []), n = [
-                ...n
+            let r = arguments[1] && arguments[1].sendEncodings;
+            r === void 0 && (r = []), r = [
+                ...r
             ];
-            const r = n.length > 0;
-            r && n.forEach((o)=>{
-                if ("rid" in o && !/^[a-z0-9]{0,16}$/i.test(o.rid)) throw new TypeError("Invalid RID value provided.");
-                if ("scaleResolutionDownBy" in o && !(parseFloat(o.scaleResolutionDownBy) >= 1)) throw new RangeError("scale_resolution_down_by must be >= 1.0");
-                if ("maxFramerate" in o && !(parseFloat(o.maxFramerate) >= 0)) throw new RangeError("max_framerate must be >= 0.0");
+            const s = r.length > 0;
+            s && r.forEach((a)=>{
+                if ("rid" in a && !/^[a-z0-9]{0,16}$/i.test(a.rid)) throw new TypeError("Invalid RID value provided.");
+                if ("scaleResolutionDownBy" in a && !(parseFloat(a.scaleResolutionDownBy) >= 1)) throw new RangeError("scale_resolution_down_by must be >= 1.0");
+                if ("maxFramerate" in a && !(parseFloat(a.maxFramerate) >= 0)) throw new RangeError("max_framerate must be >= 0.0");
             });
-            const s = e.apply(this, arguments);
-            if (r) {
-                const { sender: o } = s, a = o.getParameters();
-                (!("encodings" in a) || a.encodings.length === 1 && Object.keys(a.encodings[0]).length === 0) && (a.encodings = n, o.sendEncodings = n, this.setParametersPromises.push(o.setParameters(a).then(()=>{
-                    delete o.sendEncodings;
+            const o = t.apply(this, arguments);
+            if (s) {
+                const { sender: a } = o, c = a.getParameters();
+                (!("encodings" in c) || c.encodings.length === 1 && Object.keys(c.encodings[0]).length === 0) && (c.encodings = r, a.sendEncodings = r, this.setParametersPromises.push(a.setParameters(c).then(()=>{
+                    delete a.sendEncodings;
                 }).catch(()=>{
-                    delete o.sendEncodings;
+                    delete a.sendEncodings;
                 })));
             }
-            return s;
+            return o;
         });
     }
-    function o5(i) {
-        if (!(typeof i == "object" && i.RTCRtpSender)) return;
-        const e = i.RTCRtpSender.prototype.getParameters;
-        e && (i.RTCRtpSender.prototype.getParameters = function() {
-            const n = e.apply(this, arguments);
-            return "encodings" in n || (n.encodings = [].concat(this.sendEncodings || [
+    function o5(i, e) {
+        if (!(typeof i == "object" && i.RTCRtpSender) || e.version >= 110) return;
+        const t = i.RTCRtpSender.prototype.getParameters;
+        t && (i.RTCRtpSender.prototype.getParameters = function() {
+            const r = t.apply(this, arguments);
+            return "encodings" in r || (r.encodings = [].concat(this.sendEncodings || [
                 {}
-            ])), n;
+            ])), r;
         });
     }
-    function a5(i) {
-        if (!(typeof i == "object" && i.RTCPeerConnection)) return;
-        const e = i.RTCPeerConnection.prototype.createOffer;
+    function a5(i, e) {
+        if (!(typeof i == "object" && i.RTCPeerConnection) || e.version >= 110) return;
+        const t = i.RTCPeerConnection.prototype.createOffer;
         i.RTCPeerConnection.prototype.createOffer = function() {
-            return this.setParametersPromises && this.setParametersPromises.length ? Promise.all(this.setParametersPromises).then(()=>e.apply(this, arguments)).finally(()=>{
+            return this.setParametersPromises && this.setParametersPromises.length ? Promise.all(this.setParametersPromises).then(()=>t.apply(this, arguments)).finally(()=>{
                 this.setParametersPromises = [];
-            }) : e.apply(this, arguments);
+            }) : t.apply(this, arguments);
         };
     }
-    function c5(i) {
-        if (!(typeof i == "object" && i.RTCPeerConnection)) return;
-        const e = i.RTCPeerConnection.prototype.createAnswer;
+    function c5(i, e) {
+        if (!(typeof i == "object" && i.RTCPeerConnection) || e.version >= 110) return;
+        const t = i.RTCPeerConnection.prototype.createAnswer;
         i.RTCPeerConnection.prototype.createAnswer = function() {
-            return this.setParametersPromises && this.setParametersPromises.length ? Promise.all(this.setParametersPromises).then(()=>e.apply(this, arguments)).finally(()=>{
+            return this.setParametersPromises && this.setParametersPromises.length ? Promise.all(this.setParametersPromises).then(()=>t.apply(this, arguments)).finally(()=>{
                 this.setParametersPromises = [];
-            }) : e.apply(this, arguments);
+            }) : t.apply(this, arguments);
         };
     }
     const wU = Object.freeze(Object.defineProperty({
@@ -38742,7 +38748,7 @@ t=0 0\r
         });
     }
     function AT(i, e) {
-        if (!i.RTCPeerConnection) return;
+        if (!i.RTCPeerConnection || e.browser === "chrome" && e.version > 102 || e.browser === "firefox" && e.version >= 113) return;
         "sctp" in i.RTCPeerConnection.prototype || Object.defineProperty(i.RTCPeerConnection.prototype, "sctp", {
             get () {
                 return typeof this._sctp > "u" ? null : this._sctp;
@@ -38795,7 +38801,7 @@ t=0 0\r
         };
     }
     function ET(i, e) {
-        if (!(i.RTCPeerConnection && "createDataChannel" in i.RTCPeerConnection.prototype) || e.browser === "chrome" && e.version > 149 || e.browser === "firefox" && e.version > 60) return;
+        if (!(i.RTCPeerConnection && "createDataChannel" in i.RTCPeerConnection.prototype) || e.browser === "chrome" && e.version >= 149 || e.browser === "firefox" && e.version > 60) return;
         function t(r, s) {
             const o = r.send;
             r.send = function() {
@@ -38933,7 +38939,7 @@ a=extmap-allow-mixed`) !== -1) {
                 break;
             case "firefox":
                 if (!wU || !zN || !e.shimFirefox) return t("Firefox shim is not included in this adapter release."), r;
-                t("adapter.js shimming firefox."), r.browserShim = wU, CT(i, n), RT(i), J$(i, n), zN(i, n), e5(i, n), Q$(i), r5(i), t5(i), n5(i), i5(i), s5(i), o5(i), a5(i), c5(i), MT(i), GN(i), AT(i, n), ET(i, n);
+                t("adapter.js shimming firefox."), r.browserShim = wU, CT(i, n), RT(i), J$(i, n), zN(i, n), e5(i, n), Q$(i), r5(i), t5(i), n5(i), i5(i), s5(i, n), o5(i, n), a5(i, n), c5(i, n), MT(i), GN(i), AT(i, n), ET(i, n);
                 break;
             case "safari":
                 if (!bU || !e.shimSafari) return t("Safari shim is not included in this adapter release."), r;
@@ -70062,7 +70068,9 @@ Minimum version required to store current data is: ` + E + `.
                 masterState: Ri.IN_GAME
             });
         }, n = async ()=>{
-            let o = await (await fetch("./levels/test-level.melty-karts-level")).text();
+            let o = await (await fetch("./levels/test-level.melty-karts-level", {
+                cache: "no-cache"
+            })).text();
             Sve(i, e, o), e.setResource(Uo, {
                 masterState: Ri.IN_GAME_V2
             });
